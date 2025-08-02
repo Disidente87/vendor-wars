@@ -1,5 +1,5 @@
 {
-  "miniapp": {
+  "frame": {
     "version": "1",
     "name": "Vendor Wars",
     "iconUrl": "http://localhost:3000/icon.png",

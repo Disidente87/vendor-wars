@@ -32,13 +32,13 @@ export const metadata: Metadata = {
     images: ["/og-image.png"],
   },
   other: {
-    "fc:frame": JSON.stringify({
-      "version": "next",
+    "fc:miniapp": JSON.stringify({
+      "version": "1",
       "imageUrl": "http://localhost:3000/og-image.png",
       "button": {
         "title": "⚔️ Start Battle",
         "action": {
-          "type": "launch_miniapp",
+          "type": "launch_frame",
           "name": "Vendor Wars",
           "url": "http://localhost:3000",
           "splashImageUrl": "http://localhost:3000/og-image.png",

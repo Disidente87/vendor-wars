@@ -1,5 +1,5 @@
 'use client'
-import { Suspense } from 'react'
+import { Suspense, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -258,6 +258,21 @@ function CTAFooter() {
 
 export default function HomePage() {
   const { isSDKLoaded, context } = useMiniApp();
+
+  useEffect(() => {
+    const load = async () => {
+      if (isSDKLoaded) {
+        try {
+          const { sdk } = await import('@farcaster/miniapp-sdk');
+          await sdk.actions.ready();
+          console.log('Mini App SDK ready');
+        } catch (error) {
+          console.error('Error initializing SDK:', error);
+        }
+      }
+    };
+    load();
+  }, [isSDKLoaded]);
 
   return (
     <main className="min-h-screen">
