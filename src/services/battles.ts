@@ -1,5 +1,7 @@
-import type { Battle, BattleStatus, Vendor, Vote, User, PaginationParams, PaginatedResponse } from '@/types'
-import { generateBattleId, FARCASTER_CONFIG } from '@/lib/utils'
+import type { Battle, Vendor, Vote, User, PaginationParams, PaginatedResponse } from '@/types'
+import { BattleStatus } from '@/types'
+import { generateBattleId } from '@/lib/utils'
+import { FARCASTER_CONFIG } from '@/config/farcaster'
 
 // In-memory storage for demo purposes
 // In production, this would be replaced with a database
@@ -22,12 +24,15 @@ export class BattleService {
       challenger: data.challenger,
       opponent: data.opponent,
       category: data.category as any,
+      zone: data.challenger.zone || '',
       status: BattleStatus.ACTIVE,
       startDate: now,
       endDate,
       votes: [],
       totalVotes: 0,
+      verifiedVotes: 0,
       description: data.description,
+      territoryImpact: false,
     }
 
     battles.set(id, battle)
@@ -117,6 +122,9 @@ export class BattleService {
       votedFor: data.votedFor,
       createdAt: new Date(),
       reason: data.reason,
+      isVerified: false,
+      tokenReward: FARCASTER_CONFIG.FEATURES.BASE_VOTE_TOKENS,
+      multiplier: 1,
     }
 
     votes.set(vote.id, vote)
@@ -162,7 +170,7 @@ export class BattleService {
     const updatedBattle: Battle = {
       ...battle,
       status: BattleStatus.COMPLETED,
-      winner,
+      winner: winner || undefined,
       endDate: new Date(),
     }
 

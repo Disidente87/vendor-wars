@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { VendorService } from '@/services/vendors'
 import { FarcasterService } from '@/services/farcaster'
+import { VendorCategory } from '@/types'
 import { z } from 'zod'
 
 const createVendorSchema = z.object({
   name: z.string().min(3).max(50),
   description: z.string().min(10).max(500),
   imageUrl: z.string().url(),
-  category: z.enum(['food', 'tech', 'fashion', 'health', 'entertainment', 'other']),
+  category: z.nativeEnum(VendorCategory),
   ownerFid: z.number(),
 })
 

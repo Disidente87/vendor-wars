@@ -100,4 +100,31 @@ export function throttle<T extends (...args: any[]) => any>(
       setTimeout(() => (inThrottle = false), limit)
     }
   }
+}
+
+// Farcaster configuration
+export const FARCASTER_CONFIG = {
+  APP_NAME: "Vendor Wars",
+  APP_DESCRIPTION: "Battle of the best street food vendors in CDMX!",
+  APP_URL: process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
+}
+
+// Farcaster domain manifest
+export function getFarcasterDomainManifest() {
+  return {
+    name: FARCASTER_CONFIG.APP_NAME,
+    description: FARCASTER_CONFIG.APP_DESCRIPTION,
+    icon: `${FARCASTER_CONFIG.APP_URL}/icon.png`,
+    appUrl: FARCASTER_CONFIG.APP_URL,
+  }
+}
+
+// Mini app embed metadata
+export function getMiniAppEmbedMetadata(fid: number) {
+  return {
+    title: `${FARCASTER_CONFIG.APP_NAME} - User ${fid}`,
+    description: FARCASTER_CONFIG.APP_DESCRIPTION,
+    image: `${FARCASTER_CONFIG.APP_URL}/api/opengraph-image?fid=${fid}`,
+    url: `${FARCASTER_CONFIG.APP_URL}/share/${fid}`,
+  }
 } 

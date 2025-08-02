@@ -1,6 +1,5 @@
 'use client'
 
-import { Frame } from '@coinbase/onchainkit'
 import { Button } from '@/components/ui/button'
 import { Sword, Trophy, Users } from 'lucide-react'
 
@@ -24,38 +23,32 @@ export function FarcasterFrame({
   postUrl 
 }: FarcasterFrameProps) {
   return (
-    <Frame
-      image={imageUrl}
-      buttons={buttons}
-      postUrl={postUrl}
-    >
-      <div className="p-6 text-center">
-        <div className="flex justify-center mb-4">
-          <div className="flex items-center justify-center w-16 h-16 bg-gradient-to-r from-orange-500 to-red-500 rounded-full">
-            <Sword className="h-8 w-8 text-white" />
-          </div>
-        </div>
-        
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">
-          {title}
-        </h1>
-        
-        <p className="text-gray-600 mb-6">
-          {description}
-        </p>
-        
-        <div className="flex justify-center space-x-4">
-          <div className="flex items-center space-x-2 text-sm text-gray-500">
-            <Users className="h-4 w-4" />
-            <span>Join the battle</span>
-          </div>
-          <div className="flex items-center space-x-2 text-sm text-gray-500">
-            <Trophy className="h-4 w-4" />
-            <span>Earn tokens</span>
-          </div>
+    <div className="p-6 text-center">
+      <div className="flex justify-center mb-4">
+        <div className="flex items-center justify-center w-16 h-16 bg-gradient-to-r from-orange-500 to-red-500 rounded-full">
+          <Sword className="h-8 w-8 text-white" />
         </div>
       </div>
-    </Frame>
+      
+      <h1 className="text-2xl font-bold text-gray-900 mb-2">
+        {title}
+      </h1>
+      
+      <p className="text-gray-600 mb-6">
+        {description}
+      </p>
+      
+      <div className="flex justify-center space-x-4">
+        <div className="flex items-center space-x-2 text-sm text-gray-500">
+          <Users className="h-4 w-4" />
+          <span>Join the battle</span>
+        </div>
+        <div className="flex items-center space-x-2 text-sm text-gray-500">
+          <Trophy className="h-4 w-4" />
+          <span>Earn tokens</span>
+        </div>
+      </div>
+    </div>
   )
 }
 

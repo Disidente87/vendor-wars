@@ -26,6 +26,8 @@ export async function GET(request: NextRequest) {
       totalBattles: vendor.stats.totalBattles,
       winRate: vendor.stats.winRate,
       totalRevenue: vendor.stats.totalRevenue,
+      territoryDefenses: vendor.stats.territoryDefenses,
+      zone: vendor.zone,
     }))
 
     // Sort based on type

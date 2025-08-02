@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { BattleService } from '@/services/battles'
 import { z } from 'zod'
+import type { User } from '@/types'
 
 const voteSchema = z.object({
   voterFid: z.number(),
@@ -9,11 +10,18 @@ const voteSchema = z.object({
 })
 
 export async function GET(
-  request: NextRequest,
-  { params }: { params: { id: string } }
+  request: NextRequest
 ) {
+  const id = request.nextUrl.pathname.split('/').pop()
+  
+  if (!id) {
+    return NextResponse.json(
+      { success: false, error: 'Battle ID is required' },
+      { status: 400 }
+    )
+  }
   try {
-    const battle = await BattleService.getBattle(params.id)
+    const battle = await BattleService.getBattle(id)
     
     if (!battle) {
       return NextResponse.json(
@@ -22,8 +30,8 @@ export async function GET(
       )
     }
 
-    const stats = await BattleService.getBattleStats(params.id)
-    const votes = await BattleService.getVotesForBattle(params.id)
+    const stats = await BattleService.getBattleStats(id)
+    const votes = await BattleService.getVotesForBattle(id)
 
     return NextResponse.json({ 
       success: true, 
@@ -43,9 +51,16 @@ export async function GET(
 }
 
 export async function POST(
-  request: NextRequest,
-  { params }: { params: { id: string } }
+  request: NextRequest
 ) {
+  const id = request.nextUrl.pathname.split('/').pop()
+  
+  if (!id) {
+    return NextResponse.json(
+      { success: false, error: 'Battle ID is required' },
+      { status: 400 }
+    )
+  }
   try {
     const body = await request.json()
     const action = body.action
@@ -54,7 +69,7 @@ export async function POST(
       const voteData = voteSchema.parse(body)
       
       // Get voter from Farcaster (this would need to be implemented)
-      const voter = {
+      const voter: User = {
         fid: voteData.voterFid,
         username: 'user',
         displayName: 'User',
@@ -63,9 +78,16 @@ export async function POST(
         followingCount: 0,
         bio: '',
         verifiedAddresses: [],
+        battleTokens: 100,
+        credibilityScore: 50,
+        verifiedPurchases: 0,
+        credibilityTier: 'bronze',
+        voteStreak: 0,
+        weeklyVoteCount: 0,
+        weeklyTerritoryBonus: 0,
       }
 
-      const battle = await BattleService.getBattle(params.id)
+      const battle = await BattleService.getBattle(id)
       if (!battle) {
         return NextResponse.json(
           { success: false, error: 'Battle not found' },
@@ -87,7 +109,7 @@ export async function POST(
       }
 
       const vote = await BattleService.vote({
-        battleId: params.id,
+        battleId: id,
         voter,
         votedFor,
         reason: voteData.reason,
@@ -104,7 +126,7 @@ export async function POST(
     }
 
     if (action === 'complete') {
-      const completedBattle = await BattleService.completeBattle(params.id)
+      const completedBattle = await BattleService.completeBattle(id)
       
       if (!completedBattle) {
         return NextResponse.json(
@@ -126,7 +148,7 @@ export async function POST(
         )
       }
 
-      const cancelledBattle = await BattleService.cancelBattle(params.id, requesterFid)
+      const cancelledBattle = await BattleService.cancelBattle(id, requesterFid)
       
       if (!cancelledBattle) {
         return NextResponse.json(

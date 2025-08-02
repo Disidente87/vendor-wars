@@ -1,20 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { VendorService } from '@/services/vendors'
 import { z } from 'zod'
+import { VendorCategory } from '@/types'
 
 const updateVendorSchema = z.object({
   name: z.string().min(3).max(50).optional(),
   description: z.string().min(10).max(500).optional(),
   imageUrl: z.string().url().optional(),
-  category: z.enum(['food', 'tech', 'fashion', 'health', 'entertainment', 'other']).optional(),
+  category: z.nativeEnum(VendorCategory).optional(),
 })
 
 export async function GET(
-  request: NextRequest,
-  { params }: { params: { id: string } }
+  request: NextRequest
 ) {
+  const id = request.nextUrl.pathname.split('/').pop()
+  
+  if (!id) {
+    return NextResponse.json(
+      { success: false, error: 'Vendor ID is required' },
+      { status: 400 }
+    )
+  }
   try {
-    const vendor = await VendorService.getVendor(params.id)
+    const vendor = await VendorService.getVendor(id)
     
     if (!vendor) {
       return NextResponse.json(
@@ -34,9 +42,16 @@ export async function GET(
 }
 
 export async function PUT(
-  request: NextRequest,
-  { params }: { params: { id: string } }
+  request: NextRequest
 ) {
+  const id = request.nextUrl.pathname.split('/').pop()
+  
+  if (!id) {
+    return NextResponse.json(
+      { success: false, error: 'Vendor ID is required' },
+      { status: 400 }
+    )
+  }
   try {
     const body = await request.json()
     const validatedData = updateVendorSchema.parse(body)
@@ -49,7 +64,7 @@ export async function PUT(
       )
     }
 
-    const vendor = await VendorService.getVendor(params.id)
+    const vendor = await VendorService.getVendor(id)
     if (!vendor) {
       return NextResponse.json(
         { success: false, error: 'Vendor not found' },
@@ -64,7 +79,7 @@ export async function PUT(
       )
     }
 
-    const updatedVendor = await VendorService.updateVendor(params.id, validatedData)
+    const updatedVendor = await VendorService.updateVendor(id, validatedData)
     
     if (!updatedVendor) {
       return NextResponse.json(
@@ -91,9 +106,16 @@ export async function PUT(
 }
 
 export async function DELETE(
-  request: NextRequest,
-  { params }: { params: { id: string } }
+  request: NextRequest
 ) {
+  const id = request.nextUrl.pathname.split('/').pop()
+  
+  if (!id) {
+    return NextResponse.json(
+      { success: false, error: 'Vendor ID is required' },
+      { status: 400 }
+    )
+  }
   try {
     const { searchParams } = new URL(request.url)
     const ownerFid = searchParams.get('ownerFid')
@@ -105,7 +127,7 @@ export async function DELETE(
       )
     }
 
-    const success = await VendorService.deleteVendor(params.id, parseInt(ownerFid))
+    const success = await VendorService.deleteVendor(id, parseInt(ownerFid))
     
     if (!success) {
       return NextResponse.json(
