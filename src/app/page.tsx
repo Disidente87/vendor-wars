@@ -1,9 +1,11 @@
+'use client'
 import { Suspense } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { FARCASTER_CONFIG } from '@/config/farcaster'
 import { Sword, Trophy, Users, TrendingUp, Zap, Target, MapPin, Globe } from 'lucide-react'
+import { useMiniApp } from '@neynar/react'
 
 function HeroSection() {
   return (
@@ -255,9 +257,16 @@ function CTAFooter() {
 }
 
 export default function HomePage() {
+  const { isSDKLoaded, context } = useMiniApp();
+
   return (
     <main className="min-h-screen">
       <Suspense fallback={<div>Loading...</div>}>
+        {isSDKLoaded && (
+          <div className="fixed top-4 right-4 bg-green-500 text-white px-3 py-1 rounded-full text-sm z-50">
+            Mini App Ready
+          </div>
+        )}
         <HeroSection />
         <StatsSection />
         <BattleZonesSection />

@@ -2,6 +2,7 @@ import type { Metadata } from "next"
 import { Geist, Geist_Mono } from "next/font/google"
 import "./globals.css"
 import { Navigation } from "@/components/navigation"
+import { MiniAppWrapper } from "@/components/MiniAppWrapper"
 
 const geist = Geist({
   variable: "--font-geist-sans",
@@ -30,6 +31,22 @@ export const metadata: Metadata = {
     description: "Battle of the vendors - who will reign supreme?",
     images: ["/og-image.png"],
   },
+  other: {
+    "fc:frame": JSON.stringify({
+      "version": "next",
+      "imageUrl": "http://localhost:3000/og-image.png",
+      "button": {
+        "title": "⚔️ Start Battle",
+        "action": {
+          "type": "launch_miniapp",
+          "name": "Vendor Wars",
+          "url": "http://localhost:3000",
+          "splashImageUrl": "http://localhost:3000/og-image.png",
+          "splashBackgroundColor": "#f97316"
+        }
+      }
+    }),
+  },
 }
 
 export default function RootLayout({
@@ -42,10 +59,12 @@ export default function RootLayout({
       <body
         className={`${geist.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
       >
-        <div className="relative flex min-h-screen flex-col">
-          <Navigation />
-          <div className="flex-1">{children}</div>
-        </div>
+        <MiniAppWrapper>
+          <div className="relative flex min-h-screen flex-col">
+            <Navigation />
+            <div className="flex-1">{children}</div>
+          </div>
+        </MiniAppWrapper>
       </body>
     </html>
   )
