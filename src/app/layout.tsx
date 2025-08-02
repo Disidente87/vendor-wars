@@ -34,14 +34,14 @@ export const metadata: Metadata = {
   other: {
     "fc:miniapp": JSON.stringify({
       "version": "1",
-      "imageUrl": "http://localhost:3000/og-image.png",
+      "imageUrl": "https://vendor-wars.vercel.app/og-image.png",
       "button": {
         "title": "⚔️ Start Battle",
         "action": {
           "type": "launch_frame",
           "name": "Vendor Wars",
-          "url": "http://localhost:3000",
-          "splashImageUrl": "http://localhost:3000/og-image.png",
+          "url": "https://vendor-wars.vercel.app",
+          "splashImageUrl": "https://vendor-wars.vercel.app/og-image.png",
           "splashBackgroundColor": "#f97316"
         }
       }

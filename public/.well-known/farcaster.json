@@ -2,13 +2,13 @@
   "frame": {
     "version": "1",
     "name": "Vendor Wars",
-    "iconUrl": "http://localhost:3000/icon.png",
-    "homeUrl": "http://localhost:3000",
-    "imageUrl": "http://localhost:3000/og-image.png",
+    "iconUrl": "https://vendor-wars.vercel.app/icon.png",
+    "homeUrl": "https://vendor-wars.vercel.app",
+    "imageUrl": "https://vendor-wars.vercel.app/og-image.png",
     "buttonTitle": "⚔️ Start Battle",
-    "splashImageUrl": "http://localhost:3000/og-image.png",
+    "splashImageUrl": "https://vendor-wars.vercel.app/og-image.png",
     "splashBackgroundColor": "#f97316",
-    "webhookUrl": "http://localhost:3000/api/webhook",
+    "webhookUrl": "https://vendor-wars.vercel.app/api/webhook",
     "description": "Battle of the vendors - who will reign supreme?",
     "keywords": ["farcaster", "miniapp", "vendor", "battle", "competition", "food", "latam"]
   }
