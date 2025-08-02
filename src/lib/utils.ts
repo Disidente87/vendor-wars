@@ -106,7 +106,7 @@ export function throttle<T extends (...args: any[]) => any>(
 export const FARCASTER_CONFIG = {
   APP_NAME: "Vendor Wars",
   APP_DESCRIPTION: "Battle of the best street food vendors in CDMX!",
-  APP_URL: process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
+  APP_URL: process.env.NEXT_PUBLIC_APP_URL || "https://vendor-wars.vercel.app",
 }
 
 // Farcaster domain manifest
