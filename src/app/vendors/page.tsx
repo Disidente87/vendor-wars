@@ -1,221 +1,231 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { FARCASTER_CONFIG } from '@/config/farcaster'
-import { formatNumber, formatDate } from '@/lib/utils'
-import { Search, Filter, Trophy, Users, TrendingUp } from 'lucide-react'
-import type { Vendor, VendorCategory } from '@/types'
+import { 
+  ArrowLeft, 
+  Map, 
+  List, 
+  User, 
+  Users 
+} from 'lucide-react'
+import { VoteResultModal } from '@/components/VoteResultModal'
+
+interface Vendor {
+  id: string
+  name: string
+  description: string
+  imageUrl: string
+  zone: string
+}
 
 export default function VendorsPage() {
-  const [vendors, setVendors] = useState<Vendor[]>([])
-  const [loading, setLoading] = useState(true)
-  const [searchQuery, setSearchQuery] = useState('')
-  const [selectedCategory, setSelectedCategory] = useState<VendorCategory | 'all'>('all')
-  const [sortBy, setSortBy] = useState<'name' | 'winRate' | 'totalBattles' | 'createdAt'>('winRate')
+  const router = useRouter()
+  const [showVoteModal, setShowVoteModal] = useState(false)
+  const [voteResult, setVoteResult] = useState<{
+    vendor: Vendor
+    battleTokens: number
+    isVerified: boolean
+  } | null>(null)
 
-  useEffect(() => {
-    fetchVendors()
-  }, [])
-
-  const fetchVendors = async () => {
-    try {
-      setLoading(true)
-      const response = await fetch('/api/vendors')
-      const result = await response.json()
-      
-      if (result.success) {
-        setVendors(result.data.data || result.data)
+  // Mock vendors data grouped by zone
+  const vendorsByZone: Record<string, Vendor[]> = {
+    'La Paz': [
+      {
+        id: '1',
+        name: 'Tacos Lupita',
+        description: 'Authentic street tacos with homemade tortillas',
+        imageUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDpi0Qxv3Y2ZffYYKy8Gkm6bfw5ZTL6D8JaLbYgh1DpuL5qZIrzhVtobtKKIbqqTpY03WfAIC0Vz_1fDH2LryuYH2hiE7IBH3cf69jW9F6ShsaI74kboXBUXKNVqH5Azxl3GXvifhRAuVVK4pP5xqoRyCISgbmvUWMn-iWT4bYQbqOmp_SOeBWVJqRYQ0MCuBsGauYs4nZi9gyqZHtoR3X4QsUkb-sOcwIbbJQoBNqIPoL5RXQTq21SE0vXGEkzyse-UfOP1hKiOgFD',
+        zone: 'La Paz'
+      },
+      {
+        id: '2',
+        name: 'Empanadas Doña María',
+        description: 'Traditional empanadas with secret family recipe',
+        imageUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCrcqzIrczhjEy_VnXcULjwkuj8gIV6SmfXdkHSFe0RXLFJEWWDJEaXM_oSWAN3KBonPkCUSK6iiat_vUXEVXxCCPKQyhpgopbrrtiv2xg4uvhiV41hecnJRnZpoJfcYENBF0fiVl2Crsiakr4m_3OA-ceYpiD49wuC-5b4YMgPz2_YTZPZwZ0dDlQNc_EEvnG0bwEf-4Dfl2wRVKk_qj7njlGNQBmj6F04T-lskea2OwpUzXmSu3jeRR2jwv3TumlRaAMU2mCSn7Dt',
+        zone: 'La Paz'
       }
-    } catch (error) {
-      console.error('Error fetching vendors:', error)
-    } finally {
-      setLoading(false)
-    }
+    ],
+    'La Condesa': [
+      {
+        id: '3',
+        name: 'Churros El Rey',
+        description: 'Fresh churros with chocolate dipping sauce',
+        imageUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDBBHG7wNe06YgItxPYtZrNfkW6uWauEIBDkXy3s-W53gEsDkUcbvr3OFiSnOlp3GKzbxLZ8_V_pfT3dm5pcTGj6jFy_gJjbjI9SAajpWlMzkn2FmlKrhBvRCUHzOR4OmQYr9UQNdROBkbARobU3qanZ8lMp1qYAOd-bwEsYwFw-OawnXGfFtSVVfeJiNICjyKYgxZcVHjbqP98Kba0QtbyagHgYlw1JtBnO6WGpkonU5ok6X8LHmle8HGhVl_ExHvDqYO4I9F7JJ4y',
+        zone: 'La Condesa'
+      }
+    ],
+    'La Roma': [
+      {
+        id: '4',
+        name: 'Tamales Abuela Rosa',
+        description: 'Homemade tamales with love and tradition',
+        imageUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDXGXdNUtj6vd_bmhqcmsrd1mknTagtl29KZLj5ULoBd3TnSKhcxU5J2PQwH1em-WeHUNzQqSSG-1mzx7f8KvFm4x8XY7XjWF2shs2oqZIl8q6J2UpclNQhotZ_a9X6hqlOtt4wGXTLv15Vpp4pqFuYPVwbczwQcL_UyzWihryoPtBHhaMPnPDJiYAw5XAFhT7ZqPgpTMbepWIM7bfgNUZNW_3U887dnKSNFiHY6fW_BrRTucBPHWN4SVMgI5ffQj_ATVyWNBPTna9q',
+        zone: 'La Roma'
+      }
+    ]
   }
 
-  const filteredVendors = vendors
-    .filter(vendor => {
-      const matchesSearch = vendor.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          vendor.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          vendor.owner.displayName.toLowerCase().includes(searchQuery.toLowerCase())
-      
-      const matchesCategory = selectedCategory === 'all' || vendor.category === selectedCategory
-      
-      return matchesSearch && matchesCategory
+  const handleVote = (vendor: Vendor, isVerified: boolean = false) => {
+    // Add haptic feedback
+    if (typeof window !== 'undefined' && 'navigator' in window && 'vibrate' in navigator) {
+      navigator.vibrate(100)
+    }
+    
+    const battleTokens = isVerified ? Math.floor(Math.random() * 50) + 50 : Math.floor(Math.random() * 30) + 20
+    
+    setVoteResult({
+      vendor,
+      battleTokens,
+      isVerified
     })
-    .sort((a, b) => {
-      switch (sortBy) {
-        case 'name':
-          return a.name.localeCompare(b.name)
-        case 'winRate':
-          return b.stats.winRate - a.stats.winRate
-        case 'totalBattles':
-          return b.stats.totalBattles - a.stats.totalBattles
-        case 'createdAt':
-          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-        default:
-          return 0
-      }
-    })
+    setShowVoteModal(true)
+  }
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading vendors...</p>
-        </div>
-      </div>
-    )
+  const handleCloseVoteModal = () => {
+    setShowVoteModal(false)
+    setVoteResult(null)
+  }
+
+  const handleAddVendor = () => {
+    // Add haptic feedback
+    if (typeof window !== 'undefined' && 'navigator' in window && 'vibrate' in navigator) {
+      navigator.vibrate(100)
+    }
+    router.push('/vendors/register')
+  }
+
+  const handleVendorClick = (vendorId: string) => {
+    // Add haptic feedback
+    if (typeof window !== 'undefined' && 'navigator' in window && 'vibrate' in navigator) {
+      navigator.vibrate(50)
+    }
+    router.push(`/vendors/${vendorId}`)
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="text-center">
-            <h1 className="text-3xl font-bold text-gray-900 sm:text-4xl">
-              Vendor Directory
-            </h1>
-            <p className="mt-4 text-lg text-gray-600">
-              Discover and connect with vendors from all categories
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Filters */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-8">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            {/* Search */}
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-              <input
-                type="text"
-                placeholder="Search vendors..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-              />
-            </div>
-
-            {/* Category Filter */}
-            <select
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value as VendorCategory | 'all')}
-              className="px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-            >
-              <option value="all">All Categories</option>
-              {FARCASTER_CONFIG.CATEGORIES.map((category) => (
-                <option key={category.id} value={category.id}>
-                  {category.name}
-                </option>
-              ))}
-            </select>
-
-            {/* Sort By */}
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as any)}
-              className="px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-            >
-              <option value="winRate">Sort by Win Rate</option>
-              <option value="totalBattles">Sort by Total Battles</option>
-              <option value="name">Sort by Name</option>
-              <option value="createdAt">Sort by Newest</option>
-            </select>
-
-            {/* Results Count */}
-            <div className="flex items-center justify-center text-sm text-gray-600">
-              {filteredVendors.length} vendor{filteredVendors.length !== 1 ? 's' : ''} found
-            </div>
-          </div>
+    <div
+      className="relative flex size-full min-h-screen flex-col bg-white justify-between group/design-root overflow-x-hidden"
+      style={{ fontFamily: '"Plus Jakarta Sans", "Noto Sans", sans-serif' }}
+    >
+      <div className="flex-1">
+        {/* Header */}
+        <div className="flex items-center bg-white p-4 pb-2 justify-between">
+          <button
+            onClick={() => router.back()}
+            className="text-[#181511] flex size-12 shrink-0 items-center hover:bg-gray-100 rounded-full transition-colors touch-manipulation active:scale-95"
+          >
+            <ArrowLeft className="h-6 w-6" />
+          </button>
+          <h2 className="text-[#181511] text-lg font-bold leading-tight tracking-[-0.015em] flex-1 text-center pr-12">
+            Vendors
+          </h2>
         </div>
 
-        {/* Vendors Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredVendors.map((vendor) => (
-            <Card key={vendor.id} className="hover:shadow-lg transition-shadow cursor-pointer">
-              <CardHeader className="pb-4">
-                <div className="flex items-center space-x-4">
-                  <Avatar className="h-12 w-12">
-                    <AvatarImage src={vendor.imageUrl} alt={vendor.name} />
-                    <AvatarFallback>{vendor.name.charAt(0)}</AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1 min-w-0">
-                    <CardTitle className="text-lg truncate">{vendor.name}</CardTitle>
-                    <CardDescription className="truncate">
-                      by @{vendor.owner.username}
-                    </CardDescription>
+        {/* Add New Vendor Button */}
+        <div className="flex px-4 py-3 justify-center">
+          <Button
+            onClick={handleAddVendor}
+            className="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-full h-12 px-5 bg-[#f2920c] text-[#181511] text-base font-bold leading-normal tracking-[0.015em] hover:bg-[#e0850b] active:scale-95 transition-transform touch-manipulation"
+            style={{ minHeight: '48px' }}
+          >
+            <span className="truncate">+ Add New Vendor</span>
+          </Button>
+        </div>
+
+        {/* Vendors by Zone */}
+        {Object.entries(vendorsByZone).map(([zone, zoneVendors]) => (
+          <div key={zone}>
+            <h2 className="text-[#181511] text-[22px] font-bold leading-tight tracking-[-0.015em] px-4 pb-3 pt-5">
+              {zone}
+            </h2>
+            
+            {zoneVendors.map((vendor) => (
+              <div 
+                key={vendor.id} 
+                className="flex items-center gap-4 bg-white px-4 min-h-[72px] py-2 justify-between hover:bg-gray-50 transition-colors touch-manipulation active:bg-gray-100"
+                style={{ minHeight: '72px' }}
+              >
+                <div 
+                  className="flex items-center gap-4 flex-1"
+                  onClick={() => handleVendorClick(vendor.id)}
+                >
+                  <div
+                    className="bg-center bg-no-repeat aspect-square bg-cover rounded-lg size-14"
+                    style={{
+                      backgroundImage: `url("${vendor.imageUrl}")`
+                    }}
+                  />
+                  <div className="flex flex-col justify-center flex-1">
+                    <p className="text-[#181511] text-base font-medium leading-normal line-clamp-1">
+                      {vendor.name}
+                    </p>
+                    <p className="text-[#8a7860] text-sm font-normal leading-normal line-clamp-2">
+                      {vendor.description}
+                    </p>
                   </div>
                 </div>
-              </CardHeader>
-              
-              <CardContent>
-                <p className="text-sm text-gray-600 mb-4 line-clamp-2">
-                  {vendor.description}
-                </p>
-                
-                <div className="flex items-center justify-between mb-4">
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
-                    {FARCASTER_CONFIG.CATEGORIES.find(c => c.id === vendor.category)?.name}
-                  </span>
-                  <span className="text-xs text-gray-500">
-                    Created {formatDate(vendor.createdAt)}
-                  </span>
-                </div>
-                
-                <div className="grid grid-cols-3 gap-4 text-center">
-                  <div>
-                    <div className="text-lg font-semibold text-purple-600">
-                      {vendor.stats.winRate}%
-                    </div>
-                    <div className="text-xs text-gray-500">Win Rate</div>
-                  </div>
-                  <div>
-                    <div className="text-lg font-semibold text-blue-600">
-                      {vendor.stats.totalBattles}
-                    </div>
-                    <div className="text-xs text-gray-500">Battles</div>
-                  </div>
-                  <div>
-                    <div className="text-lg font-semibold text-green-600">
-                      {formatNumber(vendor.stats.totalRevenue)}
-                    </div>
-                    <div className="text-xs text-gray-500">Revenue</div>
-                  </div>
-                </div>
-                
-                <div className="mt-4 flex space-x-2">
-                  <Button size="sm" className="flex-1">
-                    View Profile
-                  </Button>
-                  <Button size="sm" variant="outline">
-                    Challenge
+                <div className="shrink-0">
+                  <Button
+                    onClick={() => handleVote(vendor, false)}
+                    className="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-full h-8 px-4 bg-[#f5f3f0] text-[#181511] text-sm font-medium leading-normal w-fit hover:bg-[#ebe8e4] active:scale-95 transition-transform touch-manipulation"
+                    style={{ minHeight: '32px' }}
+                  >
+                    <span className="truncate">Support</span>
                   </Button>
                 </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
-        {filteredVendors.length === 0 && (
-          <div className="text-center py-12">
-            <div className="text-gray-400 mb-4">
-              <Users className="h-12 w-12 mx-auto" />
-            </div>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No vendors found</h3>
-            <p className="text-gray-600">
-              Try adjusting your search or filter criteria
-            </p>
+              </div>
+            ))}
           </div>
-        )}
+        ))}
       </div>
+
+      {/* Bottom Navigation */}
+      <div>
+        <div className="flex gap-2 border-t border-[#f5f3f0] bg-white px-4 pb-3 pt-2">
+          <button
+            onClick={() => router.push('/map')}
+            className="flex flex-1 flex-col items-center justify-end gap-1 text-[#8a7960] hover:text-[#181511] transition-colors"
+          >
+            <Map className="h-8 w-8" />
+            <p className="text-xs font-medium leading-normal tracking-[0.015em]">Map</p>
+          </button>
+          
+          <button className="flex flex-1 flex-col items-center justify-end gap-1 rounded-full text-[#181511]">
+            <List className="h-8 w-8" />
+            <p className="text-xs font-medium leading-normal tracking-[0.015em]">Vendors</p>
+          </button>
+          
+          <button
+            onClick={() => router.push('/profile')}
+            className="flex flex-1 flex-col items-center justify-end gap-1 text-[#8a7960] hover:text-[#181511] transition-colors"
+          >
+            <User className="h-8 w-8" />
+            <p className="text-xs font-medium leading-normal tracking-[0.015em]">Profile</p>
+          </button>
+          
+          <button
+            onClick={() => router.push('/leaderboard')}
+            className="flex flex-1 flex-col items-center justify-end gap-1 text-[#8a7960] hover:text-[#181511] transition-colors"
+          >
+            <Users className="h-8 w-8" />
+            <p className="text-xs font-medium leading-normal tracking-[0.015em]">Social</p>
+          </button>
+        </div>
+        <div className="h-5 bg-white" />
+      </div>
+
+      {/* Vote Result Modal */}
+      {voteResult && (
+        <VoteResultModal
+          isOpen={showVoteModal}
+          onClose={handleCloseVoteModal}
+          vendor={voteResult.vendor}
+          battleTokens={voteResult.battleTokens}
+          isVerified={voteResult.isVerified}
+        />
+      )}
     </div>
   )
 } 

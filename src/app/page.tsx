@@ -1,262 +1,11 @@
 'use client'
 import { Suspense, useEffect } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { FARCASTER_CONFIG } from '@/config/farcaster'
-import { Sword, Trophy, Users, TrendingUp, Zap, Target, MapPin, Globe } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 import { useMiniApp } from '@neynar/react'
 
-function HeroSection() {
-  return (
-    <section className="relative overflow-hidden bg-gradient-to-br from-orange-900 via-red-900 to-yellow-900 text-white">
-      <div className="absolute inset-0 bg-black/20" />
-      <div className="relative mx-auto max-w-7xl px-4 py-24 sm:px-6 lg:px-8">
-        <div className="text-center">
-          <div className="flex justify-center mb-6">
-            <div className="flex items-center space-x-2 bg-white/10 backdrop-blur-sm rounded-full px-6 py-3">
-              <Sword className="h-6 w-6 text-yellow-400" />
-              <span className="text-lg font-semibold">Vendor Wars</span>
-            </div>
-          </div>
-          
-          <h1 className="text-4xl font-bold tracking-tight sm:text-6xl lg:text-7xl">
-            Fight for Your
-            <span className="block text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-orange-500">
-              Local Shop
-            </span>
-          </h1>
-          
-          <p className="mx-auto mt-6 max-w-2xl text-xl text-gray-300">
-            Transform your pupusa purchases into territorial battles. Support local vendors, earn $BATTLE tokens, and become a neighborhood hero in the ultimate LATAM food culture competition.
-          </p>
-          
-          <div className="mt-10 flex flex-col sm:flex-row gap-4 justify-center">
-            <Button className="bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-black font-bold px-8 py-3 text-lg">
-              <Zap className="mr-2 h-5 w-5" />
-              Start Battle
-            </Button>
-            <Button className="border-white/20 text-white hover:bg-white/10 px-8 py-3 text-lg">
-              <Trophy className="mr-2 h-5 w-5" />
-              View Leaderboard
-            </Button>
-          </div>
-        </div>
-      </div>
-    </section>
-  )
-}
-
-function StatsSection() {
-  const stats = [
-    { label: 'Active Battles', value: '24', icon: Target },
-    { label: 'Local Vendors', value: '1,234', icon: Users },
-    { label: 'Territories Won', value: '567', icon: Trophy },
-    { label: 'Daily Votes', value: '8,901', icon: TrendingUp },
-  ]
-
-  return (
-    <section className="py-16 bg-gray-50">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-2 gap-8 md:grid-cols-4">
-          {stats.map((stat) => (
-            <div key={stat.label} className="text-center">
-              <div className="flex justify-center mb-4">
-                <div className="flex items-center justify-center w-12 h-12 bg-gradient-to-r from-orange-500 to-red-500 rounded-lg">
-                  <stat.icon className="h-6 w-6 text-white" />
-                </div>
-              </div>
-              <div className="text-3xl font-bold text-gray-900">{stat.value}</div>
-              <div className="text-sm text-gray-600">{stat.label}</div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  )
-}
-
-function BattleZonesSection() {
-  return (
-    <section className="py-16">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-12">
-          <h2 className="text-3xl font-bold text-gray-900 sm:text-4xl">
-            Zonas de Batalla - CDMX
-          </h2>
-          <p className="mt-4 text-lg text-gray-600">
-            Five epic battle zones where vendors compete for territorial dominance
-          </p>
-        </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {FARCASTER_CONFIG.BATTLE_ZONES.map((zone) => (
-            <Card key={zone.id} className="text-center hover:shadow-lg transition-shadow cursor-pointer group">
-              <CardContent className="p-6">
-                <div className="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center" 
-                     style={{ backgroundColor: zone.color }}>
-                  <MapPin className="h-8 w-8 text-white" />
-                </div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">{zone.name}</h3>
-                <p className="text-sm text-gray-600 mb-4">{zone.description}</p>
-                <div className="flex items-center justify-center text-xs text-gray-500">
-                  <Globe className="h-4 w-4 mr-1" />
-                  {zone.coordinates[0].toFixed(4)}, {zone.coordinates[1].toFixed(4)}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </div>
-    </section>
-  )
-}
-
-function CategoriesSection() {
-  return (
-    <section className="py-16 bg-gray-50">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-12">
-          <h2 className="text-3xl font-bold text-gray-900 sm:text-4xl">
-            Traditional LATAM Cuisine
-          </h2>
-          <p className="mt-4 text-lg text-gray-600">
-            From pupusas to tacos, tamales to tortas - every dish has its champions
-          </p>
-        </div>
-        
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
-          {FARCASTER_CONFIG.CATEGORIES.map((category) => (
-            <Card key={category.id} className="text-center hover:shadow-lg transition-shadow cursor-pointer group">
-              <CardContent className="p-4">
-                <div className="text-3xl mb-2 group-hover:scale-110 transition-transform">
-                  {category.icon}
-                </div>
-                <h3 className="font-semibold text-gray-900 text-sm">{category.name}</h3>
-                <p className="text-xs text-gray-500 mt-1">{category.description}</p>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </div>
-    </section>
-  )
-}
-
-function HowItWorksSection() {
-  const steps = [
-    {
-      title: 'Connect with Farcaster',
-      description: 'Sign in with your Farcaster account to join the battle',
-      icon: '🔗',
-    },
-    {
-      title: 'Choose Your Zone',
-      description: 'Select one of the five battle zones in CDMX',
-      icon: '🗺️',
-    },
-    {
-      title: 'Vote for Vendors',
-      description: 'Support your favorite local vendors with votes and earn $BATTLE tokens',
-      icon: '🗳️',
-    },
-    {
-      title: 'Verify Purchases',
-      description: 'Take photos of your real purchases for 3x token rewards',
-      icon: '📸',
-    },
-    {
-      title: 'Conquer Territories',
-      description: 'Help vendors dominate zones and become neighborhood champions',
-      icon: '👑',
-    },
-  ]
-
-  return (
-    <section className="py-16">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-12">
-          <h2 className="text-3xl font-bold text-gray-900 sm:text-4xl">
-            How It Works
-          </h2>
-          <p className="mt-4 text-lg text-gray-600">
-            Five simple steps to become a vendor legend in your neighborhood
-          </p>
-        </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8">
-          {steps.map((step, index) => (
-            <div key={index} className="text-center">
-              <div className="flex justify-center mb-4">
-                <div className="flex items-center justify-center w-16 h-16 bg-gradient-to-r from-orange-500 to-red-500 rounded-full text-2xl">
-                  {step.icon}
-                </div>
-              </div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">{step.title}</h3>
-              <p className="text-gray-600 text-sm">{step.description}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  )
-}
-
-function TokenEconomicsSection() {
-  return (
-    <section className="py-16 bg-gradient-to-r from-orange-900 to-red-900 text-white">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-12">
-          <h2 className="text-3xl font-bold sm:text-4xl mb-4">
-            $BATTLE Token Economics
-          </h2>
-          <p className="text-xl text-gray-300 max-w-3xl mx-auto">
-            Earn tokens for supporting local vendors and participate in the community economy
-          </p>
-        </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <div className="text-center">
-            <div className="text-4xl font-bold text-yellow-400 mb-2">10</div>
-            <h3 className="text-lg font-semibold mb-2">Base Vote Reward</h3>
-            <p className="text-gray-300">Earn 10 $BATTLE tokens for every vote</p>
-          </div>
-          <div className="text-center">
-            <div className="text-4xl font-bold text-yellow-400 mb-2">3x</div>
-            <h3 className="text-lg font-semibold mb-2">Verified Purchase Bonus</h3>
-            <p className="text-gray-300">Get 3x tokens for verified real purchases</p>
-          </div>
-          <div className="text-center">
-            <div className="text-4xl font-bold text-yellow-400 mb-2">50</div>
-            <h3 className="text-lg font-semibold mb-2">Territory Conquest</h3>
-            <p className="text-gray-300">Bonus tokens for helping vendors take new zones</p>
-          </div>
-        </div>
-      </div>
-    </section>
-  )
-}
-
-function CTAFooter() {
-  return (
-    <section className="py-16 bg-gray-900 text-white">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 text-center">
-        <h2 className="text-3xl font-bold sm:text-4xl mb-4">
-          Ready to Fight for Your Local Shop?
-        </h2>
-        <p className="text-xl text-gray-300 mb-8">
-          Join thousands of users supporting local vendors and preserving LATAM food culture.
-        </p>
-        <Button className="bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-black font-bold px-8 py-3 text-lg">
-          <Sword className="mr-2 h-5 w-5" />
-          Enter the Battle Arena
-        </Button>
-      </div>
-    </section>
-  )
-}
-
 export default function HomePage() {
+  const router = useRouter()
   const { isSDKLoaded, context } = useMiniApp();
 
   useEffect(() => {
@@ -274,21 +23,85 @@ export default function HomePage() {
     load();
   }, [isSDKLoaded]);
 
+  const handleConnect = () => {
+    // Add haptic feedback
+    if (typeof window !== 'undefined' && 'navigator' in window && 'vibrate' in navigator) {
+      navigator.vibrate(100)
+    }
+    router.push('/map')
+  }
+
   return (
     <main className="min-h-screen">
-      <Suspense fallback={<div>Loading...</div>}>
+      <Suspense fallback={
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="skeleton w-32 h-32 rounded-full"></div>
+        </div>
+      }>
         {isSDKLoaded && (
           <div className="fixed top-4 right-4 bg-green-500 text-white px-3 py-1 rounded-full text-sm z-50">
             Mini App Ready
           </div>
         )}
-        <HeroSection />
-        <StatsSection />
-        <BattleZonesSection />
-        <CategoriesSection />
-        <HowItWorksSection />
-        <TokenEconomicsSection />
-        <CTAFooter />
+        
+        <div
+          className="relative flex size-full min-h-screen flex-col bg-white justify-between group/design-root overflow-x-hidden"
+          style={{ fontFamily: '"Plus Jakarta Sans", "Noto Sans", sans-serif' }}
+        >
+          <div className="flex-1">
+            <div className="@container">
+              <div className="@[480px]:px-4 @[480px]:py-3">
+                <div
+                  className="w-full bg-center bg-no-repeat bg-cover flex flex-col justify-end overflow-hidden bg-white @[480px]:rounded-xl min-h-80"
+                  style={{
+                    backgroundImage: 'url("https://lh3.googleusercontent.com/aida-public/AB6AXuB_Ye7-3ttJ5h5eJbOWY4uRGbUAQd-SSe0w-al1RrGEQEJy77MfzMrSeo3IXJNYHVL2k9j5vHX8vjxeRETz-HCOkzv51s_Jv6coCkzvXxZPhyKdVjkntqrHhJeM9ELzOx5-ZbimqmFFU1ihx-noxDddPkqo9FFM_Zi1XmfLdRzX6Can0fXk2UhVcFp1DYiro3HZgTkKXqdRWT-LgKyIItYrlNtzjLikXxLktlCjEwvEgBut70nVO3_81Lf_TGXNjUVfmQlAG6RX1A_7")'
+                  }}
+                />
+              </div>
+            </div>
+            
+            <h2 className="text-[#181511] tracking-light text-[28px] font-bold leading-tight px-4 text-center pb-3 pt-5">
+              Vendor Wars: Fight for Your Barrio!
+            </h2>
+            
+            <div className="flex px-4 py-3 justify-center">
+              <Button
+                onClick={handleConnect}
+                className="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-full h-12 px-5 bg-[#f2920c] text-[#181511] text-base font-bold leading-normal tracking-[0.015em] hover:bg-[#e0850b] active:scale-95 transition-transform touch-manipulation"
+                style={{ minHeight: '48px' }}
+              >
+                <span className="truncate">Connect with Farcaster</span>
+              </Button>
+            </div>
+            
+            <div className="flex px-4 py-3 justify-center">
+              <Button
+                variant="outline"
+                className="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-full h-10 px-4 bg-[#f5f3f0] text-[#181511] text-sm font-bold leading-normal tracking-[0.015em] hover:bg-[#ebe8e4] border-[#f5f3f0] active:scale-95 transition-transform touch-manipulation"
+                style={{ minHeight: '44px' }}
+              >
+                <span className="truncate">Learn how it works</span>
+              </Button>
+            </div>
+          </div>
+          
+          <div className="pb-20 md:pb-0">
+            <div className="flex flex-col gap-3 p-4">
+              <div className="flex gap-6 justify-between">
+                <p className="text-[#181511] text-base font-medium leading-normal">
+                  Loading territories...
+                </p>
+              </div>
+              <div className="rounded bg-[#e6e1db] overflow-hidden">
+                <div 
+                  className="h-2 rounded bg-[#181511] transition-all duration-1000 ease-out skeleton" 
+                  style={{ width: '20%' }}
+                />
+              </div>
+            </div>
+            <div className="h-5 bg-white" />
+          </div>
+        </div>
       </Suspense>
     </main>
   )

@@ -1,250 +1,329 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { formatNumber, formatRelativeTime } from '@/lib/utils'
-import { Sword, Users, Clock, Trophy, Target, TrendingUp } from 'lucide-react'
-import type { Battle, BattleStatus } from '@/types'
+import { useRouter } from 'next/navigation'
+import { 
+  ArrowLeft, 
+  MapPin, 
+  Store, 
+  User, 
+  Users
+} from 'lucide-react'
+
+interface LiveBattle {
+  id: string
+  title: string
+  zone: string
+  imageUrl: string
+  progress: number
+  votes: number
+}
+
+interface LeaderboardEntry {
+  id: string
+  name: string
+  avatarUrl: string
+  points: number
+  rank: number
+}
 
 export default function BattlesPage() {
-  const [battles, setBattles] = useState<Battle[]>([])
-  const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState<'active' | 'completed'>('active')
+  const router = useRouter()
+  const [countdown, setCountdown] = useState({
+    days: 2,
+    hours: 14,
+    minutes: 32,
+    seconds: 18
+  })
+
+  // Mock data for live battles
+  const liveBattles: LiveBattle[] = [
+    {
+      id: '1',
+      title: 'Taco Truck vs. Empanada Stand',
+      zone: 'Zone 1',
+      imageUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDpi0Qxv3Y2ZffYYKy8Gkm6bfw5ZTL6D8JaLbYgh1DpuL5qZIrzhVtobtKKIbqqTpY03WfAIC0Vz_1fDH2LryuYH2hiE7IBH3cf69jW9F6ShsaI74kboXBUXKNVqH5Azxl3GXvifhRAuVVK4pP5xqoRyCISgbmvUWMn-iWT4bYQbqOmp_SOeBWVJqRYQ0MCuBsGauYs4nZi9gyqZHtoR3X4QsUkb-sOcwIbbJQoBNqIPoL5RXQTq21SE0vXGEkzyse-UfOP1hKiOgFD',
+      progress: 68.18,
+      votes: 60
+    },
+    {
+      id: '2',
+      title: 'Ice Cream Cart vs. Churro Vendor',
+      zone: 'Zone 2',
+      imageUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCrcqzIrczhjEy_VnXcULjwkuj8gIV6SmfXdkHSFe0RXLFJEWWDJEaXM_oSWAN3KBonPkCUSK6iiat_vUXEVXxCCPKQyhpgopbrrtiv2xg4uvhiV41hecnJRnZpoJfcYENBF0fiVl2Crsiakr4m_3OA-ceYpiD49wuC-5b4YMgPz2_YTZPZwZ0dDlQNc_EEvnG0bwEf-4Dfl2wRVKk_qj7njlGNQBmj6F04T-lskea2OwpUzXmSu3jeRR2jwv3TumlRaAMU2mCSn7Dt',
+      progress: 51.14,
+      votes: 45
+    },
+    {
+      id: '3',
+      title: 'Fruit Stand vs. Tamale Seller',
+      zone: 'Zone 3',
+      imageUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDBBHG7wNe06YgItxPYtZrNfkW6uWauEIBDkXy3s-W53gEsDkUcbvr3OFiSnOlp3GKzbxLZ8_V_pfT3dm5pcTGj6jFy_gJjbjI9SAajpWlMzkn2FmlKrhBvRCUHzOR4OmQYr9UQNdROBkbARobU3qanZ8lMp1qYAOd-bwEsYwFw-OawnXGfFtSVVfeJiNICjyKYgxZcVHjbqP98Kba0QtbyagHgYlw1JtBnO6WGpkonU5ok6X8LHmle8HGhVl_ExHvDqYO4I9F7JJ4y',
+      progress: 85.23,
+      votes: 75
+    }
+  ]
+
+  // Mock data for leaderboard
+  const leaderboard: LeaderboardEntry[] = [
+    {
+      id: '1',
+      name: 'Alejandro',
+      avatarUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDXGXdNUtj6vd_bmhqcmsrd1mknTagtl29KZLj5ULoBd3TnSKhcxU5J2PQwH1em-WeHUNzQqSSG-1mzx7f8KvFm4x8XY7XjWF2shs2oqZIl8q6J2UpclNQhotZ_a9X6hqlOtt4wGXTLv15Vpp4pqFuYPVwbczwQcL_UyzWihryoPtBHhaMPnPDJiYAw5XAFhT7ZqPgpTMbepWIM7bfgNUZNW_3U887dnKSNFiHY6fW_BrRTucBPHWN4SVMgI5ffQj_ATVyWNBPTna9q',
+      points: 1200,
+      rank: 1
+    },
+    {
+      id: '2',
+      name: 'Sofia',
+      avatarUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBMTOotI42IKxLnOjddHJBprL6i_jJ09YmI_ErkMj0IE6GQfA3flnyw8Fq1BmKr_lJljEl3mcCEUKQYBSe0x0cIPU1yND2xz_N9P9eRq-o8wQrjoIeosTbv9CnAR9ZGHJzCVSVfjqgMRjZ_JmpOU1SKY-RzRMOCuI9VccNUvsmkxCjj2FRmlK8FzKZ88ldCjF_9bHUqDGnnKkJoFHkhNHmN747P5InQdy5BMRYmQdswYt9_0P7L6aorChLnrVsdzuzkyHU11WZyTX1s',
+      points: 1150,
+      rank: 2
+    },
+    {
+      id: '3',
+      name: 'Mateo',
+      avatarUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDgq-DJyyvzNVyEMermfs48JqKqif2Sw8ezCmKDAasZTGn9mDVAdXbvXfxyJXEwuFsa9Gw_JV8quhp0-f13rqsqq8TK1EKXWaFeiSErFXNynMT2eRL3Ee2UFdIxUlhd1s3FtQxV3xDjfZPMnfilOUhYBgPanPkt-rutEqaFRH04hR3OxGnI1i1luGv9qA3roebljy5n2sfqDnG5k37uBB3IHzNartyahkpviQ65S7l7M0fIigbHOlhboB4gpRhD8OpEjq0-Wc8tu47H',
+      points: 1100,
+      rank: 3
+    }
+  ]
 
   useEffect(() => {
-    fetchBattles()
-  }, [activeTab])
+    const timer = setInterval(() => {
+      setCountdown(prev => {
+        let { days, hours, minutes, seconds } = prev
+        
+        if (seconds > 0) {
+          seconds--
+        } else {
+          seconds = 59
+          if (minutes > 0) {
+            minutes--
+          } else {
+            minutes = 59
+            if (hours > 0) {
+              hours--
+            } else {
+              hours = 23
+              if (days > 0) {
+                days--
+              }
+            }
+          }
+        }
+        
+        return { days, hours, minutes, seconds }
+      })
+    }, 1000)
 
-  const fetchBattles = async () => {
-    try {
-      setLoading(true)
-      const response = await fetch(`/api/battles?status=${activeTab}`)
-      const result = await response.json()
-      
-      if (result.success) {
-        setBattles(result.data)
-      }
-    } catch (error) {
-      console.error('Error fetching battles:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
+    return () => clearInterval(timer)
+  }, [])
 
-  const getStatusColor = (status: BattleStatus) => {
-    switch (status) {
-      case 'active':
-        return 'bg-green-100 text-green-800'
-      case 'completed':
-        return 'bg-blue-100 text-blue-800'
-      case 'cancelled':
-        return 'bg-red-100 text-red-800'
-      default:
-        return 'bg-gray-100 text-gray-800'
-    }
-  }
-
-  const getStatusIcon = (status: BattleStatus) => {
-    switch (status) {
-      case 'active':
-        return <Target className="h-4 w-4" />
-      case 'completed':
-        return <Trophy className="h-4 w-4" />
-      case 'cancelled':
-        return <Clock className="h-4 w-4" />
-      default:
-        return <Sword className="h-4 w-4" />
-    }
-  }
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading battles...</p>
-        </div>
-      </div>
-    )
+  const handleJoinBattle = () => {
+    // TODO: Implement join battle functionality
+    console.log('Join battle clicked')
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="text-center">
-            <h1 className="text-3xl font-bold text-gray-900 sm:text-4xl">
-              Battle Arena
-            </h1>
-            <p className="mt-4 text-lg text-gray-600">
-              Watch epic battles unfold and vote for your favorites
-            </p>
+    <div
+      className="relative flex size-full min-h-screen flex-col bg-white justify-between group/design-root overflow-x-hidden"
+      style={{ fontFamily: '"Plus Jakarta Sans", "Noto Sans", sans-serif' }}
+    >
+      <div>
+        {/* Header */}
+        <div className="flex items-center bg-white p-4 pb-2 justify-between">
+          <button
+            onClick={() => router.back()}
+            className="text-[#181511] flex size-12 shrink-0 items-center hover:bg-gray-100 rounded-full transition-colors"
+          >
+            <ArrowLeft className="h-6 w-6" />
+          </button>
+          <h2 className="text-[#181511] text-lg font-bold leading-tight tracking-[-0.015em] flex-1 text-center pr-12">
+            Vendor Wars
+          </h2>
+        </div>
+
+        {/* Event Banner */}
+        <div className="@container">
+          <div className="@[480px]:px-4 @[480px]:py-3">
+            <div
+              className="bg-cover bg-center flex flex-col justify-end overflow-hidden bg-white @[480px]:rounded-xl min-h-[218px]"
+              style={{
+                backgroundImage: 'linear-gradient(0deg, rgba(0, 0, 0, 0.4) 0%, rgba(0, 0, 0, 0) 25%), url("https://lh3.googleusercontent.com/aida-public/AB6AXuDDplreiXFYzKEKTjcWX-JxeNfYoagbl2bftn1LL3zm3XNzRyrE-Dxmw_rjLT0giR2P1kjNR1sHKxBIJIJsDv_NYvD5MUldyyynjI_hBrPDtTM7ZncFgNEGQmxfSq3Cv8nDUm-iXyH0dqczXos5LqTJkDR4zeNU-pROOSBEnkBM6gc5GmaQ6k-tCgTDkmasfOV_IX6sDBTMdgPpvZw0R7-bcRxixdYMByZMyKCouZp7C3CaQeELYcLLkk3MjLn5mFmL2S-DL6f5QcD9")'
+              }}
+            >
+              <div className="flex p-4">
+                <p className="text-white tracking-light text-[28px] font-bold leading-tight">
+                  Weekend Territory Clash!
+                </p>
+              </div>
+            </div>
           </div>
         </div>
+
+        {/* Countdown Timer */}
+        <div className="flex gap-4 py-6 px-4">
+          <div className="flex grow basis-0 flex-col items-stretch gap-4">
+            <div className="flex h-14 grow items-center justify-center rounded-xl px-3 bg-[#f5f3f0]">
+              <p className="text-[#181511] text-lg font-bold leading-tight tracking-[-0.015em]">
+                {countdown.days}
+              </p>
+            </div>
+            <div className="flex items-center justify-center">
+              <p className="text-[#181511] text-sm font-normal leading-normal">Days</p>
+            </div>
+          </div>
+          <div className="flex grow basis-0 flex-col items-stretch gap-4">
+            <div className="flex h-14 grow items-center justify-center rounded-xl px-3 bg-[#f5f3f0]">
+              <p className="text-[#181511] text-lg font-bold leading-tight tracking-[-0.015em]">
+                {countdown.hours}
+              </p>
+            </div>
+            <div className="flex items-center justify-center">
+              <p className="text-[#181511] text-sm font-normal leading-normal">Hours</p>
+            </div>
+          </div>
+          <div className="flex grow basis-0 flex-col items-stretch gap-4">
+            <div className="flex h-14 grow items-center justify-center rounded-xl px-3 bg-[#f5f3f0]">
+              <p className="text-[#181511] text-lg font-bold leading-tight tracking-[-0.015em]">
+                {countdown.minutes}
+              </p>
+            </div>
+            <div className="flex items-center justify-center">
+              <p className="text-[#181511] text-sm font-normal leading-normal">Minutes</p>
+            </div>
+          </div>
+          <div className="flex grow basis-0 flex-col items-stretch gap-4">
+            <div className="flex h-14 grow items-center justify-center rounded-xl px-3 bg-[#f5f3f0]">
+              <p className="text-[#181511] text-lg font-bold leading-tight tracking-[-0.015em]">
+                {countdown.seconds}
+              </p>
+            </div>
+            <div className="flex items-center justify-center">
+              <p className="text-[#181511] text-sm font-normal leading-normal">Seconds</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Live Battles */}
+        <h2 className="text-[#181511] text-[22px] font-bold leading-tight tracking-[-0.015em] px-4 pb-3 pt-5">
+          Live Battles
+        </h2>
+        
+        {liveBattles.map((battle) => (
+          <div key={battle.id} className="flex items-center gap-4 bg-white px-4 min-h-[72px] py-2 justify-between">
+            <div className="flex items-center gap-4">
+              <div
+                className="bg-center bg-no-repeat aspect-square bg-cover rounded-lg size-14"
+                style={{
+                  backgroundImage: `url("${battle.imageUrl}")`
+                }}
+              />
+              <div className="flex flex-col justify-center">
+                <p className="text-[#181511] text-base font-medium leading-normal line-clamp-1">
+                  {battle.title}
+                </p>
+                <p className="text-[#8a7860] text-sm font-normal leading-normal line-clamp-2">
+                  {battle.zone}
+                </p>
+              </div>
+            </div>
+            <div className="shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="w-[88px] overflow-hidden rounded-sm bg-[#e6e1db]">
+                  <div 
+                    className="h-1 rounded-full bg-[#181511] transition-all duration-300"
+                    style={{ width: `${battle.progress}%` }}
+                  />
+                </div>
+                <p className="text-[#181511] text-sm font-medium leading-normal">
+                  {battle.votes}
+                </p>
+              </div>
+            </div>
+          </div>
+        ))}
+
+        {/* Join Battle Button */}
+        <div className="flex px-4 py-3 justify-center">
+          <Button
+            onClick={handleJoinBattle}
+            className="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-full h-10 px-4 bg-[#ee8c0b] text-[#181511] text-sm font-bold leading-normal tracking-[0.015em] hover:bg-[#d67d0a]"
+          >
+            <span className="truncate">Join Battle</span>
+          </Button>
+        </div>
+
+        {/* Event Leaderboard */}
+        <h2 className="text-[#181511] text-[22px] font-bold leading-tight tracking-[-0.015em] px-4 pb-3 pt-5">
+          Event Leaderboard
+        </h2>
+        
+        {leaderboard.map((entry) => (
+          <div key={entry.id} className="flex items-center gap-4 bg-white px-4 min-h-[72px] py-2 justify-between">
+            <div className="flex items-center gap-4">
+              <div
+                className="bg-center bg-no-repeat aspect-square bg-cover rounded-full h-14 w-fit"
+                style={{
+                  backgroundImage: `url("${entry.avatarUrl}")`
+                }}
+              />
+              <div className="flex flex-col justify-center">
+                <p className="text-[#181511] text-base font-medium leading-normal line-clamp-1">
+                  {entry.name}
+                </p>
+                <p className="text-[#8a7860] text-sm font-normal leading-normal line-clamp-2">
+                  {entry.points} points
+                </p>
+              </div>
+            </div>
+            <div className="shrink-0">
+              <p className="text-[#181511] text-base font-normal leading-normal">
+                {entry.rank}
+              </p>
+            </div>
+          </div>
+        ))}
       </div>
 
-      {/* Tabs */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-8">
-          <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg">
-            <button
-              onClick={() => setActiveTab('active')}
-              className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
-                activeTab === 'active'
-                  ? 'bg-white text-purple-600 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              <div className="flex items-center justify-center space-x-2">
-                <Target className="h-4 w-4" />
-                <span>Active Battles</span>
-              </div>
-            </button>
-            <button
-              onClick={() => setActiveTab('completed')}
-              className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
-                activeTab === 'completed'
-                  ? 'bg-white text-purple-600 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              <div className="flex items-center justify-center space-x-2">
-                <Trophy className="h-4 w-4" />
-                <span>Completed Battles</span>
-              </div>
-            </button>
-          </div>
+      {/* Bottom Navigation */}
+      <div>
+        <div className="flex gap-2 border-t border-[#f5f3f0] bg-white px-4 pb-3 pt-2">
+          <button
+            onClick={() => router.push('/map')}
+            className="flex flex-1 flex-col items-center justify-end gap-1 text-[#181511]"
+          >
+            <MapPin className="h-8 w-8" />
+            <p className="text-xs font-medium leading-normal tracking-[0.015em]">Map</p>
+          </button>
+          
+          <button
+            onClick={() => router.push('/vendors')}
+            className="flex flex-1 flex-col items-center justify-end gap-1 text-[#8a7860] hover:text-[#181511] transition-colors"
+          >
+            <Store className="h-8 w-8" />
+            <p className="text-xs font-medium leading-normal tracking-[0.015em]">Vendors</p>
+          </button>
+          
+          <button
+            onClick={() => router.push('/profile')}
+            className="flex flex-1 flex-col items-center justify-end gap-1 text-[#8a7860] hover:text-[#181511] transition-colors"
+          >
+            <User className="h-8 w-8" />
+            <p className="text-xs font-medium leading-normal tracking-[0.015em]">Profile</p>
+          </button>
+          
+          <button
+            onClick={() => router.push('/leaderboard')}
+            className="flex flex-1 flex-col items-center justify-end gap-1 text-[#8a7860] hover:text-[#181511] transition-colors"
+          >
+            <Users className="h-8 w-8" />
+            <p className="text-xs font-medium leading-normal tracking-[0.015em]">Social</p>
+          </button>
         </div>
-
-        {/* Battles Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {battles.map((battle) => (
-            <Card key={battle.id} className="hover:shadow-lg transition-shadow">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    {getStatusIcon(battle.status)}
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(battle.status)}`}>
-                      {battle.status.charAt(0).toUpperCase() + battle.status.slice(1)}
-                    </span>
-                  </div>
-                  <span className="text-sm text-gray-500">
-                    {formatRelativeTime(battle.startDate)}
-                  </span>
-                </div>
-                <CardTitle className="text-lg">{battle.description}</CardTitle>
-                <CardDescription>
-                  {battle.category.charAt(0).toUpperCase() + battle.category.slice(1)} Category
-                </CardDescription>
-              </CardHeader>
-              
-              <CardContent>
-                {/* Battle Participants */}
-                <div className="flex items-center justify-between mb-6">
-                  {/* Challenger */}
-                  <div className="flex-1 text-center">
-                    <Avatar className="h-16 w-16 mx-auto mb-2">
-                      <AvatarImage src={battle.challenger.imageUrl} alt={battle.challenger.name} />
-                      <AvatarFallback>{battle.challenger.name.charAt(0)}</AvatarFallback>
-                    </Avatar>
-                    <h3 className="font-semibold text-sm">{battle.challenger.name}</h3>
-                    <p className="text-xs text-gray-500">@{battle.challenger.owner.username}</p>
-                    <div className="mt-1 text-xs text-gray-600">
-                      {battle.challenger.stats.winRate}% win rate
-                    </div>
-                  </div>
-
-                  {/* VS */}
-                  <div className="flex flex-col items-center mx-4">
-                    <div className="text-2xl font-bold text-purple-600">VS</div>
-                    <div className="text-xs text-gray-500 mt-1">
-                      {battle.totalVotes} votes
-                    </div>
-                  </div>
-
-                  {/* Opponent */}
-                  <div className="flex-1 text-center">
-                    <Avatar className="h-16 w-16 mx-auto mb-2">
-                      <AvatarImage src={battle.opponent.imageUrl} alt={battle.opponent.name} />
-                      <AvatarFallback>{battle.opponent.name.charAt(0)}</AvatarFallback>
-                    </Avatar>
-                    <h3 className="font-semibold text-sm">{battle.opponent.name}</h3>
-                    <p className="text-xs text-gray-500">@{battle.opponent.owner.username}</p>
-                    <div className="mt-1 text-xs text-gray-600">
-                      {battle.opponent.stats.winRate}% win rate
-                    </div>
-                  </div>
-                </div>
-
-                {/* Battle Stats */}
-                <div className="grid grid-cols-3 gap-4 text-center mb-6">
-                  <div>
-                    <div className="text-lg font-semibold text-purple-600">
-                      {battle.totalVotes}
-                    </div>
-                    <div className="text-xs text-gray-500">Total Votes</div>
-                  </div>
-                  <div>
-                    <div className="text-lg font-semibold text-blue-600">
-                      {battle.challenger.stats.totalBattles + battle.opponent.stats.totalBattles}
-                    </div>
-                    <div className="text-xs text-gray-500">Combined Battles</div>
-                  </div>
-                  <div>
-                    <div className="text-lg font-semibold text-green-600">
-                      {formatNumber(battle.challenger.stats.totalRevenue + battle.opponent.stats.totalRevenue)}
-                    </div>
-                    <div className="text-xs text-gray-500">Combined Revenue</div>
-                  </div>
-                </div>
-
-                {/* Winner Display */}
-                {battle.status === 'completed' && battle.winner && (
-                  <div className="bg-gradient-to-r from-yellow-100 to-orange-100 rounded-lg p-4 mb-4">
-                    <div className="flex items-center justify-center space-x-2">
-                      <Trophy className="h-5 w-5 text-yellow-600" />
-                      <span className="font-semibold text-yellow-800">
-                        Winner: {battle.winner.name}
-                      </span>
-                    </div>
-                  </div>
-                )}
-
-                {/* Action Buttons */}
-                <div className="flex space-x-2">
-                  <Button size="sm" className="flex-1">
-                    View Details
-                  </Button>
-                  {battle.status === 'active' && (
-                    <Button size="sm" variant="outline">
-                      Vote Now
-                    </Button>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
-        {battles.length === 0 && (
-          <div className="text-center py-12">
-            <div className="text-gray-400 mb-4">
-              <Sword className="h-12 w-12 mx-auto" />
-            </div>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
-              No {activeTab} battles found
-            </h3>
-            <p className="text-gray-600">
-              {activeTab === 'active' 
-                ? 'Check back later for new battles or create one yourself!'
-                : 'Completed battles will appear here once they finish.'
-              }
-            </p>
-          </div>
-        )}
+        <div className="h-5 bg-white" />
       </div>
     </div>
   )

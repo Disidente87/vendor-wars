@@ -1,17 +1,20 @@
 import type { Metadata } from "next"
-import { Geist, Geist_Mono } from "next/font/google"
+import { Plus_Jakarta_Sans, Noto_Sans } from "next/font/google"
 import "./globals.css"
 import { Navigation } from "@/components/navigation"
+import { BottomNavigation } from "@/components/BottomNavigation"
 import { MiniAppWrapper } from "@/components/MiniAppWrapper"
 
-const geist = Geist({
-  variable: "--font-geist-sans",
+const plusJakartaSans = Plus_Jakarta_Sans({
+  variable: "--font-plus-jakarta-sans",
   subsets: ["latin"],
+  weight: ["400", "500", "700", "800"],
 })
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const notoSans = Noto_Sans({
+  variable: "--font-noto-sans",
   subsets: ["latin"],
+  weight: ["400", "500", "700", "900"],
 })
 
 export const metadata: Metadata = {
@@ -19,6 +22,7 @@ export const metadata: Metadata = {
   description: "Battle of the vendors - who will reign supreme?",
   keywords: ["farcaster", "miniapp", "vendor", "battle", "competition"],
   authors: [{ name: "Vendor Wars Team" }],
+  viewport: "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover",
   openGraph: {
     title: "Vendor Wars",
     description: "Battle of the vendors - who will reign supreme?",
@@ -55,14 +59,38 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body
-        className={`${geist.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
+    <html lang="en" className={`${plusJakartaSans.variable} ${notoSans.variable}`}>
+      <head>
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="apple-mobile-web-app-title" content="Vendor Wars" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="theme-color" content="#f97316" />
+        <meta name="msapplication-TileColor" content="#f97316" />
+        <meta name="msapplication-tap-highlight" content="no" />
+      </head>
+      <body 
+        className={`${plusJakartaSans.variable} ${notoSans.variable} antialiased`}
+        style={{ 
+          fontFamily: 'var(--font-plus-jakarta-sans), var(--font-noto-sans), sans-serif',
+          WebkitOverflowScrolling: 'touch',
+          overscrollBehavior: 'none'
+        }}
       >
         <MiniAppWrapper>
-          <div className="relative flex min-h-screen flex-col">
+          {/* Desktop Navigation - Hidden on mobile */}
+          <div className="hidden md:block">
             <Navigation />
-            <div className="flex-1">{children}</div>
+          </div>
+          
+          {/* Main Content */}
+          <main className="pb-20 md:pb-0"> {/* Add bottom padding for mobile navigation */}
+            {children}
+          </main>
+          
+          {/* Mobile Bottom Navigation - Hidden on desktop */}
+          <div className="md:hidden">
+            <BottomNavigation />
           </div>
         </MiniAppWrapper>
       </body>

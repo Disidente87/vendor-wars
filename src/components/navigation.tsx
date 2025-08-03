@@ -3,14 +3,16 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Button } from '@/components/ui/button'
-import { Sword, Users, Trophy, Home, Frame } from 'lucide-react'
+import { Sword, Users, Trophy, Home, Frame, MapPin, Bell } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const navigation = [
   { name: 'Home', href: '/', icon: Home },
+  { name: 'Map', href: '/map', icon: MapPin },
   { name: 'Vendors', href: '/vendors', icon: Users },
   { name: 'Battles', href: '/battles', icon: Sword },
   { name: 'Leaderboard', href: '/leaderboard', icon: Trophy },
+  { name: 'Notifications', href: '/notifications', icon: Bell },
   { name: 'Frames', href: '/frame', icon: Frame },
 ]
 
