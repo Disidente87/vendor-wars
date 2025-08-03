@@ -1,4 +1,9 @@
 {
+  "accountAssociation": {
+    "header": "eyJmaWQiOjQ5Nzg2NiwidHlwZSI6ImN1c3RvZHkiLCJrZXkiOiIweERFOTdEMTc1NTBhNzI0NkIxYzRGYjAwZDFkNDNlOTdDMzhhMURERkEifQ",
+    "payload": "eyJkb21haW4iOiJ2ZW5kb3Itd2Fycy52ZXJjZWwuYXBwIn0",
+    "signature": "MHg1ZGVjOGYwZGU4ZGFlMDBkMmY1YTE1NDZjNzAwMjk1NWE2YTg1NDIxZGNmZGM0MTRiNWIyZDUxMTAxMWJmNjZjNmY0ZTkxZDI0ODlkYjUzMzM2YTI2NWU1ZDU4YmQ4MzIzZjY5YmEzNWJlZWUyZDFiZDZlNThmODRhZGE3MWNjMTFi"
+  },
   "frame": {
     "version": "1",
     "name": "Vendor Wars",
