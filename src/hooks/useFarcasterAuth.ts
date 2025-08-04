@@ -78,12 +78,56 @@ export function useFarcasterAuth(): UseFarcasterAuthReturn {
         weeklyTerritoryBonus: 0,
       }
 
-      // Store user in localStorage for persistence
-      localStorage.setItem('farcaster-auth-user', JSON.stringify(newUser))
+      // Save user to database
+      const response = await fetch('/api/users', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          fid: newUser.fid,
+          username: newUser.username,
+          displayName: newUser.displayName,
+          pfpUrl: newUser.pfpUrl,
+          followerCount: newUser.followerCount,
+          followingCount: newUser.followingCount,
+          bio: newUser.bio,
+          verifiedAddresses: newUser.verifiedAddresses,
+        }),
+      })
+
+      const result = await response.json()
       
-      setUser(newUser)
-      setIsAuthenticated(true)
-      setError(null)
+      if (result.success) {
+        // Update user with database data
+        const dbUser = result.data
+        const updatedUser: User = {
+          ...newUser,
+          battleTokens: dbUser.battle_tokens || 0,
+          credibilityScore: dbUser.credibility_score || 50,
+          verifiedPurchases: dbUser.verified_purchases || 0,
+          credibilityTier: dbUser.credibility_tier || 'bronze',
+          voteStreak: dbUser.vote_streak || 0,
+          weeklyVoteCount: dbUser.weekly_vote_count || 0,
+          weeklyTerritoryBonus: dbUser.weekly_territory_bonus || 0,
+        }
+
+        // Store user in localStorage for persistence
+        localStorage.setItem('farcaster-auth-user', JSON.stringify(updatedUser))
+        
+        setUser(updatedUser)
+        setIsAuthenticated(true)
+        setError(null)
+        
+        console.log('User created/updated in database:', updatedUser)
+      } else {
+        console.error('Failed to save user to database:', result.error)
+        // Still set user locally even if database save fails
+        localStorage.setItem('farcaster-auth-user', JSON.stringify(newUser))
+        setUser(newUser)
+        setIsAuthenticated(true)
+        setError(null)
+      }
     } catch (err) {
       console.error('Error creating new user:', err)
       setError('Failed to create user profile')

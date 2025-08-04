@@ -103,7 +103,8 @@ export default function HomePage() {
     )
   }
 
-  // If already authenticated, show voting test
+  // If already authenticated, show voting test instead of redirecting
+  // This allows us to test the voting system locally
   if (isAuthenticated && user) {
     return (
       <div className="h-full bg-gradient-to-br from-[#ff6b35] via-[#ffd23f] to-[#06d6a0] p-4">
@@ -118,11 +119,18 @@ export default function HomePage() {
               <div>
                 <h2 className="font-bold text-lg">{user.displayName}</h2>
                 <p className="text-sm text-gray-600">@{user.username}</p>
+                <p className="text-xs text-gray-500">FID: {user.fid}</p>
               </div>
             </div>
             <p className="text-sm text-gray-600 mb-4">
               Welcome to Vendor Wars! You&apos;re now connected with your Farcaster account.
             </p>
+            <Button
+              onClick={() => router.push('/profile')}
+              className="w-full bg-[#ff6b35] hover:bg-[#e5562e] text-white font-medium py-3 rounded-xl shadow-lg"
+            >
+              View Profile
+            </Button>
           </div>
           
           <VotingTest />
@@ -131,7 +139,7 @@ export default function HomePage() {
     )
   }
 
-  // If not authenticated, show the main page
+  // If not authenticated, show the main page with login button
   return (
     <main className="min-h-screen">
       <Suspense fallback={
@@ -217,13 +225,6 @@ export default function HomePage() {
                 Learn How It Works
               </Button>
             </div>
-
-            {/* Voting System Test */}
-            {isAuthenticated && (
-              <div className="p-6 bg-white/10 backdrop-blur-sm">
-                <VotingTest />
-              </div>
-            )}
           </div>
         </div>
       </Suspense>

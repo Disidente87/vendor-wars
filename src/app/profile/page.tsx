@@ -268,8 +268,6 @@ export default function ProfilePage() {
     }
   }
 
-  const experiencePercentage = (userStats.experience / userStats.experienceToNext) * 100
-
   const handleVendorClick = (vendorId: string) => {
     router.push(`/vendors/${vendorId}`)
   }
@@ -374,7 +372,7 @@ export default function ProfilePage() {
             <div className="w-full bg-[#f4f1eb] rounded-full h-3">
               <div 
                 className="bg-gradient-to-r from-[#ff6b35] to-[#ffd23f] h-3 rounded-full transition-all duration-500"
-                style={{ width: `${experiencePercentage}%` }}
+                style={{ width: `${(userStats.experience / userStats.experienceToNext) * 100}%` }}
               ></div>
             </div>
           </div>

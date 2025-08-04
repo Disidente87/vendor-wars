@@ -35,6 +35,8 @@ export default function VendorProfilePage({ params }: { params: Promise<{ id: st
     isVerified: boolean
   } | null>(null)
   const [isVoting, setIsVoting] = useState(false)
+  const [topVoters, setTopVoters] = useState<TopVoter[]>([])
+  const [loadingTopVoters, setLoadingTopVoters] = useState(false)
 
   useEffect(() => {
     const loadVendor = async () => {
@@ -118,41 +120,45 @@ export default function VendorProfilePage({ params }: { params: Promise<{ id: st
   }
 
   // Generate dynamic top voters based on vendor data
-  const getTopVoters = (vendor: Vendor): TopVoter[] => {
-    // This would come from an API call in a real implementation
-    // For now, we'll generate mock data based on the vendor
-    const baseVotes = vendor.stats.totalVotes
-    const verifiedVotes = vendor.stats.verifiedVotes
-    
-    return [
-      {
-        id: '1',
-        username: 'top_supporter',
-        displayName: 'Top Supporter',
-        avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&h=100&fit=crop&crop=face',
-        votesGiven: Math.floor(baseVotes * 0.15),
-        totalVotes: Math.floor(baseVotes * 0.25),
-        isVerified: true
-      },
-      {
-        id: '2',
-        username: 'loyal_customer',
-        displayName: 'Loyal Customer',
-        avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face',
-        votesGiven: Math.floor(baseVotes * 0.12),
-        totalVotes: Math.floor(baseVotes * 0.20),
-        isVerified: true
-      },
-      {
-        id: '3',
-        username: 'food_lover',
-        displayName: 'Food Lover',
-        avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=100&h=100&fit=crop&crop=face',
-        votesGiven: Math.floor(baseVotes * 0.08),
-        totalVotes: Math.floor(baseVotes * 0.15),
-        isVerified: false
+  const getTopVoters = async (vendor: Vendor): Promise<TopVoter[]> => {
+    try {
+      // Fetch real top voters from the database
+      const response = await fetch(`/api/votes?vendorId=${vendor.id}&limit=3`)
+      const result = await response.json()
+      
+      if (result.success && result.data) {
+        // Group votes by user and calculate totals
+        const userVotes: { [key: string]: any[] } = {}
+        
+        result.data.forEach((vote: any) => {
+          if (!userVotes[vote.voter_fid]) {
+            userVotes[vote.voter_fid] = []
+          }
+          userVotes[vote.voter_fid].push(vote)
+        })
+
+        // Convert to TopVoter format
+        const topVoters = Object.entries(userVotes)
+          .map(([fid, votes]) => ({
+            id: fid,
+            username: votes[0].voter_username || `user_${fid}`,
+            displayName: votes[0].voter_display_name || `User ${fid}`,
+            avatar: votes[0].voter_pfp_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${fid}`,
+            votesGiven: votes.length,
+            totalVotes: votes.length,
+            isVerified: votes.some((vote: any) => vote.is_verified)
+          }))
+          .sort((a, b) => b.votesGiven - a.votesGiven)
+          .slice(0, 3)
+
+        return topVoters
       }
-    ]
+    } catch (error) {
+      console.error('Error fetching top voters:', error)
+    }
+
+    // Fallback to empty array if no data available
+    return []
   }
 
   // Show loading state
@@ -210,7 +216,26 @@ export default function VendorProfilePage({ params }: { params: Promise<{ id: st
     )
   }
 
-  const topVoters = getTopVoters(vendor)
+  // Load top voters when vendor is loaded
+  useEffect(() => {
+    if (vendor) {
+      loadTopVoters()
+    }
+  }, [vendor])
+
+  const loadTopVoters = async () => {
+    if (!vendor) return
+    
+    setLoadingTopVoters(true)
+    try {
+      const voters = await getTopVoters(vendor)
+      setTopVoters(voters)
+    } catch (error) {
+      console.error('Error loading top voters:', error)
+    } finally {
+      setLoadingTopVoters(false)
+    }
+  }
 
   return (
     <div
