@@ -281,7 +281,7 @@ export default function LeaderboardPage() {
             </button>
             <div className="flex-1 text-center">
               <h1 className="text-xl font-bold text-white">Leaderboards</h1>
-              <p className="text-white/90 text-sm">See who's leading the food wars</p>
+              <p className="text-white/90 text-sm">See who&apos;s leading the food wars</p>
             </div>
             <button className="text-white flex size-12 shrink-0 items-center hover:bg-white/20 rounded-full transition-colors">
               <Share2 className="h-6 w-6" />

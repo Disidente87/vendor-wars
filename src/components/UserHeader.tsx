@@ -14,7 +14,7 @@ import {
 import { useRouter } from 'next/navigation'
 
 export function UserHeader() {
-  const { user, signOut } = useAuthSimulation()
+  const { user } = useAuthSimulation()
   const router = useRouter()
 
   if (!user) return null
@@ -56,7 +56,7 @@ export function UserHeader() {
             {/* User Avatar & Menu */}
             <div className="flex items-center space-x-2">
               <Avatar className="w-8 h-8">
-                <AvatarImage src={user.avatar} alt={user.displayName} />
+                <AvatarImage src={user.pfpUrl} alt={user.displayName} />
                 <AvatarFallback className="bg-orange-100 text-orange-600">
                   {user.displayName?.charAt(0)}
                 </AvatarFallback>

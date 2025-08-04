@@ -1,4 +1,4 @@
-import type { Metadata } from "next"
+import type { Metadata, Viewport } from "next"
 import { Plus_Jakarta_Sans, Noto_Sans } from "next/font/google"
 import "./globals.css"
 import { Navigation } from "@/components/navigation"
@@ -18,11 +18,11 @@ const notoSans = Noto_Sans({
 })
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://vendor-wars.vercel.app'),
   title: "Vendor Wars - Farcaster MiniApp",
   description: "Battle of the vendors - who will reign supreme?",
   keywords: ["farcaster", "miniapp", "vendor", "battle", "competition"],
   authors: [{ name: "Vendor Wars Team" }],
-  viewport: "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover",
   openGraph: {
     title: "Vendor Wars",
     description: "Battle of the vendors - who will reign supreme?",
@@ -51,6 +51,14 @@ export const metadata: Metadata = {
       }
     }),
   },
+}
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: 'cover',
 }
 
 export default function RootLayout({

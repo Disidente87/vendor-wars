@@ -44,7 +44,7 @@ export default function FramePage() {
             <ul className="list-disc list-inside text-gray-600 space-y-2">
               <li><strong>Vote Frame:</strong> Allows users to vote for vendors directly from Farcaster</li>
               <li><strong>Battle Result Frame:</strong> Shows battle outcomes and encourages engagement</li>
-              <li><strong>Social Sharing:</strong> Frames automatically post to user's Farcaster feed</li>
+              <li><strong>Social Sharing:</strong> Frames automatically post to user&apos;s Farcaster feed</li>
               <li><strong>Token Rewards:</strong> Users earn $BATTLE tokens for participating</li>
             </ul>
           </div>

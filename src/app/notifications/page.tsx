@@ -299,7 +299,7 @@ export default function NotificationsPage() {
               <Bell className="w-8 h-8 text-[#6b5d52]" />
             </div>
             <h3 className="text-lg font-semibold text-[#2d1810] mb-2">No notifications</h3>
-            <p className="text-[#6b5d52] text-sm">You're all caught up! Check back later for updates.</p>
+            <p className="text-[#6b5d52] text-sm">You&apos;re all caught up! Check back later for updates.</p>
           </div>
         )}
       </div>

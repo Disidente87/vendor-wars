@@ -241,7 +241,7 @@ export default function VendorProfilePage({ params }: { params: Promise<{ id: st
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <h3 className="text-lg font-medium text-gray-900 mb-2">Vendor not found</h3>
-          <p className="text-gray-600">The vendor you're looking for doesn't exist</p>
+          <p className="text-gray-600">The vendor you&apos;re looking for doesn&apos;t exist</p>
         </div>
       </div>
     )

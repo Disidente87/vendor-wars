@@ -11,7 +11,8 @@ export function isNeynarConfigured(): boolean {
 
 // Get configuration with validation
 export function getNeynarConfig() {
-  if (!isNeynarConfigured()) {
+  // Only throw error in production
+  if (process.env.NODE_ENV === 'production' && !isNeynarConfigured()) {
     throw new Error('Neynar API not properly configured. Please check NEYNAR_API_KEY and SIGNER_UUID in your environment variables.');
   }
   

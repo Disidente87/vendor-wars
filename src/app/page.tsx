@@ -136,7 +136,7 @@ export default function HomePage() {
             className="bg-[#ff6b35] hover:bg-[#e5562e] text-white shadow-xl"
           >
             <Zap className="w-5 h-5 mr-2" />
-            Got It! Let's Battle
+            Got It! Let&apos;s Battle
           </Button>
         </div>
       </div>

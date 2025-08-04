@@ -1,4 +1,10 @@
-import { supabase } from '@/lib/supabase'
+import { createClient } from '@supabase/supabase-js'
+
+// Supabase configuration
+const supabaseUrl = 'https://pncwlterhkclvpgcbuce.supabase.co'
+const supabaseServiceKey = 'sb_secret_inLKDcfYd8qz6ZeqYvajuQ_qcCUvLt0'
+
+const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
 // Sample data for migration
 const sampleUsers = [
@@ -91,55 +97,50 @@ const sampleUsers = [
 
 const sampleZones = [
   {
-    id: 'centro',
     name: 'Centro',
     description: 'El corazón de la ciudad, donde todo sucede',
     color: '#FF6B35',
-    coordinates: [19.4326, -99.1332],
+    coordinates: '(19.4326,-99.1332)',
     current_owner_id: null,
     heat_level: 85,
     total_votes: 12500,
     active_vendors: 12
   },
   {
-    id: 'norte',
     name: 'Norte',
     description: 'Zona residencial con los mejores tacos',
     color: '#4ECDC4',
-    coordinates: [19.4426, -99.1432],
+    coordinates: '(19.4426,-99.1432)',
     current_owner_id: null,
     heat_level: 72,
     total_votes: 8900,
     active_vendors: 8
   },
   {
-    id: 'sur',
     name: 'Sur',
     description: 'Área comercial con cafés de especialidad',
     color: '#45B7D1',
-    coordinates: [19.4226, -99.1232],
+    coordinates: '(19.4226,-99.1232)',
     current_owner_id: null,
     heat_level: 65,
     total_votes: 7600,
     active_vendors: 6
   },
   {
-    id: 'este',
     name: 'Este',
     description: 'Zona industrial con pizza auténtica',
     color: '#96CEB4',
-    coordinates: [19.4326, -99.1132],
+    coordinates: '(19.4326,-99.1132)',
     current_owner_id: null,
     heat_level: 58,
     total_votes: 6800,
     active_vendors: 5
   },
   {
-    id: 'oeste',
     name: 'Oeste',
     description: 'Área moderna con sushi fresco',
     color: '#FFEAA7',
-    coordinates: [19.4326, -99.1532],
+    coordinates: '(19.4326,-99.1532)',
     current_owner_id: null,
     heat_level: 45,
     total_votes: 5200,
@@ -149,13 +150,12 @@ const sampleZones = [
 
 const sampleVendors = [
   {
-    id: '1',
     name: 'Pupusas María',
     description: 'Las mejores pupusas de la ciudad. Receta familiar de 3 generaciones. Especialidad en pupusas de queso con loroco y revueltas.',
     image_url: 'https://images.unsplash.com/photo-1595273670150-bd0c3c392e46?w=400&h=300&fit=crop',
     category: 'pupusas',
-    zone: 'centro',
-    coordinates: [19.4326, -99.1332],
+    zone_id: null, // Will be updated after zones are created
+    coordinates: '(19.4326,-99.1332)',
     owner_fid: 12345,
     is_verified: true,
     total_battles: 45,
@@ -172,13 +172,12 @@ const sampleVendors = [
     verified_votes: 1890
   },
   {
-    id: '2',
     name: 'Tacos El Rey',
     description: 'Tacos al pastor y de suadero que te harán llorar de felicidad. Salsas caseras y tortillas hechas a mano.',
     image_url: 'https://images.unsplash.com/photo-1566554273541-37a9ca77b91f?w=400&h=300&fit=crop',
     category: 'tacos',
-    zone: 'norte',
-    coordinates: [19.4426, -99.1432],
+    zone_id: null, // Will be updated after zones are created
+    coordinates: '(19.4426,-99.1432)',
     owner_fid: 23456,
     is_verified: true,
     total_battles: 32,
@@ -195,13 +194,12 @@ const sampleVendors = [
     verified_votes: 1450
   },
   {
-    id: '3',
     name: 'Café Aroma',
     description: 'Café de especialidad tostado artesanalmente. Granos de Chiapas y Oaxaca. Ambiente perfecto para trabajar.',
     image_url: 'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=400&h=300&fit=crop',
     category: 'bebidas',
-    zone: 'sur',
-    coordinates: [19.4226, -99.1232],
+    zone_id: null, // Will be updated after zones are created
+    coordinates: '(19.4226,-99.1232)',
     owner_fid: 34567,
     is_verified: true,
     total_battles: 28,
@@ -218,13 +216,12 @@ const sampleVendors = [
     verified_votes: 1200
   },
   {
-    id: '4',
     name: 'Pizza Napoli',
     description: 'Pizza auténtica napolitana con masa fermentada por 72 horas. Horno de leña y ingredientes importados de Italia.',
     image_url: 'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=400&h=300&fit=crop',
     category: 'otros',
-    zone: 'este',
-    coordinates: [19.4326, -99.1132],
+    zone_id: null, // Will be updated after zones are created
+    coordinates: '(19.4326,-99.1132)',
     owner_fid: 45678,
     is_verified: true,
     total_battles: 38,
@@ -241,13 +238,12 @@ const sampleVendors = [
     verified_votes: 1680
   },
   {
-    id: '5',
     name: 'Sushi Express',
     description: 'Sushi fresco preparado al momento. Pescado de la mejor calidad y arroz perfectamente sazonado.',
     image_url: 'https://images.unsplash.com/photo-1579584425555-c3ce17fd4351?w=400&h=300&fit=crop',
     category: 'otros',
-    zone: 'oeste',
-    coordinates: [19.4326, -99.1532],
+    zone_id: null, // Will be updated after zones are created
+    coordinates: '(19.4326,-99.1532)',
     owner_fid: 56789,
     is_verified: true,
     total_battles: 25,
@@ -269,50 +265,91 @@ async function migrateData() {
   console.log('🚀 Starting data migration to Supabase...')
 
   try {
-    // 1. Insert users
-    console.log('📝 Inserting users...')
-    const { data: usersData, error: usersError } = await supabase
+    // 1. Check if users exist, insert if not
+    console.log('📝 Checking users...')
+    const { data: existingUsers, error: checkError } = await supabase
       .from('users')
-      .insert(sampleUsers)
-      .select()
+      .select('fid')
+      .limit(1)
 
-    if (usersError) {
-      console.error('❌ Error inserting users:', usersError)
+    if (checkError) {
+      console.error('❌ Error checking users:', checkError)
       return
     }
-    console.log(`✅ Inserted ${usersData.length} users`)
 
-    // 2. Insert zones
-    console.log('🗺️ Inserting zones...')
-    const { data: zonesData, error: zonesError } = await supabase
+    if (!existingUsers || existingUsers.length === 0) {
+      console.log('📝 Inserting users...')
+      const { data: usersData, error: usersError } = await supabase
+        .from('users')
+        .insert(sampleUsers)
+        .select()
+
+      if (usersError) {
+        console.error('❌ Error inserting users:', usersError)
+        return
+      }
+      console.log(`✅ Inserted ${usersData.length} users`)
+    } else {
+      console.log('✅ Users already exist, skipping...')
+    }
+
+    // 2. Check if zones exist, insert if not
+    console.log('🗺️ Checking zones...')
+    const { data: existingZones, error: zonesCheckError } = await supabase
       .from('zones')
-      .insert(sampleZones)
-      .select()
+      .select('id')
+      .limit(1)
 
-    if (zonesError) {
-      console.error('❌ Error inserting zones:', zonesError)
+    if (zonesCheckError) {
+      console.error('❌ Error checking zones:', zonesCheckError)
       return
     }
-    console.log(`✅ Inserted ${zonesData.length} zones`)
 
-    // 3. Insert vendors
-    console.log('🏪 Inserting vendors...')
-    const { data: vendorsData, error: vendorsError } = await supabase
+    if (!existingZones || existingZones.length === 0) {
+      console.log('🗺️ Inserting zones...')
+      const { data: zonesData, error: zonesError } = await supabase
+        .from('zones')
+        .insert(sampleZones)
+        .select()
+
+      if (zonesError) {
+        console.error('❌ Error inserting zones:', zonesError)
+        return
+      }
+      console.log(`✅ Inserted ${zonesData.length} zones`)
+    } else {
+      console.log('✅ Zones already exist, skipping...')
+    }
+
+    // 3. Check if vendors exist, insert if not
+    console.log('🏪 Checking vendors...')
+    const { data: existingVendors, error: vendorsCheckError } = await supabase
       .from('vendors')
-      .insert(sampleVendors)
-      .select()
+      .select('id')
+      .limit(1)
 
-    if (vendorsError) {
-      console.error('❌ Error inserting vendors:', vendorsError)
+    if (vendorsCheckError) {
+      console.error('❌ Error checking vendors:', vendorsCheckError)
       return
     }
-    console.log(`✅ Inserted ${vendorsData.length} vendors`)
+
+    if (!existingVendors || existingVendors.length === 0) {
+      console.log('🏪 Inserting vendors...')
+      const { data: vendorsData, error: vendorsError } = await supabase
+        .from('vendors')
+        .insert(sampleVendors)
+        .select()
+
+      if (vendorsError) {
+        console.error('❌ Error inserting vendors:', vendorsError)
+        return
+      }
+      console.log(`✅ Inserted ${vendorsData.length} vendors`)
+    } else {
+      console.log('✅ Vendors already exist, skipping...')
+    }
 
     console.log('🎉 Data migration completed successfully!')
-    console.log('📊 Summary:')
-    console.log(`   - Users: ${usersData.length}`)
-    console.log(`   - Zones: ${zonesData.length}`)
-    console.log(`   - Vendors: ${vendorsData.length}`)
 
   } catch (error) {
     console.error('❌ Migration failed:', error)
@@ -320,7 +357,7 @@ async function migrateData() {
 }
 
 // Run migration if this file is executed directly
-if (require.main === module) {
+if (import.meta.url === `file://${process.argv[1]}`) {
   migrateData()
 }
 
