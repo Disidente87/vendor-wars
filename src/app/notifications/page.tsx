@@ -2,307 +2,309 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { Button } from '@/components/ui/button'
 import { 
-  ArrowLeft, 
-  MapPin, 
   Flame, 
-  Star, 
   Map, 
-  Users, 
-  User
+  Users,
+  ArrowLeft,
+  Bell,
+  Check,
+  X,
+  Star,
+  Trophy,
+  Coins,
+  Target,
+  Zap,
+  Clock,
+  Settings
 } from 'lucide-react'
 
 interface Notification {
   id: string
-  type: 'territory' | 'streak' | 'vendor'
+  type: 'vote' | 'territory' | 'achievement' | 'battle' | 'reward' | 'system'
   title: string
-  subtitle: string
-  icon: 'MapPin' | 'Flame' | 'Star'
-}
-
-interface NotificationSettings {
-  territoryAlerts: boolean
-  streakReminders: boolean
-  vendorHighlights: boolean
+  message: string
+  timestamp: string
+  isRead: boolean
+  action?: {
+    type: 'navigate' | 'dismiss' | 'claim'
+    target?: string
+    tokens?: number
+  }
+  icon: string
 }
 
 export default function NotificationsPage() {
   const router = useRouter()
-  const [settings, setSettings] = useState<NotificationSettings>({
-    territoryAlerts: true,
-    streakReminders: true,
-    vendorHighlights: true
-  })
-
-  // Mock notifications data
-  const notifications: Notification[] = [
+  const [notifications, setNotifications] = useState<Notification[]>([
     {
       id: '1',
-      type: 'territory',
-      title: '@Tacos_Lupita needs 5 more votes to win Zona Norte!',
-      subtitle: 'Zona Norte',
-      icon: 'MapPin'
+      type: 'vote',
+      title: 'Vote Successful!',
+      message: 'Your vote for Pupusas María helped them gain control of Zona Centro',
+      timestamp: '2 minutes ago',
+      isRead: false,
+      action: {
+        type: 'navigate',
+        target: '/zones/centro',
+        tokens: 25
+      },
+      icon: '🎯'
     },
     {
       id: '2',
       type: 'territory',
-      title: '@Empanadas_DoñaMaria is leading in Zona Sur!',
-      subtitle: 'Zona Sur',
-      icon: 'MapPin'
+      title: 'Territory Battle Update',
+      message: 'Tacos El Rey is challenging for control of Zona Norte. Vote now to defend!',
+      timestamp: '15 minutes ago',
+      isRead: false,
+      action: {
+        type: 'navigate',
+        target: '/zones/norte'
+      },
+      icon: '⚔️'
     },
     {
       id: '3',
-      type: 'territory',
-      title: '@Churros_El_Rey is under attack in Zona Centro!',
-      subtitle: 'Zona Centro',
-      icon: 'MapPin'
+      type: 'achievement',
+      title: 'Achievement Unlocked!',
+      message: 'First Vote - Cast your first vote for a vendor',
+      timestamp: '1 hour ago',
+      isRead: true,
+      action: {
+        type: 'claim',
+        tokens: 50
+      },
+      icon: '🏆'
     },
     {
       id: '4',
-      type: 'streak',
-      title: 'Your streak is at 4 days – vote today to earn +2x!',
-      subtitle: '4 days',
-      icon: 'Flame'
+      type: 'reward',
+      title: 'Daily Reward Available',
+      message: 'Claim your daily battle tokens for voting yesterday',
+      timestamp: '3 hours ago',
+      isRead: false,
+      action: {
+        type: 'claim',
+        tokens: 100
+      },
+      icon: '💰'
     },
     {
       id: '5',
-      type: 'vendor',
-      title: 'Welcome @Tamales_AbuelaRosa to Vendor Wars!',
-      subtitle: 'New Vendor',
-      icon: 'Star'
+      type: 'battle',
+      title: 'Battle Won!',
+      message: 'Your team successfully defended Zona Sur from invaders',
+      timestamp: '1 day ago',
+      isRead: true,
+      action: {
+        type: 'navigate',
+        target: '/zones/sur',
+        tokens: 75
+      },
+      icon: '🔥'
+    },
+    {
+      id: '6',
+      type: 'system',
+      title: 'Welcome to Vendor Wars!',
+      message: 'Start your journey by exploring the battle map and voting for your favorite vendors',
+      timestamp: '2 days ago',
+      isRead: true,
+      action: {
+        type: 'navigate',
+        target: '/map'
+      },
+      icon: '🎉'
     }
-  ]
+  ])
 
-  const handleToggleSetting = (setting: keyof NotificationSettings) => {
-    setSettings(prev => ({
-      ...prev,
-      [setting]: !prev[setting]
-    }))
-  }
+  const handleNotificationAction = (notification: Notification) => {
+    // Add haptic feedback
+    if (typeof window !== 'undefined' && 'navigator' in window && 'vibrate' in navigator) {
+      navigator.vibrate(50)
+    }
 
-  const getIconComponent = (iconName: string) => {
-    switch (iconName) {
-      case 'MapPin':
-        return <MapPin className="h-6 w-6" />
-      case 'Flame':
-        return <Flame className="h-6 w-6" />
-      case 'Star':
-        return <Star className="h-6 w-6" />
-      default:
-        return <MapPin className="h-6 w-6" />
+    if (notification.action?.type === 'navigate' && notification.action.target) {
+      router.push(notification.action.target)
+    } else if (notification.action?.type === 'claim') {
+      // Handle token claim
+      console.log(`Claimed ${notification.action.tokens} tokens`)
+      markAsRead(notification.id)
     }
   }
 
-  const getNotificationsByType = (type: string) => {
-    return notifications.filter(notification => notification.type === type)
+  const markAsRead = (id: string) => {
+    setNotifications(prev => 
+      prev.map(notif => 
+        notif.id === id ? { ...notif, isRead: true } : notif
+      )
+    )
   }
+
+  const markAllAsRead = () => {
+    setNotifications(prev => 
+      prev.map(notif => ({ ...notif, isRead: true }))
+    )
+  }
+
+  const deleteNotification = (id: string) => {
+    setNotifications(prev => prev.filter(notif => notif.id !== id))
+  }
+
+  const getNotificationColor = (type: string) => {
+    switch (type) {
+      case 'vote': return '#ff6b35'
+      case 'territory': return '#06d6a0'
+      case 'achievement': return '#ffd23f'
+      case 'battle': return '#e63946'
+      case 'reward': return '#f72585'
+      case 'system': return '#8d99ae'
+      default: return '#8d99ae'
+    }
+  }
+
+  const getNotificationIcon = (type: string) => {
+    switch (type) {
+      case 'vote': return <Target className="w-5 h-5" />
+      case 'territory': return <Map className="w-5 h-5" />
+      case 'achievement': return <Trophy className="w-5 h-5" />
+      case 'battle': return <Flame className="w-5 h-5" />
+      case 'reward': return <Coins className="w-5 h-5" />
+      case 'system': return <Bell className="w-5 h-5" />
+      default: return <Star className="w-5 h-5" />
+    }
+  }
+
+  const unreadCount = notifications.filter(n => !n.isRead).length
 
   return (
-    <div
-      className="relative flex size-full min-h-screen flex-col bg-white justify-between group/design-root overflow-x-hidden"
-      style={{ fontFamily: '"Plus Jakarta Sans", "Noto Sans", sans-serif' }}
-    >
-      <div>
-        {/* Header */}
-        <div className="flex items-center bg-white p-4 pb-2 justify-between">
-          <button
-            onClick={() => router.back()}
-            className="text-[#181511] flex size-12 shrink-0 items-center hover:bg-gray-100 rounded-full transition-colors"
-          >
-            <ArrowLeft className="h-6 w-6" />
-          </button>
-          <h2 className="text-[#181511] text-lg font-bold leading-tight tracking-[-0.015em] flex-1 text-center pr-12">
-            Notifications
-          </h2>
-        </div>
-
-        {/* Territory Alerts */}
-        <h3 className="text-[#181511] text-lg font-bold leading-tight tracking-[-0.015em] px-4 pb-2 pt-4">
-          Territory Alerts
-        </h3>
-        {getNotificationsByType('territory').map((notification) => (
-          <div key={notification.id} className="flex items-center gap-4 bg-white px-4 min-h-[72px] py-2">
-            <div className="text-[#181511] flex items-center justify-center rounded-lg bg-[#f5f3f0] shrink-0 size-12">
-              {getIconComponent(notification.icon)}
-            </div>
-            <div className="flex flex-col justify-center">
-              <p className="text-[#181511] text-base font-medium leading-normal line-clamp-1">
-                {notification.title}
-              </p>
-              <p className="text-[#8a7860] text-sm font-normal leading-normal line-clamp-2">
-                {notification.subtitle}
-              </p>
-            </div>
-          </div>
-        ))}
-
-        {/* Streak Reminders */}
-        <h3 className="text-[#181511] text-lg font-bold leading-tight tracking-[-0.015em] px-4 pb-2 pt-4">
-          Streak Reminders
-        </h3>
-        {getNotificationsByType('streak').map((notification) => (
-          <div key={notification.id} className="flex items-center gap-4 bg-white px-4 min-h-[72px] py-2">
-            <div className="text-[#181511] flex items-center justify-center rounded-lg bg-[#f5f3f0] shrink-0 size-12">
-              {getIconComponent(notification.icon)}
-            </div>
-            <div className="flex flex-col justify-center">
-              <p className="text-[#181511] text-base font-medium leading-normal line-clamp-1">
-                {notification.title}
-              </p>
-              <p className="text-[#8a7860] text-sm font-normal leading-normal line-clamp-2">
-                {notification.subtitle}
-              </p>
-            </div>
-          </div>
-        ))}
-
-        {/* Vendor Highlights */}
-        <h3 className="text-[#181511] text-lg font-bold leading-tight tracking-[-0.015em] px-4 pb-2 pt-4">
-          Vendor Highlights
-        </h3>
-        {getNotificationsByType('vendor').map((notification) => (
-          <div key={notification.id} className="flex items-center gap-4 bg-white px-4 min-h-[72px] py-2">
-            <div className="text-[#181511] flex items-center justify-center rounded-lg bg-[#f5f3f0] shrink-0 size-12">
-              {getIconComponent(notification.icon)}
-            </div>
-            <div className="flex flex-col justify-center">
-              <p className="text-[#181511] text-base font-medium leading-normal line-clamp-1">
-                {notification.title}
-              </p>
-              <p className="text-[#8a7860] text-sm font-normal leading-normal line-clamp-2">
-                {notification.subtitle}
-              </p>
-            </div>
-          </div>
-        ))}
-
-        {/* Notification Settings */}
-        <h3 className="text-[#181511] text-lg font-bold leading-tight tracking-[-0.015em] px-4 pb-2 pt-4">
-          Notification Settings
-        </h3>
-        
-        {/* Territory Alerts Toggle */}
-        <div className="flex items-center gap-4 bg-white px-4 min-h-14 justify-between">
-          <p className="text-[#181511] text-base font-normal leading-normal flex-1 truncate">
-            Territory Alerts
-          </p>
-          <div className="shrink-0">
-            <label
-              className={`relative flex h-[31px] w-[51px] cursor-pointer items-center rounded-full border-none p-0.5 transition-colors ${
-                settings.territoryAlerts ? 'bg-[#ee8c0b] justify-end' : 'bg-[#f5f3f0] justify-start'
-              }`}
+    <div className="min-h-screen bg-gradient-to-br from-[#fff8f0] to-[#f4f1eb]">
+      {/* Header */}
+      <div className="relative z-10 p-4">
+        <div className="flex items-center justify-between bg-white/80 backdrop-blur-sm rounded-xl p-4 shadow-lg border border-[#ff6b35]/20">
+          <div className="flex items-center space-x-3">
+            <button
+              onClick={() => router.back()}
+              className="w-10 h-10 bg-[#ff6b35] rounded-xl flex items-center justify-center shadow-lg hover:bg-[#e5562e] transition-colors"
             >
-              <div 
-                className="h-full w-[27px] rounded-full bg-white transition-transform duration-200 ease-in-out"
-                style={{ 
-                  boxShadow: 'rgba(0, 0, 0, 0.15) 0px 3px 8px, rgba(0, 0, 0, 0.06) 0px 3px 1px',
-                  transform: settings.territoryAlerts ? 'translateX(20px)' : 'translateX(0)'
-                }}
-              />
-              <input 
-                type="checkbox" 
-                className="invisible absolute"
-                checked={settings.territoryAlerts}
-                onChange={() => handleToggleSetting('territoryAlerts')}
-              />
-            </label>
+              <ArrowLeft className="w-5 h-5 text-white" />
+            </button>
+            <div>
+              <h1 className="text-xl font-bold text-[#2d1810]">Notifications</h1>
+              <p className="text-[#6b5d52] text-sm">{unreadCount} unread</p>
+            </div>
           </div>
-        </div>
-
-        {/* Streak Reminders Toggle */}
-        <div className="flex items-center gap-4 bg-white px-4 min-h-14 justify-between">
-          <p className="text-[#181511] text-base font-normal leading-normal flex-1 truncate">
-            Streak Reminders
-          </p>
-          <div className="shrink-0">
-            <label
-              className={`relative flex h-[31px] w-[51px] cursor-pointer items-center rounded-full border-none p-0.5 transition-colors ${
-                settings.streakReminders ? 'bg-[#ee8c0b] justify-end' : 'bg-[#f5f3f0] justify-start'
-              }`}
-            >
-              <div 
-                className="h-full w-[27px] rounded-full bg-white transition-transform duration-200 ease-in-out"
-                style={{ 
-                  boxShadow: 'rgba(0, 0, 0, 0.15) 0px 3px 8px, rgba(0, 0, 0, 0.06) 0px 3px 1px',
-                  transform: settings.streakReminders ? 'translateX(20px)' : 'translateX(0)'
-                }}
-              />
-              <input 
-                type="checkbox" 
-                className="invisible absolute"
-                checked={settings.streakReminders}
-                onChange={() => handleToggleSetting('streakReminders')}
-              />
-            </label>
-          </div>
-        </div>
-
-        {/* Vendor Highlights Toggle */}
-        <div className="flex items-center gap-4 bg-white px-4 min-h-14 justify-between">
-          <p className="text-[#181511] text-base font-normal leading-normal flex-1 truncate">
-            Vendor Highlights
-          </p>
-          <div className="shrink-0">
-            <label
-              className={`relative flex h-[31px] w-[51px] cursor-pointer items-center rounded-full border-none p-0.5 transition-colors ${
-                settings.vendorHighlights ? 'bg-[#ee8c0b] justify-end' : 'bg-[#f5f3f0] justify-start'
-              }`}
-            >
-              <div 
-                className="h-full w-[27px] rounded-full bg-white transition-transform duration-200 ease-in-out"
-                style={{ 
-                  boxShadow: 'rgba(0, 0, 0, 0.15) 0px 3px 8px, rgba(0, 0, 0, 0.06) 0px 3px 1px',
-                  transform: settings.vendorHighlights ? 'translateX(20px)' : 'translateX(0)'
-                }}
-              />
-              <input 
-                type="checkbox" 
-                className="invisible absolute"
-                checked={settings.vendorHighlights}
-                onChange={() => handleToggleSetting('vendorHighlights')}
-              />
-            </label>
+          <div className="flex items-center space-x-2">
+            {unreadCount > 0 && (
+              <Button
+                onClick={markAllAsRead}
+                className="bg-[#06d6a0] hover:bg-[#05c090] text-white font-medium px-3 py-2 rounded-lg shadow-lg text-sm"
+              >
+                <Check className="w-4 h-4 mr-1" />
+                Mark All Read
+              </Button>
+            )}
+            <button className="w-10 h-10 bg-white/50 rounded-xl flex items-center justify-center shadow-lg hover:bg-white/80 transition-colors">
+              <Settings className="w-5 h-5 text-[#6b5d52]" />
+            </button>
           </div>
         </div>
       </div>
 
-      {/* Bottom Navigation */}
-      <div>
-        <div className="flex gap-2 border-t border-[#f5f3f0] bg-white px-4 pb-3 pt-2">
-          <button
-            onClick={() => router.push('/map')}
-            className="flex flex-1 flex-col items-center justify-end gap-1 text-[#8a7860] hover:text-[#181511] transition-colors"
-          >
-            <Map className="h-8 w-8" />
-            <p className="text-xs font-medium leading-normal tracking-[0.015em]">Map</p>
-          </button>
-          
-          <button
-            onClick={() => router.push('/vendors')}
-            className="flex flex-1 flex-col items-center justify-end gap-1 text-[#8a7860] hover:text-[#181511] transition-colors"
-          >
-            <Users className="h-8 w-8" />
-            <p className="text-xs font-medium leading-normal tracking-[0.015em]">Vendors</p>
-          </button>
-          
-          <button
-            onClick={() => router.push('/profile')}
-            className="flex flex-1 flex-col items-center justify-end gap-1 text-[#8a7860] hover:text-[#181511] transition-colors"
-          >
-            <User className="h-8 w-8" />
-            <p className="text-xs font-medium leading-normal tracking-[0.015em]">Profile</p>
-          </button>
-          
-          <button
-            onClick={() => router.push('/leaderboard')}
-            className="flex flex-1 flex-col items-center justify-end gap-1 text-[#8a7860] hover:text-[#181511] transition-colors"
-          >
-            <Users className="h-8 w-8" />
-            <p className="text-xs font-medium leading-normal tracking-[0.015em]">Social</p>
-          </button>
+      {/* Notifications List */}
+      <div className="relative z-10 px-4 pb-20">
+        <div className="space-y-4">
+          {notifications.map((notification) => (
+            <div
+              key={notification.id}
+              className={`bg-white/80 backdrop-blur-sm rounded-xl p-4 shadow-lg border border-[#ff6b35]/20 transition-all duration-300 ${
+                !notification.isRead ? 'ring-2 ring-[#ff6b35]/30' : ''
+              }`}
+            >
+              <div className="flex items-start space-x-4">
+                {/* Icon */}
+                <div 
+                  className="w-12 h-12 rounded-full flex items-center justify-center text-white text-xl"
+                  style={{ backgroundColor: getNotificationColor(notification.type) }}
+                >
+                  {notification.icon}
+                </div>
+
+                {/* Content */}
+                <div className="flex-1">
+                  <div className="flex items-start justify-between mb-2">
+                    <h3 className="font-semibold text-[#2d1810] text-lg">{notification.title}</h3>
+                    <div className="flex items-center space-x-2">
+                      {!notification.isRead && (
+                        <div className="w-2 h-2 bg-[#ff6b35] rounded-full"></div>
+                      )}
+                      <button
+                        onClick={() => deleteNotification(notification.id)}
+                        className="w-6 h-6 bg-[#f4f1eb] rounded-full flex items-center justify-center hover:bg-[#e63946]/10 transition-colors"
+                      >
+                        <X className="w-3 h-3 text-[#6b5d52]" />
+                      </button>
+                    </div>
+                  </div>
+                  
+                  <p className="text-[#6b5d52] text-sm mb-3">{notification.message}</p>
+                  
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <Clock className="w-4 h-4 text-[#6b5d52]" />
+                      <span className="text-xs text-[#6b5d52]">{notification.timestamp}</span>
+                    </div>
+                    
+                    {notification.action && (
+                      <div className="flex items-center space-x-2">
+                        {notification.action.tokens && (
+                          <div className="flex items-center space-x-1 bg-[#ffd23f]/20 px-2 py-1 rounded-lg">
+                            <Coins className="w-3 h-3 text-[#ffd23f]" />
+                            <span className="text-xs font-semibold text-[#2d1810]">+{notification.action.tokens}</span>
+                          </div>
+                        )}
+                        
+                        <Button
+                          onClick={() => handleNotificationAction(notification)}
+                          className={`text-xs font-medium px-3 py-1 rounded-lg transition-colors ${
+                            notification.action.type === 'claim'
+                              ? 'bg-[#ffd23f] hover:bg-[#e6c235] text-[#2d1810]'
+                              : 'bg-[#ff6b35] hover:bg-[#e5562e] text-white'
+                          }`}
+                        >
+                          {notification.action.type === 'claim' ? (
+                            <>
+                              <Zap className="w-3 h-3 mr-1" />
+                              Claim
+                            </>
+                          ) : (
+                            'View'
+                          )}
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
-        <div className="h-5 bg-white" />
+
+        {/* Empty State */}
+        {notifications.length === 0 && (
+          <div className="text-center py-12">
+            <div className="w-16 h-16 bg-[#f4f1eb] rounded-full flex items-center justify-center mx-auto mb-4">
+              <Bell className="w-8 h-8 text-[#6b5d52]" />
+            </div>
+            <h3 className="text-lg font-semibold text-[#2d1810] mb-2">No notifications</h3>
+            <p className="text-[#6b5d52] text-sm">You're all caught up! Check back later for updates.</p>
+          </div>
+        )}
       </div>
+
+
     </div>
   )
 } 

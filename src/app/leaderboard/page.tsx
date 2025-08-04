@@ -1,279 +1,430 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { FARCASTER_CONFIG } from '@/config/farcaster'
-import { formatNumber } from '@/lib/utils'
-import { Trophy, Medal, TrendingUp, Target, Users, Crown } from 'lucide-react'
-import type { LeaderboardEntry } from '@/types'
+import { useAuthSimulation } from '@/hooks/useAuthSimulation'
+import { UserHeader } from '@/components/UserHeader'
+import { 
+  ArrowLeft, 
+  Trophy, 
+  Crown, 
+  TrendingUp, 
+  MapPin,
+  Users,
+  Store,
+  Share2,
+  ChevronUp,
+  ChevronDown,
+  Minus
+} from 'lucide-react'
+
+interface LeaderboardEntry {
+  id: string
+  rank: number
+  name: string
+  avatar: string
+  location: string
+  weeklyPerformance: string
+  score: number
+  todayChange: number
+  controlPercentage: number
+  rankChange: number // +1, -1, 0
+  tier: 'gold' | 'silver' | 'bronze' | 'none'
+}
 
 export default function LeaderboardPage() {
-  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([])
-  const [stats, setStats] = useState<any>({})
-  const [loading, setLoading] = useState(true)
-  const [selectedCategory, setSelectedCategory] = useState<string>('all')
-  const [sortType, setSortType] = useState<'winRate' | 'totalWins' | 'totalBattles' | 'totalRevenue'>('winRate')
+  const router = useRouter()
+  const { isAuthenticated, user, isLoading } = useAuthSimulation()
+  
+  const [timeFilter, setTimeFilter] = useState<'daily' | 'weekly' | 'monthly' | 'all'>('weekly')
+  const [activeTab, setActiveTab] = useState<'vendors' | 'users' | 'zones'>('vendors')
 
-  useEffect(() => {
-    fetchLeaderboard()
-  }, [selectedCategory, sortType])
-
-  const fetchLeaderboard = async () => {
-    try {
-      setLoading(true)
-      const params = new URLSearchParams({
-        type: sortType,
-        limit: '50',
-        ...(selectedCategory !== 'all' && { category: selectedCategory }),
-      })
-      
-      const response = await fetch(`/api/leaderboard?${params}`)
-      const result = await response.json()
-      
-      if (result.success) {
-        setLeaderboard(result.data.leaderboard)
-        setStats(result.data.stats)
-      }
-    } catch (error) {
-      console.error('Error fetching leaderboard:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const getRankIcon = (rank: number) => {
-    switch (rank) {
-      case 1:
-        return <Crown className="h-6 w-6 text-yellow-500" />
-      case 2:
-        return <Medal className="h-6 w-6 text-gray-400" />
-      case 3:
-        return <Medal className="h-6 w-6 text-amber-600" />
-      default:
-        return <span className="text-lg font-bold text-gray-600">{rank}</span>
-    }
-  }
-
-  const getRankBadge = (rank: number) => {
-    switch (rank) {
-      case 1:
-        return 'bg-gradient-to-r from-yellow-400 to-yellow-600 text-white'
-      case 2:
-        return 'bg-gradient-to-r from-gray-300 to-gray-500 text-white'
-      case 3:
-        return 'bg-gradient-to-r from-amber-500 to-amber-700 text-white'
-      default:
-        return 'bg-gray-100 text-gray-800'
-    }
-  }
-
-  if (loading) {
+  // Show loading while checking auth
+  if (isLoading || !isAuthenticated) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading leaderboard...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#ff6b35] mx-auto"></div>
+          <p className="mt-4 text-gray-600">Connecting to Farcaster...</p>
         </div>
       </div>
     )
   }
 
+  // Mock data for vendors leaderboard
+  const vendorsData: LeaderboardEntry[] = [
+    {
+      id: '1',
+      rank: 1,
+      name: 'Pupusas María',
+      avatar: 'https://images.unsplash.com/photo-1595273670150-bd0c3c392e46?w=100&h=100&fit=crop&crop=face',
+      location: 'Zona Centro Salvadoran',
+      weeklyPerformance: '+23% this week',
+      score: 1247,
+      todayChange: 89,
+      controlPercentage: 85,
+      rankChange: 0,
+      tier: 'gold'
+    },
+    {
+      id: '2',
+      rank: 2,
+      name: 'Arepa House',
+      avatar: 'https://images.unsplash.com/photo-1566554273541-37a9ca77b91f?w=100&h=100&fit=crop&crop=face',
+      location: 'Zona Sur Venezuelan',
+      weeklyPerformance: '+31% this week',
+      score: 1156,
+      todayChange: 78,
+      controlPercentage: 91,
+      rankChange: 1,
+      tier: 'silver'
+    },
+    {
+      id: '3',
+      rank: 3,
+      name: 'Taco King',
+      avatar: 'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=100&h=100&fit=crop&crop=face',
+      location: 'Zona Norte Mexican',
+      weeklyPerformance: '+18% this week',
+      score: 1089,
+      todayChange: 67,
+      controlPercentage: 72,
+      rankChange: -1,
+      tier: 'bronze'
+    },
+    {
+      id: '4',
+      rank: 4,
+      name: 'Empanadas Doña Rosa',
+      avatar: 'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=100&h=100&fit=crop&crop=face',
+      location: 'Zona Este Argentinian',
+      weeklyPerformance: '+12% this week',
+      score: 892,
+      todayChange: 45,
+      controlPercentage: 64,
+      rankChange: 0,
+      tier: 'none'
+    },
+    {
+      id: '5',
+      rank: 5,
+      name: 'Quesadillas Express',
+      avatar: 'https://images.unsplash.com/photo-1579584425555-c3ce17fd4351?w=100&h=100&fit=crop&crop=face',
+      location: 'Zona Oeste Mexican',
+      weeklyPerformance: '+45% this week',
+      score: 734,
+      todayChange: 38,
+      controlPercentage: 58,
+      rankChange: 2,
+      tier: 'none'
+    }
+  ]
+
+  // Mock data for users leaderboard
+  const usersData: LeaderboardEntry[] = [
+    {
+      id: 'u1',
+      rank: 1,
+      name: 'FoodWarrior',
+      avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&h=100&fit=crop&crop=face',
+      location: 'Level 15',
+      weeklyPerformance: '+28% this week',
+      score: 2156,
+      todayChange: 156,
+      controlPercentage: 92,
+      rankChange: 0,
+      tier: 'gold'
+    },
+    {
+      id: 'u2',
+      rank: 2,
+      name: 'TacoLover',
+      avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face',
+      location: 'Level 12',
+      weeklyPerformance: '+35% this week',
+      score: 1987,
+      todayChange: 134,
+      controlPercentage: 88,
+      rankChange: 1,
+      tier: 'silver'
+    },
+    {
+      id: 'u3',
+      rank: 3,
+      name: 'PupusasFan',
+      avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=100&h=100&fit=crop&crop=face',
+      location: 'Level 10',
+      weeklyPerformance: '+22% this week',
+      score: 1876,
+      todayChange: 98,
+      controlPercentage: 85,
+      rankChange: -1,
+      tier: 'bronze'
+    }
+  ]
+
+  // Mock data for zones leaderboard
+  const zonesData: LeaderboardEntry[] = [
+    {
+      id: 'z1',
+      rank: 1,
+      name: 'Zona Centro',
+      avatar: 'https://images.unsplash.com/photo-1595273670150-bd0c3c392e46?w=100&h=100&fit=crop&crop=face',
+      location: '15 Vendors',
+      weeklyPerformance: '+19% this week',
+      score: 3456,
+      todayChange: 234,
+      controlPercentage: 78,
+      rankChange: 0,
+      tier: 'gold'
+    },
+    {
+      id: 'z2',
+      rank: 2,
+      name: 'Zona Norte',
+      avatar: 'https://images.unsplash.com/photo-1566554273541-37a9ca77b91f?w=100&h=100&fit=crop&crop=face',
+      location: '12 Vendors',
+      weeklyPerformance: '+26% this week',
+      score: 3123,
+      todayChange: 198,
+      controlPercentage: 72,
+      rankChange: 1,
+      tier: 'silver'
+    },
+    {
+      id: 'z3',
+      rank: 3,
+      name: 'Zona Sur',
+      avatar: 'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=100&h=100&fit=crop&crop=face',
+      location: '10 Vendors',
+      weeklyPerformance: '+15% this week',
+      score: 2987,
+      todayChange: 145,
+      controlPercentage: 68,
+      rankChange: -1,
+      tier: 'bronze'
+    }
+  ]
+
+  const getCurrentData = () => {
+    switch (activeTab) {
+      case 'vendors':
+        return vendorsData
+      case 'users':
+        return usersData
+      case 'zones':
+        return zonesData
+      default:
+        return vendorsData
+    }
+  }
+
+  const getTierIcon = (tier: string) => {
+    switch (tier) {
+      case 'gold':
+        return <Crown className="w-5 h-5 text-yellow-600" />
+      case 'silver':
+        return <Trophy className="w-5 h-5 text-gray-600" />
+      case 'bronze':
+        return <Trophy className="w-5 h-5 text-orange-700" />
+      default:
+        return null
+    }
+  }
+
+  const getRankChangeIcon = (change: number) => {
+    if (change > 0) {
+      return <ChevronUp className="w-4 h-4 text-green-600" />
+    } else if (change < 0) {
+      return <ChevronDown className="w-4 h-4 text-red-600" />
+    } else {
+      return <Minus className="w-4 h-4 text-blue-600" />
+    }
+  }
+
+  const getRankChangeText = (change: number) => {
+    if (change > 0) {
+      return `+${change}`
+    } else if (change < 0) {
+      return `${change}`
+    } else {
+      return '='
+    }
+  }
+
+  const getBackgroundColor = (index: number) => {
+    const colors = [
+      'bg-yellow-50',
+      'bg-gray-50', 
+      'bg-orange-50',
+      'bg-white',
+      'bg-white'
+    ]
+    return colors[index] || 'bg-white'
+  }
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-purple-900 to-blue-900 text-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <div className="text-center">
-            <div className="flex justify-center mb-4">
-              <Trophy className="h-12 w-12 text-yellow-400" />
+    <div className="min-h-screen bg-gradient-to-br from-[#fff8f0] to-[#f4f1eb] relative overflow-hidden">
+      {/* User Header */}
+      <UserHeader />
+      
+      {/* Header with gradient background */}
+      <div className="relative z-10">
+        <div className="bg-gradient-to-r from-[#ff6b35] to-[#ffd23f] p-4">
+          <div className="flex items-center justify-between">
+            <button
+              onClick={() => router.back()}
+              className="text-white flex size-12 shrink-0 items-center hover:bg-white/20 rounded-full transition-colors"
+            >
+              <ArrowLeft className="h-6 w-6" />
+            </button>
+            <div className="flex-1 text-center">
+              <h1 className="text-xl font-bold text-white">Leaderboards</h1>
+              <p className="text-white/90 text-sm">See who's leading the food wars</p>
             </div>
-            <h1 className="text-4xl font-bold sm:text-5xl mb-4">
-              Leaderboard
-            </h1>
-            <p className="text-xl text-gray-300 max-w-2xl mx-auto">
-              The ultimate ranking of vendors across all categories. Who will claim the throne?
-            </p>
+            <button className="text-white flex size-12 shrink-0 items-center hover:bg-white/20 rounded-full transition-colors">
+              <Share2 className="h-6 w-6" />
+            </button>
           </div>
         </div>
       </div>
 
-      {/* Stats Overview */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-8">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <Card className="bg-white shadow-lg">
-            <CardContent className="p-6">
-              <div className="flex items-center">
-                <div className="flex-shrink-0">
-                  <Users className="h-8 w-8 text-purple-600" />
-                </div>
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600">Total Vendors</p>
-                  <p className="text-2xl font-bold text-gray-900">{stats.totalVendors || 0}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-white shadow-lg">
-            <CardContent className="p-6">
-              <div className="flex items-center">
-                <div className="flex-shrink-0">
-                  <Target className="h-8 w-8 text-blue-600" />
-                </div>
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600">Active Battles</p>
-                  <p className="text-2xl font-bold text-gray-900">{stats.activeBattles || 0}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-white shadow-lg">
-            <CardContent className="p-6">
-              <div className="flex items-center">
-                <div className="flex-shrink-0">
-                  <TrendingUp className="h-8 w-8 text-green-600" />
-                </div>
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600">Total Battles</p>
-                  <p className="text-2xl font-bold text-gray-900">{stats.totalBattles || 0}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+      {/* Time Filter Tabs */}
+      <div className="relative z-10 px-4 py-3">
+        <div className="flex space-x-2 bg-white/80 backdrop-blur-sm rounded-xl p-1 shadow-lg border border-[#ff6b35]/20">
+          {[
+            { key: 'daily', label: 'Daily' },
+            { key: 'weekly', label: 'Weekly' },
+            { key: 'monthly', label: 'Monthly' },
+            { key: 'all', label: 'All' }
+          ].map((filter) => (
+            <button
+              key={filter.key}
+              onClick={() => setTimeFilter(filter.key as any)}
+              className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
+                timeFilter === filter.key
+                  ? 'bg-[#ff6b35] text-white'
+                  : 'text-[#6b5d52] hover:bg-white/50'
+              }`}
+            >
+              {filter.label}
+            </button>
+          ))}
         </div>
       </div>
 
-      {/* Filters */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-8">
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Category Filter */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Category
-              </label>
-              <select
-                value={selectedCategory}
-                onChange={(e) => setSelectedCategory(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+      {/* Main Content Tabs */}
+      <div className="relative z-10 px-4 pb-3">
+        <div className="flex space-x-2 bg-white/80 backdrop-blur-sm rounded-xl p-1 shadow-lg border border-[#ff6b35]/20">
+          {[
+            { key: 'vendors', label: 'Vendors', icon: Store },
+            { key: 'users', label: 'Users', icon: Users },
+            { key: 'zones', label: 'Zones', icon: MapPin }
+          ].map((tab) => {
+            const Icon = tab.icon
+            return (
+              <button
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key as any)}
+                className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors flex items-center justify-center space-x-1 ${
+                  activeTab === tab.key
+                    ? 'bg-[#ff6b35] text-white'
+                    : 'text-[#6b5d52] hover:bg-white/50'
+                }`}
               >
-                <option value="all">All Categories</option>
-                {FARCASTER_CONFIG.CATEGORIES.map((category) => (
-                  <option key={category.id} value={category.id}>
-                    {category.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Sort Type */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Sort By
-              </label>
-              <select
-                value={sortType}
-                onChange={(e) => setSortType(e.target.value as any)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-              >
-                <option value="winRate">Win Rate</option>
-                <option value="totalWins">Total Wins</option>
-                <option value="totalBattles">Total Battles</option>
-                <option value="totalRevenue">Total Revenue</option>
-              </select>
-            </div>
-          </div>
+                <Icon className="w-4 h-4" />
+                <span>{tab.label}</span>
+              </button>
+            )
+          })}
         </div>
       </div>
 
-      {/* Leaderboard */}
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <h2 className="text-xl font-semibold text-gray-900">
-              Top Vendors {selectedCategory !== 'all' && `in ${FARCASTER_CONFIG.CATEGORIES.find(c => c.id === selectedCategory)?.name}`}
-            </h2>
-          </div>
+      {/* Leaderboard Entries */}
+      <div className="relative z-10 px-4 pb-20">
+        <div className="space-y-3">
+          {getCurrentData().map((entry, index) => (
+            <div 
+              key={entry.id}
+              className={`${getBackgroundColor(index)} rounded-xl p-4 shadow-lg border border-[#ff6b35]/20 hover:shadow-xl transition-all duration-200`}
+            >
+              <div className="flex items-center space-x-3">
+                {/* Rank and Change */}
+                <div className="flex flex-col items-center space-y-1">
+                  {getTierIcon(entry.tier) || (
+                    <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-sm font-bold text-gray-600">
+                      {entry.rank}
+                    </div>
+                  )}
+                  <div className="flex items-center space-x-1 bg-blue-100 rounded px-1 py-0.5">
+                    {getRankChangeIcon(entry.rankChange)}
+                    <span className="text-xs font-medium text-blue-700">
+                      {getRankChangeText(entry.rankChange)}
+                    </span>
+                  </div>
+                </div>
 
-          <div className="divide-y divide-gray-200">
-            {leaderboard.map((entry, index) => (
-              <div key={entry.vendor.id} className="p-6 hover:bg-gray-50 transition-colors">
-                <div className="flex items-center space-x-4">
-                  {/* Rank */}
-                  <div className="flex-shrink-0">
-                    <div className={`w-12 h-12 rounded-full flex items-center justify-center ${getRankBadge(entry.rank)}`}>
-                      {getRankIcon(entry.rank)}
+                {/* Avatar */}
+                <div className="flex-shrink-0">
+                  <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-[#ff6b35]/20">
+                    <img 
+                      src={entry.avatar} 
+                      alt={entry.name}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                </div>
+
+                {/* Content */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center space-x-2 mb-1">
+                    <h3 className="font-bold text-[#2d1810] text-base truncate">{entry.name}</h3>
+                    {entry.tier === 'gold' && <Crown className="w-4 h-4 text-yellow-600" />}
+                  </div>
+                  <p className="text-[#6b5d52] text-sm mb-1">{entry.location}</p>
+                  <p className="text-green-600 text-sm font-medium mb-2">{entry.weeklyPerformance}</p>
+                  <div className="flex items-center space-x-4 text-sm">
+                    <div className="flex items-center space-x-1">
+                      <Trophy className="w-3 h-3 text-[#ffd23f]" />
+                      <span className="font-semibold text-[#2d1810]">{entry.score.toLocaleString()}</span>
+                    </div>
+                    <div className="flex items-center space-x-1">
+                      <TrendingUp className="w-3 h-3 text-green-600" />
+                      <span className="text-green-600 font-medium">+{entry.todayChange} today</span>
                     </div>
                   </div>
+                </div>
 
-                  {/* Vendor Info */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center space-x-3">
-                      <Avatar className="h-12 w-12">
-                        <AvatarImage src={entry.vendor.imageUrl} alt={entry.vendor.name} />
-                        <AvatarFallback>{entry.vendor.name.charAt(0)}</AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1 min-w-0">
-                        <h3 className="text-lg font-semibold text-gray-900 truncate">
-                          {entry.vendor.name}
-                        </h3>
-                        <p className="text-sm text-gray-500">
-                          by @{entry.vendor.owner.username}
-                        </p>
-                        <div className="flex items-center space-x-2 mt-1">
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
-                            {FARCASTER_CONFIG.CATEGORIES.find(c => c.id === entry.vendor.category)?.name}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Stats */}
-                  <div className="flex-shrink-0">
-                    <div className="grid grid-cols-2 gap-4 text-center">
-                      <div>
-                        <div className="text-lg font-semibold text-purple-600">
-                          {entry.winRate}%
-                        </div>
-                        <div className="text-xs text-gray-500">Win Rate</div>
-                      </div>
-                      <div>
-                        <div className="text-lg font-semibold text-blue-600">
-                          {entry.totalWins}/{entry.totalBattles}
-                        </div>
-                        <div className="text-xs text-gray-500">Wins/Battles</div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Action */}
-                  <div className="flex-shrink-0">
-                    <Button size="sm" variant="outline">
-                      View Profile
-                    </Button>
+                {/* Control Percentage */}
+                <div className="flex-shrink-0">
+                  <div className="bg-orange-100 text-orange-800 px-3 py-1 rounded-full text-sm font-semibold">
+                    {entry.controlPercentage}% control
                   </div>
                 </div>
               </div>
-            ))}
-          </div>
-
-          {leaderboard.length === 0 && (
-            <div className="text-center py-12">
-              <div className="text-gray-400 mb-4">
-                <Trophy className="h-12 w-12 mx-auto" />
-              </div>
-              <h3 className="text-lg font-medium text-gray-900 mb-2">
-                No vendors found
-              </h3>
-              <p className="text-gray-600">
-                Try selecting a different category or check back later.
-              </p>
             </div>
-          )}
+          ))}
+        </div>
+      </div>
+
+      {/* Call to Action */}
+      <div className="relative z-10 px-4 pb-6">
+        <div className="bg-gradient-to-r from-[#ff6b35]/10 to-[#ffd23f]/10 rounded-xl p-6 border border-[#ff6b35]/20 text-center">
+          <div className="w-16 h-16 bg-gradient-to-br from-[#ff6b35] to-[#ffd23f] rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
+            <Crown className="w-8 h-8 text-white" />
+          </div>
+          <h3 className="font-bold text-[#2d1810] text-lg mb-2">Climb the Rankings!</h3>
+          <p className="text-[#6b5d52] text-sm mb-4">
+            Vote for vendors, verify purchases, and defend your territory to earn more BATTLE tokens
+          </p>
+          <Button
+            onClick={() => router.push('/map')}
+            className="bg-[#ff6b35] hover:bg-[#e5562e] text-white font-semibold py-3 px-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 flex items-center space-x-2 mx-auto"
+          >
+            <Trophy className="w-4 h-4" />
+            <span>Join the Battle</span>
+          </Button>
         </div>
       </div>
     </div>

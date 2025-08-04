@@ -3,15 +3,25 @@
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Map, List, User, Users } from 'lucide-react'
+import { ArrowLeft, Trophy, Crown, Star, Users, Target } from 'lucide-react'
 import { VoteResultModal } from '@/components/VoteResultModal'
 import type { Vendor } from '@/types'
+
+interface TopVoter {
+  id: string
+  username: string
+  displayName: string
+  avatar: string
+  votesGiven: number
+  totalVotes: number
+  isVerified: boolean
+}
 
 export default function VendorProfilePage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter()
   const [vendor, setVendor] = useState<Vendor | null>(null)
   const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState<'about' | 'reviews' | 'rewards'>('about')
+  const [activeTab, setActiveTab] = useState<'about' | 'reviews' | 'rewards' | 'supporters'>('about')
   const [showVoteModal, setShowVoteModal] = useState(false)
   const [voteResult, setVoteResult] = useState<{
     vendor: { name: string; imageUrl: string }
@@ -61,6 +71,158 @@ export default function VendorProfilePage({ params }: { params: Promise<{ id: st
   const handleCloseVoteModal = () => {
     setShowVoteModal(false)
     setVoteResult(null)
+  }
+
+  // Mock data for top voters
+  const getTopVoters = (vendorId: string): TopVoter[] => {
+    const topVotersData = {
+      '1': [
+        {
+          id: '1',
+          username: 'foodwarrior',
+          displayName: 'FoodWarrior',
+          avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&h=100&fit=crop&crop=face',
+          votesGiven: 15,
+          totalVotes: 89,
+          isVerified: true
+        },
+        {
+          id: '2',
+          username: 'tacolover',
+          displayName: 'TacoLover',
+          avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face',
+          votesGiven: 12,
+          totalVotes: 67,
+          isVerified: true
+        },
+        {
+          id: '3',
+          username: 'pupusas_fan',
+          displayName: 'PupusasFan',
+          avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=100&h=100&fit=crop&crop=face',
+          votesGiven: 8,
+          totalVotes: 45,
+          isVerified: false
+        }
+      ],
+      '2': [
+        {
+          id: '4',
+          username: 'taco_king',
+          displayName: 'TacoKing',
+          avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face',
+          votesGiven: 18,
+          totalVotes: 92,
+          isVerified: true
+        },
+        {
+          id: '5',
+          username: 'street_foodie',
+          displayName: 'StreetFoodie',
+          avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop&crop=face',
+          votesGiven: 14,
+          totalVotes: 78,
+          isVerified: true
+        },
+        {
+          id: '6',
+          username: 'mexican_cuisine',
+          displayName: 'MexicanCuisine',
+          avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&h=100&fit=crop&crop=face',
+          votesGiven: 9,
+          totalVotes: 56,
+          isVerified: false
+        }
+      ],
+      '3': [
+        {
+          id: '7',
+          username: 'coffee_master',
+          displayName: 'CoffeeMaster',
+          avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face',
+          votesGiven: 11,
+          totalVotes: 63,
+          isVerified: true
+        },
+        {
+          id: '8',
+          username: 'cafe_lover',
+          displayName: 'CafeLover',
+          avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=100&h=100&fit=crop&crop=face',
+          votesGiven: 7,
+          totalVotes: 41,
+          isVerified: false
+        },
+        {
+          id: '9',
+          username: 'barista_pro',
+          displayName: 'BaristaPro',
+          avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face',
+          votesGiven: 6,
+          totalVotes: 38,
+          isVerified: false
+        }
+      ],
+      '4': [
+        {
+          id: '10',
+          username: 'pizza_chef',
+          displayName: 'PizzaChef',
+          avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop&crop=face',
+          votesGiven: 13,
+          totalVotes: 71,
+          isVerified: true
+        },
+        {
+          id: '11',
+          username: 'italian_food',
+          displayName: 'ItalianFood',
+          avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&h=100&fit=crop&crop=face',
+          votesGiven: 10,
+          totalVotes: 58,
+          isVerified: true
+        },
+        {
+          id: '12',
+          username: 'napoli_fan',
+          displayName: 'NapoliFan',
+          avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face',
+          votesGiven: 8,
+          totalVotes: 47,
+          isVerified: false
+        }
+      ],
+      '5': [
+        {
+          id: '13',
+          username: 'sushi_master',
+          displayName: 'SushiMaster',
+          avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=100&h=100&fit=crop&crop=face',
+          votesGiven: 16,
+          totalVotes: 84,
+          isVerified: true
+        },
+        {
+          id: '14',
+          username: 'japanese_food',
+          displayName: 'JapaneseFood',
+          avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face',
+          votesGiven: 12,
+          totalVotes: 69,
+          isVerified: true
+        },
+        {
+          id: '15',
+          username: 'asian_cuisine',
+          displayName: 'AsianCuisine',
+          avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop&crop=face',
+          votesGiven: 9,
+          totalVotes: 52,
+          isVerified: false
+        }
+      ]
+    }
+    return topVotersData[vendorId as keyof typeof topVotersData] || topVotersData['1']
   }
 
   if (loading) {
@@ -122,6 +284,25 @@ export default function VendorProfilePage({ params }: { params: Promise<{ id: st
           </div>
         </div>
 
+        {/* Action Buttons - Moved to top for better visibility */}
+        <div className="px-4 py-4 bg-gradient-to-r from-orange-50 to-red-50 border-b border-orange-200">
+          <div className="flex gap-3 justify-between max-w-md mx-auto">
+            <Button
+              onClick={() => handleVote(false)}
+              className="flex-1 cursor-pointer items-center justify-center overflow-hidden rounded-full h-12 px-6 bg-[#f2920c] text-[#181511] text-base font-bold leading-normal tracking-[0.015em] hover:bg-[#e0850b] shadow-lg hover:shadow-xl transition-all duration-200"
+            >
+              <span className="truncate">Vote & Support</span>
+            </Button>
+            <Button
+              onClick={() => handleVote(true)}
+              variant="outline"
+              className="flex-1 cursor-pointer items-center justify-center overflow-hidden rounded-full h-12 px-6 bg-[#f5f3f0] text-[#181511] text-base font-bold leading-normal tracking-[0.015em] hover:bg-[#ebe8e4] border-[#f5f3f0] shadow-lg hover:shadow-xl transition-all duration-200"
+            >
+              <span className="truncate">Verified Vote</span>
+            </Button>
+          </div>
+        </div>
+
         {/* Tabs */}
         <div className="pb-3">
           <div className="flex border-b border-[#e6e1db] px-4 gap-8">
@@ -165,6 +346,20 @@ export default function VendorProfilePage({ params }: { params: Promise<{ id: st
                 activeTab === 'rewards' ? 'text-[#181511]' : 'text-[#8a7960]'
               }`}>
                 Rewards
+              </p>
+            </button>
+            <button
+              onClick={() => setActiveTab('supporters')}
+              className={`flex flex-col items-center justify-center border-b-[3px] pb-[13px] pt-4 ${
+                activeTab === 'supporters'
+                  ? 'border-b-[#181511] text-[#181511]'
+                  : 'border-b-transparent text-[#8a7960]'
+              }`}
+            >
+              <p className={`text-sm font-bold leading-normal tracking-[0.015em] ${
+                activeTab === 'supporters' ? 'text-[#181511]' : 'text-[#8a7960]'
+              }`}>
+                Supporters
               </p>
             </button>
           </div>
@@ -240,63 +435,86 @@ export default function VendorProfilePage({ params }: { params: Promise<{ id: st
           </div>
         )}
 
-                        {/* Action Buttons */}
-                <div className="flex justify-stretch">
-                  <div className="flex flex-1 gap-3 flex-wrap px-4 py-3 justify-between">
-                    <Button
-                      onClick={() => handleVote(false)}
-                      className="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-full h-10 px-4 bg-[#f2920c] text-[#181511] text-sm font-bold leading-normal tracking-[0.015em] hover:bg-[#e0850b]"
-                    >
-                      <span className="truncate">Vote & Support</span>
-                    </Button>
-                    <Button
-                      onClick={() => handleVote(true)}
-                      variant="outline"
-                      className="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-full h-10 px-4 bg-[#f5f3f0] text-[#181511] text-sm font-bold leading-normal tracking-[0.015em] hover:bg-[#ebe8e4] border-[#f5f3f0]"
-                    >
-                      <span className="truncate">Verified Vote</span>
-                    </Button>
+        {/* Supporters Tab Content */}
+        {activeTab === 'supporters' && (
+          <div className="px-4 py-6">
+            <div className="bg-gradient-to-r from-orange-50 to-red-50 rounded-xl p-4 border border-orange-200/50">
+              <h3 className="font-bold text-[#2d1810] mb-4 flex items-center">
+                <Trophy className="w-5 h-5 mr-2 text-[#ffd23f]" />
+                Top Supporters
+              </h3>
+              <div className="space-y-3">
+                {getTopVoters(vendor.id).map((voter, index) => (
+                  <div 
+                    key={voter.id}
+                    className="flex items-center space-x-3 p-3 rounded-lg bg-white/80 backdrop-blur-sm border border-orange-200/30 hover:bg-white/90 transition-colors"
+                  >
+                    {/* Rank */}
+                    <div className="flex-shrink-0">
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
+                        index === 0 ? 'bg-yellow-100 text-yellow-800' :
+                        index === 1 ? 'bg-gray-100 text-gray-800' :
+                        index === 2 ? 'bg-orange-100 text-orange-800' :
+                        'bg-gray-50 text-gray-600'
+                      }`}>
+                        #{index + 1}
+                      </div>
+                    </div>
+
+                    {/* User Avatar */}
+                    <div className="flex-shrink-0 relative">
+                      <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-orange-200">
+                        <img 
+                          src={voter.avatar} 
+                          alt={voter.displayName}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      {voter.isVerified && (
+                        <div className="absolute -top-1 -right-1 w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center border border-white">
+                          <div className="w-2 h-2 bg-white rounded-full"></div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* User Info */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center space-x-2">
+                        <h4 className="font-semibold text-[#2d1810] text-sm truncate">{voter.displayName}</h4>
+                        {voter.isVerified && (
+                          <div className="w-3 h-3 bg-blue-500 rounded-full flex items-center justify-center">
+                            <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex items-center space-x-4 text-xs text-[#6b5d52]">
+                        <div className="flex items-center space-x-1">
+                          <Target className="w-3 h-3" />
+                          <span>{voter.votesGiven} votes</span>
+                        </div>
+                        <div className="flex items-center space-x-1">
+                          <Users className="w-3 h-3" />
+                          <span>{voter.totalVotes} total</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Vote Percentage */}
+                    <div className="flex-shrink-0 text-right">
+                      <div className="text-sm font-semibold text-[#2d1810]">
+                        {Math.round((voter.votesGiven / voter.totalVotes) * 100)}%
+                      </div>
+                      <div className="text-xs text-[#6b5d52]">of votes</div>
+                    </div>
                   </div>
-                </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Bottom Navigation */}
-      <div>
-        <div className="flex gap-2 border-t border-[#f5f3f0] bg-white px-4 pb-3 pt-2">
-          <button
-            onClick={() => router.push('/map')}
-            className="flex flex-1 flex-col items-center justify-end gap-1 text-[#8a7960] hover:text-[#181511] transition-colors"
-          >
-            <Map className="h-8 w-8" />
-            <p className="text-xs font-medium leading-normal tracking-[0.015em]">Map</p>
-          </button>
-          
-          <button
-            onClick={() => router.push('/vendors')}
-            className="flex flex-1 flex-col items-center justify-end gap-1 text-[#181511]"
-          >
-            <List className="h-8 w-8" />
-            <p className="text-xs font-medium leading-normal tracking-[0.015em]">Vendors</p>
-          </button>
-          
-          <button
-            onClick={() => router.push('/profile')}
-            className="flex flex-1 flex-col items-center justify-end gap-1 text-[#8a7960] hover:text-[#181511] transition-colors"
-          >
-            <User className="h-8 w-8" />
-            <p className="text-xs font-medium leading-normal tracking-[0.015em]">Profile</p>
-          </button>
-          
-          <button
-            onClick={() => router.push('/leaderboard')}
-            className="flex flex-1 flex-col items-center justify-end gap-1 text-[#8a7960] hover:text-[#181511] transition-colors"
-          >
-            <Users className="h-8 w-8" />
-            <p className="text-xs font-medium leading-normal tracking-[0.015em]">Social</p>
-          </button>
-        </div>
-        <div className="h-5 bg-white" />
-      </div>
+
 
       {/* Vote Result Modal */}
       {voteResult && (

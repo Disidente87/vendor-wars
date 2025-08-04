@@ -4,97 +4,108 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { 
-  ArrowLeft, 
   Map, 
   List, 
   User, 
-  Users 
+  Users,
+  Search,
+  Filter,
+  Star,
+  Flame,
+  Crown,
+  Trophy,
+  Coins,
+  ArrowRight,
+  Plus
 } from 'lucide-react'
-import { VoteResultModal } from '@/components/VoteResultModal'
 
 interface Vendor {
   id: string
   name: string
-  description: string
-  imageUrl: string
-  zone: string
+  handle: string
+  avatar: string
+  specialty: string
+  rating: number
+  totalVotes: number
+  territories: number
+  battleTokens: number
+  isVerified: boolean
+  status: 'active' | 'battling' | 'resting'
 }
 
 export default function VendorsPage() {
   const router = useRouter()
-  const [showVoteModal, setShowVoteModal] = useState(false)
-  const [voteResult, setVoteResult] = useState<{
-    vendor: Vendor
-    battleTokens: number
-    isVerified: boolean
-  } | null>(null)
+  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list')
+  const [searchQuery, setSearchQuery] = useState('')
+  const [selectedFilter, setSelectedFilter] = useState('all')
 
-  // Mock vendors data grouped by zone
-  const vendorsByZone: Record<string, Vendor[]> = {
-    'La Paz': [
-      {
-        id: '1',
-        name: 'Tacos Lupita',
-        description: 'Authentic street tacos with homemade tortillas',
-        imageUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDpi0Qxv3Y2ZffYYKy8Gkm6bfw5ZTL6D8JaLbYgh1DpuL5qZIrzhVtobtKKIbqqTpY03WfAIC0Vz_1fDH2LryuYH2hiE7IBH3cf69jW9F6ShsaI74kboXBUXKNVqH5Azxl3GXvifhRAuVVK4pP5xqoRyCISgbmvUWMn-iWT4bYQbqOmp_SOeBWVJqRYQ0MCuBsGauYs4nZi9gyqZHtoR3X4QsUkb-sOcwIbbJQoBNqIPoL5RXQTq21SE0vXGEkzyse-UfOP1hKiOgFD',
-        zone: 'La Paz'
-      },
-      {
-        id: '2',
-        name: 'Empanadas Doña María',
-        description: 'Traditional empanadas with secret family recipe',
-        imageUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCrcqzIrczhjEy_VnXcULjwkuj8gIV6SmfXdkHSFe0RXLFJEWWDJEaXM_oSWAN3KBonPkCUSK6iiat_vUXEVXxCCPKQyhpgopbrrtiv2xg4uvhiV41hecnJRnZpoJfcYENBF0fiVl2Crsiakr4m_3OA-ceYpiD49wuC-5b4YMgPz2_YTZPZwZ0dDlQNc_EEvnG0bwEf-4Dfl2wRVKk_qj7njlGNQBmj6F04T-lskea2OwpUzXmSu3jeRR2jwv3TumlRaAMU2mCSn7Dt',
-        zone: 'La Paz'
-      }
-    ],
-    'La Condesa': [
-      {
-        id: '3',
-        name: 'Churros El Rey',
-        description: 'Fresh churros with chocolate dipping sauce',
-        imageUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDBBHG7wNe06YgItxPYtZrNfkW6uWauEIBDkXy3s-W53gEsDkUcbvr3OFiSnOlp3GKzbxLZ8_V_pfT3dm5pcTGj6jFy_gJjbjI9SAajpWlMzkn2FmlKrhBvRCUHzOR4OmQYr9UQNdROBkbARobU3qanZ8lMp1qYAOd-bwEsYwFw-OawnXGfFtSVVfeJiNICjyKYgxZcVHjbqP98Kba0QtbyagHgYlw1JtBnO6WGpkonU5ok6X8LHmle8HGhVl_ExHvDqYO4I9F7JJ4y',
-        zone: 'La Condesa'
-      }
-    ],
-    'La Roma': [
-      {
-        id: '4',
-        name: 'Tamales Abuela Rosa',
-        description: 'Homemade tamales with love and tradition',
-        imageUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDXGXdNUtj6vd_bmhqcmsrd1mknTagtl29KZLj5ULoBd3TnSKhcxU5J2PQwH1em-WeHUNzQqSSG-1mzx7f8KvFm4x8XY7XjWF2shs2oqZIl8q6J2UpclNQhotZ_a9X6hqlOtt4wGXTLv15Vpp4pqFuYPVwbczwQcL_UyzWihryoPtBHhaMPnPDJiYAw5XAFhT7ZqPgpTMbepWIM7bfgNUZNW_3U887dnKSNFiHY6fW_BrRTucBPHWN4SVMgI5ffQj_ATVyWNBPTna9q',
-        zone: 'La Roma'
-      }
-    ]
-  }
-
-  const handleVote = (vendor: Vendor, isVerified: boolean = false) => {
-    // Add haptic feedback
-    if (typeof window !== 'undefined' && 'navigator' in window && 'vibrate' in navigator) {
-      navigator.vibrate(100)
+  const vendors: Vendor[] = [
+    {
+      id: '1',
+      name: 'Pupusas María',
+      handle: '@Pupusas_María',
+      avatar: 'https://images.unsplash.com/photo-1595273670150-bd0c3c392e46?w=100&h=100&fit=crop&crop=face',
+      specialty: 'Pupusas Tradicionales',
+      rating: 4.8,
+      totalVotes: 1247,
+      territories: 3,
+      battleTokens: 8920,
+      isVerified: true,
+      status: 'active'
+    },
+    {
+      id: '2',
+      name: 'Tacos El Rey',
+      handle: '@Tacos_El_Rey',
+      avatar: 'https://images.unsplash.com/photo-1566554273541-37a9ca77b91f?w=100&h=100&fit=crop&crop=face',
+      specialty: 'Tacos de Carne Asada',
+      rating: 4.6,
+      totalVotes: 892,
+      territories: 2,
+      battleTokens: 6540,
+      isVerified: true,
+      status: 'battling'
+    },
+    {
+      id: '3',
+      name: 'Arepa House',
+      handle: '@Arepa_House',
+      avatar: 'https://images.unsplash.com/photo-1594736797933-d0e501ba2fe6?w=100&h=100&fit=crop&crop=face',
+      specialty: 'Arepas Venezolanas',
+      rating: 4.9,
+      totalVotes: 1567,
+      territories: 4,
+      battleTokens: 12340,
+      isVerified: true,
+      status: 'active'
+    },
+    {
+      id: '4',
+      name: 'Empanadas Doña Rosa',
+      handle: '@Empanadas_Doña_Rosa',
+      avatar: 'https://images.unsplash.com/photo-1547036967-23d11aacaee0?w=100&h=100&fit=crop&crop=face',
+      specialty: 'Empanadas Argentinas',
+      rating: 4.7,
+      totalVotes: 734,
+      territories: 1,
+      battleTokens: 5430,
+      isVerified: false,
+      status: 'resting'
+    },
+    {
+      id: '5',
+      name: 'Quesadillas Express',
+      handle: '@Quesadillas_Express',
+      avatar: 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=100&h=100&fit=crop&crop=face',
+      specialty: 'Quesadillas Gourmet',
+      rating: 4.5,
+      totalVotes: 456,
+      territories: 1,
+      battleTokens: 3210,
+      isVerified: false,
+      status: 'active'
     }
-    
-    const battleTokens = isVerified ? Math.floor(Math.random() * 50) + 50 : Math.floor(Math.random() * 30) + 20
-    
-    setVoteResult({
-      vendor,
-      battleTokens,
-      isVerified
-    })
-    setShowVoteModal(true)
-  }
-
-  const handleCloseVoteModal = () => {
-    setShowVoteModal(false)
-    setVoteResult(null)
-  }
-
-  const handleAddVendor = () => {
-    // Add haptic feedback
-    if (typeof window !== 'undefined' && 'navigator' in window && 'vibrate' in navigator) {
-      navigator.vibrate(100)
-    }
-    router.push('/vendors/register')
-  }
+  ]
 
   const handleVendorClick = (vendorId: string) => {
     // Add haptic feedback
@@ -104,128 +115,172 @@ export default function VendorsPage() {
     router.push(`/vendors/${vendorId}`)
   }
 
-  return (
-    <div
-      className="relative flex size-full min-h-screen flex-col bg-white justify-between group/design-root overflow-x-hidden"
-      style={{ fontFamily: '"Plus Jakarta Sans", "Noto Sans", sans-serif' }}
-    >
-      <div className="flex-1">
-        {/* Header */}
-        <div className="flex items-center bg-white p-4 pb-2 justify-between">
-          <button
-            onClick={() => router.back()}
-            className="text-[#181511] flex size-12 shrink-0 items-center hover:bg-gray-100 rounded-full transition-colors touch-manipulation active:scale-95"
-          >
-            <ArrowLeft className="h-6 w-6" />
-          </button>
-          <h2 className="text-[#181511] text-lg font-bold leading-tight tracking-[-0.015em] flex-1 text-center pr-12">
-            Vendors
-          </h2>
-        </div>
+  const handleRegisterVendor = () => {
+    // Add haptic feedback
+    if (typeof window !== 'undefined' && 'navigator' in window && 'vibrate' in navigator) {
+      navigator.vibrate(100)
+    }
+    router.push('/vendors/register')
+  }
 
-        {/* Add New Vendor Button */}
-        <div className="flex px-4 py-3 justify-center">
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'active': return '#06d6a0'
+      case 'battling': return '#ff6b35'
+      case 'resting': return '#8d99ae'
+      default: return '#8d99ae'
+    }
+  }
+
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case 'active': return 'Active'
+      case 'battling': return 'In Battle'
+      case 'resting': return 'Resting'
+      default: return 'Unknown'
+    }
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-[#fff8f0] to-[#f4f1eb]">
+      {/* Header */}
+      <div className="relative z-10 p-4">
+        <div className="flex items-center justify-between bg-white/80 backdrop-blur-sm rounded-xl p-4 shadow-lg border border-[#ff6b35]/20">
+          <div>
+            <h1 className="text-2xl font-bold text-[#2d1810]">Vendor Warriors</h1>
+            <p className="text-[#6b5d52] text-sm">Find and support local heroes</p>
+          </div>
           <Button
-            onClick={handleAddVendor}
-            className="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-full h-12 px-5 bg-[#f2920c] text-[#181511] text-base font-bold leading-normal tracking-[0.015em] hover:bg-[#e0850b] active:scale-95 transition-transform touch-manipulation"
-            style={{ minHeight: '48px' }}
+            onClick={handleRegisterVendor}
+            className="bg-[#ff6b35] hover:bg-[#e5562e] text-white font-bold px-4 py-2 rounded-xl shadow-lg flex items-center space-x-2"
           >
-            <span className="truncate">+ Add New Vendor</span>
+            <Plus className="w-4 h-4" />
+            <span>Register</span>
           </Button>
         </div>
+      </div>
 
-        {/* Vendors by Zone */}
-        {Object.entries(vendorsByZone).map(([zone, zoneVendors]) => (
-          <div key={zone}>
-            <h2 className="text-[#181511] text-[22px] font-bold leading-tight tracking-[-0.015em] px-4 pb-3 pt-5">
-              {zone}
-            </h2>
-            
-            {zoneVendors.map((vendor) => (
-              <div 
-                key={vendor.id} 
-                className="flex items-center gap-4 bg-white px-4 min-h-[72px] py-2 justify-between hover:bg-gray-50 transition-colors touch-manipulation active:bg-gray-100"
-                style={{ minHeight: '72px' }}
+      {/* Search and Filters */}
+      <div className="relative z-10 px-4 pb-4">
+        <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 shadow-lg border border-[#ff6b35]/20">
+          {/* Search Bar */}
+          <div className="flex items-center space-x-3 mb-4">
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[#6b5d52]" />
+              <input
+                placeholder="Search vendors..."
+                className="w-full pl-10 pr-4 py-2 bg-white/80 backdrop-blur-sm rounded-xl border border-[#ff6b35]/20 text-[#2d1810] placeholder-[#6b5d52] focus:outline-none focus:ring-2 focus:ring-[#ff6b35]/50"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+            <button className="w-10 h-10 bg-[#ff6b35] rounded-xl flex items-center justify-center shadow-lg hover:bg-[#e5562e] transition-colors">
+              <Filter className="w-5 h-5 text-white" />
+            </button>
+          </div>
+
+          {/* View Toggle */}
+          <div className="flex items-center justify-between">
+            <div className="flex space-x-2">
+              <button
+                onClick={() => setViewMode('list')}
+                className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
+                  viewMode === 'list' 
+                    ? 'bg-[#ff6b35] text-white' 
+                    : 'bg-white/50 text-[#6b5d52] hover:bg-white/80'
+                }`}
               >
-                <div 
-                  className="flex items-center gap-4 flex-1"
-                  onClick={() => handleVendorClick(vendor.id)}
-                >
-                  <div
-                    className="bg-center bg-no-repeat aspect-square bg-cover rounded-lg size-14"
-                    style={{
-                      backgroundImage: `url("${vendor.imageUrl}")`
-                    }}
-                  />
-                  <div className="flex flex-col justify-center flex-1">
-                    <p className="text-[#181511] text-base font-medium leading-normal line-clamp-1">
-                      {vendor.name}
-                    </p>
-                    <p className="text-[#8a7860] text-sm font-normal leading-normal line-clamp-2">
-                      {vendor.description}
-                    </p>
+                <List className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => setViewMode('grid')}
+                className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
+                  viewMode === 'grid' 
+                    ? 'bg-[#ff6b35] text-white' 
+                    : 'bg-white/50 text-[#6b5d52] hover:bg-white/80'
+                }`}
+              >
+                <Map className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="text-sm text-[#6b5d52]">
+              {vendors.length} vendors found
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Vendors List */}
+      <div className="relative z-10 px-4 pb-20">
+        <div className="space-y-4">
+          {vendors.map((vendor) => (
+            <div
+              key={vendor.id}
+              onClick={() => handleVendorClick(vendor.id)}
+              className="bg-white/80 backdrop-blur-sm rounded-xl p-4 shadow-lg border border-[#ff6b35]/20 hover:bg-white/90 transition-all duration-300 cursor-pointer hover:scale-[1.02]"
+            >
+              <div className="flex items-center space-x-4">
+                {/* Avatar */}
+                <div className="relative">
+                  <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-[#ff6b35]">
+                    <img src={vendor.avatar} alt={vendor.name} className="w-full h-full object-cover" />
+                  </div>
+                  {vendor.isVerified && (
+                    <div className="absolute -top-1 -right-1 w-6 h-6 bg-[#ffd23f] rounded-full flex items-center justify-center">
+                      <Crown className="w-3 h-3 text-[#2d1810]" />
+                    </div>
+                  )}
+                </div>
+
+                {/* Vendor Info */}
+                <div className="flex-1">
+                  <div className="flex items-center space-x-2 mb-1">
+                    <h3 className="font-bold text-[#2d1810] text-lg">{vendor.name}</h3>
+                    <span className="text-[#6b5d52] text-sm">{vendor.handle}</span>
+                  </div>
+                  <p className="text-[#6b5d52] text-sm mb-2">{vendor.specialty}</p>
+                  
+                  {/* Stats */}
+                  <div className="flex items-center space-x-4">
+                    <div className="flex items-center space-x-1">
+                      <Star className="w-4 h-4 text-[#ffd23f]" />
+                      <span className="text-sm font-semibold text-[#2d1810]">{vendor.rating}</span>
+                    </div>
+                    <div className="flex items-center space-x-1">
+                      <Flame className="w-4 h-4 text-[#ff6b35]" />
+                      <span className="text-sm text-[#6b5d52]">{vendor.totalVotes}</span>
+                    </div>
+                    <div className="flex items-center space-x-1">
+                      <Trophy className="w-4 h-4 text-[#06d6a0]" />
+                      <span className="text-sm text-[#6b5d52]">{vendor.territories}</span>
+                    </div>
+                    <div className="flex items-center space-x-1">
+                      <Coins className="w-4 h-4 text-[#ffd23f]" />
+                      <span className="text-sm text-[#6b5d52]">{vendor.battleTokens}</span>
+                    </div>
                   </div>
                 </div>
-                <div className="shrink-0">
-                  <Button
-                    onClick={() => handleVote(vendor, false)}
-                    className="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-full h-8 px-4 bg-[#f5f3f0] text-[#181511] text-sm font-medium leading-normal w-fit hover:bg-[#ebe8e4] active:scale-95 transition-transform touch-manipulation"
-                    style={{ minHeight: '32px' }}
+
+                {/* Status and Arrow */}
+                <div className="flex flex-col items-end space-y-2">
+                  <div 
+                    className="px-2 py-1 rounded-full text-xs font-medium"
+                    style={{ 
+                      backgroundColor: `${getStatusColor(vendor.status)}20`,
+                      color: getStatusColor(vendor.status)
+                    }}
                   >
-                    <span className="truncate">Support</span>
-                  </Button>
+                    {getStatusText(vendor.status)}
+                  </div>
+                  <ArrowRight className="w-5 h-5 text-[#6b5d52]" />
                 </div>
               </div>
-            ))}
-          </div>
-        ))}
-      </div>
-
-      {/* Bottom Navigation */}
-      <div>
-        <div className="flex gap-2 border-t border-[#f5f3f0] bg-white px-4 pb-3 pt-2">
-          <button
-            onClick={() => router.push('/map')}
-            className="flex flex-1 flex-col items-center justify-end gap-1 text-[#8a7960] hover:text-[#181511] transition-colors"
-          >
-            <Map className="h-8 w-8" />
-            <p className="text-xs font-medium leading-normal tracking-[0.015em]">Map</p>
-          </button>
-          
-          <button className="flex flex-1 flex-col items-center justify-end gap-1 rounded-full text-[#181511]">
-            <List className="h-8 w-8" />
-            <p className="text-xs font-medium leading-normal tracking-[0.015em]">Vendors</p>
-          </button>
-          
-          <button
-            onClick={() => router.push('/profile')}
-            className="flex flex-1 flex-col items-center justify-end gap-1 text-[#8a7960] hover:text-[#181511] transition-colors"
-          >
-            <User className="h-8 w-8" />
-            <p className="text-xs font-medium leading-normal tracking-[0.015em]">Profile</p>
-          </button>
-          
-          <button
-            onClick={() => router.push('/leaderboard')}
-            className="flex flex-1 flex-col items-center justify-end gap-1 text-[#8a7960] hover:text-[#181511] transition-colors"
-          >
-            <Users className="h-8 w-8" />
-            <p className="text-xs font-medium leading-normal tracking-[0.015em]">Social</p>
-          </button>
+            </div>
+          ))}
         </div>
-        <div className="h-5 bg-white" />
       </div>
 
-      {/* Vote Result Modal */}
-      {voteResult && (
-        <VoteResultModal
-          isOpen={showVoteModal}
-          onClose={handleCloseVoteModal}
-          vendor={voteResult.vendor}
-          battleTokens={voteResult.battleTokens}
-          isVerified={voteResult.isVerified}
-        />
-      )}
+
     </div>
   )
 } 

@@ -1,34 +1,146 @@
 'use client'
-import { Suspense, useEffect } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { useRouter } from 'next/navigation'
 import { useMiniApp } from '@neynar/react'
+import { Crown, Flame, MapPin, Users, Zap } from 'lucide-react'
+import { useAuthSimulation } from '@/hooks/useAuthSimulation'
 
 export default function HomePage() {
   const router = useRouter()
-  const { isSDKLoaded, context } = useMiniApp();
+  const { isSDKLoaded, context } = useMiniApp()
+  const [isConnecting, setIsConnecting] = useState(false)
+  const [showTutorial, setShowTutorial] = useState(false)
+  
+  // Use simulation for development
+  const { isAuthenticated, user, isLoading } = useAuthSimulation()
+
+  const features = [
+    {
+      icon: <MapPin className="w-6 h-6" />,
+      title: "Conquer Territories",
+      description: "Vote for your favorite vendors to control zones"
+    },
+    {
+      icon: <Crown className="w-6 h-6" />,
+      title: "Earn Battle Tokens",
+      description: "Get rewards for supporting local businesses"
+    },
+    {
+      icon: <Flame className="w-6 h-6" />,
+      title: "Join the Fight",
+      description: "Defend your barrio in epic vendor wars"
+    },
+    {
+      icon: <Users className="w-6 h-6" />,
+      title: "Build Community",
+      description: "Connect with neighbors who love local food"
+    }
+  ]
 
   useEffect(() => {
     const load = async () => {
       if (isSDKLoaded) {
         try {
-          const { sdk } = await import('@farcaster/miniapp-sdk');
-          await sdk.actions.ready();
-          console.log('Mini App SDK ready');
+          const { sdk } = await import('@farcaster/miniapp-sdk')
+          await sdk.actions.ready()
+          console.log('Mini App SDK ready')
         } catch (error) {
-          console.error('Error initializing SDK:', error);
+          console.error('Error initializing SDK:', error)
         }
       }
-    };
-    load();
-  }, [isSDKLoaded]);
-
-  const handleConnect = () => {
-    // Add haptic feedback
-    if (typeof window !== 'undefined' && 'navigator' in window && 'vibrate' in navigator) {
-      navigator.vibrate(100)
     }
-    router.push('/map')
+    load()
+  }, [isSDKLoaded, context])
+
+  const handleConnect = async () => {
+    if (!isSDKLoaded) {
+      console.log('SDK not loaded yet')
+      return
+    }
+
+    setIsConnecting(true)
+    
+    try {
+      // Add haptic feedback
+      if (typeof window !== 'undefined' && 'navigator' in window && 'vibrate' in navigator) {
+        navigator.vibrate(100)
+      }
+
+      // Check if user is already authenticated via context
+      if (context?.user) {
+        console.log('User already authenticated:', context.user)
+        router.push('/map')
+        return
+      }
+
+      // If not authenticated, we need to handle this differently
+      // For now, let's redirect to map and handle auth there
+      console.log('No user context found, redirecting to map')
+      router.push('/map')
+      
+    } catch (error) {
+      console.error('Error during authentication:', error)
+      alert('Error connecting with Farcaster. Please try again.')
+    } finally {
+      setIsConnecting(false)
+    }
+  }
+
+  // If already authenticated, redirect to map
+  useEffect(() => {
+    if (isAuthenticated && !isLoading) {
+      router.push('/map')
+    }
+  }, [isAuthenticated, isLoading, router])
+
+  if (showTutorial) {
+    return (
+      <div className="h-full bg-gradient-to-br from-[#ff6b35] via-[#ffd23f] to-[#06d6a0] p-4 flex flex-col">
+        <div className="flex-1 flex flex-col justify-center space-y-6">
+          <div className="p-6 bg-white/95 backdrop-blur-sm border-2 border-[#ff6b35]/20 shadow-2xl rounded-xl">
+            <h2 className="text-2xl font-bold text-center mb-4 text-[#2d1810]">How Vendor Wars Works</h2>
+            <div className="space-y-4">
+              <div className="flex items-start space-x-3">
+                <div className="w-8 h-8 rounded-full bg-[#ff6b35] text-white flex items-center justify-center text-sm font-bold">1</div>
+                <div>
+                  <h3 className="font-semibold text-[#2d1810]">Explore Your Barrio</h3>
+                  <p className="text-sm text-[#6b5d52]">Browse the battle map and discover zones controlled by different vendors</p>
+                </div>
+              </div>
+              <div className="flex items-start space-x-3">
+                <div className="w-8 h-8 rounded-full bg-[#ffd23f] text-[#2d1810] flex items-center justify-center text-sm font-bold">2</div>
+                <div>
+                  <h3 className="font-semibold text-[#2d1810]">Vote & Support</h3>
+                  <p className="text-sm text-[#6b5d52]">Cast votes for your favorite vendors to help them control territories</p>
+                </div>
+              </div>
+              <div className="flex items-start space-x-3">
+                <div className="w-8 h-8 rounded-full bg-[#06d6a0] text-white flex items-center justify-center text-sm font-bold">3</div>
+                <div>
+                  <h3 className="font-semibold text-[#2d1810]">Earn Rewards</h3>
+                  <p className="text-sm text-[#6b5d52]">Get BATTLE tokens for voting and unlock exclusive NFT badges</p>
+                </div>
+              </div>
+              <div className="flex items-start space-x-3">
+                <div className="w-8 h-8 rounded-full bg-[#e63946] text-white flex items-center justify-center text-sm font-bold">4</div>
+                <div>
+                  <h3 className="font-semibold text-[#2d1810]">Defend & Conquer</h3>
+                  <p className="text-sm text-[#6b5d52]">Help your vendors maintain control and expand their territories</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          <Button 
+            onClick={() => setShowTutorial(false)}
+            className="bg-[#ff6b35] hover:bg-[#e5562e] text-white shadow-xl"
+          >
+            <Zap className="w-5 h-5 mr-2" />
+            Got It! Let's Battle
+          </Button>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -44,65 +156,82 @@ export default function HomePage() {
           </div>
         )}
         
-        <div
-          className="relative flex size-full min-h-screen flex-col bg-white justify-between group/design-root overflow-x-hidden"
-          style={{ fontFamily: '"Plus Jakarta Sans", "Noto Sans", sans-serif' }}
-        >
-          <div className="flex-1">
-            <div className="@container">
-              <div className="@[480px]:px-4 @[480px]:py-3">
-                <div
-                  className="w-full bg-center bg-no-repeat bg-cover flex flex-col justify-end overflow-hidden bg-white @[480px]:rounded-xl min-h-80"
-                  style={{
-                    backgroundImage: 'url("https://lh3.googleusercontent.com/aida-public/AB6AXuB_Ye7-3ttJ5h5eJbOWY4uRGbUAQd-SSe0w-al1RrGEQEJy77MfzMrSeo3IXJNYHVL2k9j5vHX8vjxeRETz-HCOkzv51s_Jv6coCkzvXxZPhyKdVjkntqrHhJeM9ELzOx5-ZbimqmFFU1ihx-noxDddPkqo9FFM_Zi1XmfLdRzX6Can0fXk2UhVcFp1DYiro3HZgTkKXqdRWT-LgKyIItYrlNtzjLikXxLktlCjEwvEgBut70nVO3_81Lf_TGXNjUVfmQlAG6RX1A_7")'
-                  }}
-                />
-              </div>
+        <div className="h-full bg-gradient-to-br from-[#ff6b35] via-[#ffd23f] to-[#06d6a0] relative overflow-hidden">
+          {/* Barrio-Inspired Background Art */}
+          <div className="absolute inset-0 opacity-15">
+            {/* Food Stand Icons */}
+            <div className="absolute top-16 left-8 w-12 h-12 bg-white rounded-lg flex items-center justify-center shadow-lg animate-pulse">
+              <span className="text-2xl">🌮</span>
             </div>
-            
-            <h2 className="text-[#181511] tracking-light text-[28px] font-bold leading-tight px-4 text-center pb-3 pt-5">
-              Vendor Wars: Fight for Your Barrio!
-            </h2>
-            
-            <div className="flex px-4 py-3 justify-center">
-              <Button
-                onClick={handleConnect}
-                className="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-full h-12 px-5 bg-[#f2920c] text-[#181511] text-base font-bold leading-normal tracking-[0.015em] hover:bg-[#e0850b] active:scale-95 transition-transform touch-manipulation"
-                style={{ minHeight: '48px' }}
-              >
-                <span className="truncate">Connect with Farcaster</span>
-              </Button>
+            <div className="absolute top-32 right-12 w-12 h-12 bg-white rounded-lg flex items-center justify-center shadow-lg animate-pulse delay-300">
+              <span className="text-2xl">🫓</span>
             </div>
-            
-            <div className="flex px-4 py-3 justify-center">
-              <Button
-                variant="outline"
-                className="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-full h-10 px-4 bg-[#f5f3f0] text-[#181511] text-sm font-bold leading-normal tracking-[0.015em] hover:bg-[#ebe8e4] border-[#f5f3f0] active:scale-95 transition-transform touch-manipulation"
-                style={{ minHeight: '44px' }}
-              >
-                <span className="truncate">Learn how it works</span>
-              </Button>
+            <div className="absolute bottom-40 left-16 w-12 h-12 bg-white rounded-lg flex items-center justify-center shadow-lg animate-pulse delay-500">
+              <span className="text-2xl">🥟</span>
+            </div>
+            <div className="absolute bottom-32 right-8 w-12 h-12 bg-white rounded-lg flex items-center justify-center shadow-lg animate-pulse delay-700">
+              <span className="text-2xl">🍜</span>
             </div>
           </div>
-          
-          <div className="pb-20 md:pb-0">
-            <div className="flex flex-col gap-3 p-4">
-              <div className="flex gap-6 justify-between">
-                <p className="text-[#181511] text-base font-medium leading-normal">
-                  Loading territories...
-                </p>
-              </div>
-              <div className="rounded bg-[#e6e1db] overflow-hidden">
-                <div 
-                  className="h-2 rounded bg-[#181511] transition-all duration-1000 ease-out skeleton" 
-                  style={{ width: '20%' }}
-                />
+
+          <div className="relative z-10 flex flex-col h-full">
+            {/* Header */}
+            <div className="flex-1 flex flex-col justify-center items-center px-6 py-8">
+              <div className="text-center space-y-6">
+                {/* Logo/Title */}
+                <div className="space-y-4">
+                  <div className="w-20 h-20 mx-auto bg-white rounded-full flex items-center justify-center shadow-2xl border-4 border-[#ff6b35]">
+                    <span className="text-4xl">⚔️</span>
+                  </div>
+                  <h1 className="text-4xl font-bold text-white drop-shadow-lg">
+                    Vendor Wars
+                  </h1>
+                  <p className="text-xl text-white/90 font-medium">
+                    Fight for Your Barrio!
+                  </p>
+                </div>
+
+                {/* Features Grid */}
+                <div className="grid grid-cols-2 gap-4 max-w-sm mx-auto">
+                  {features.map((feature, index) => (
+                    <div key={index} className="bg-white/20 backdrop-blur-sm rounded-xl p-4 border border-white/30">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-10 h-10 bg-white/30 rounded-lg flex items-center justify-center">
+                          {feature.icon}
+                        </div>
+                        <div className="flex-1">
+                          <h3 className="font-semibold text-white text-sm">{feature.title}</h3>
+                          <p className="text-white/80 text-xs">{feature.description}</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
-            <div className="h-5 bg-white" />
+
+            {/* Action Buttons */}
+            <div className="p-6 space-y-4">
+              <Button
+                onClick={handleConnect}
+                disabled={isConnecting || !isSDKLoaded}
+                className="w-full bg-white text-[#ff6b35] hover:bg-white/90 font-bold text-lg py-4 rounded-xl shadow-2xl border-2 border-white/50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isConnecting ? 'Connecting...' : 'Connect with Farcaster'}
+              </Button>
+              
+              <Button
+                onClick={() => setShowTutorial(true)}
+                variant="outline"
+                className="w-full bg-transparent border-2 border-white/30 text-white hover:bg-white/10 font-medium py-3 rounded-xl"
+              >
+                Learn How It Works
+              </Button>
+            </div>
           </div>
         </div>
       </Suspense>
     </main>
   )
 }
+

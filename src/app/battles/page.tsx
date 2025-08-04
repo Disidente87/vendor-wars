@@ -288,43 +288,7 @@ export default function BattlesPage() {
         ))}
       </div>
 
-      {/* Bottom Navigation */}
-      <div>
-        <div className="flex gap-2 border-t border-[#f5f3f0] bg-white px-4 pb-3 pt-2">
-          <button
-            onClick={() => router.push('/map')}
-            className="flex flex-1 flex-col items-center justify-end gap-1 text-[#181511]"
-          >
-            <MapPin className="h-8 w-8" />
-            <p className="text-xs font-medium leading-normal tracking-[0.015em]">Map</p>
-          </button>
-          
-          <button
-            onClick={() => router.push('/vendors')}
-            className="flex flex-1 flex-col items-center justify-end gap-1 text-[#8a7860] hover:text-[#181511] transition-colors"
-          >
-            <Store className="h-8 w-8" />
-            <p className="text-xs font-medium leading-normal tracking-[0.015em]">Vendors</p>
-          </button>
-          
-          <button
-            onClick={() => router.push('/profile')}
-            className="flex flex-1 flex-col items-center justify-end gap-1 text-[#8a7860] hover:text-[#181511] transition-colors"
-          >
-            <User className="h-8 w-8" />
-            <p className="text-xs font-medium leading-normal tracking-[0.015em]">Profile</p>
-          </button>
-          
-          <button
-            onClick={() => router.push('/leaderboard')}
-            className="flex flex-1 flex-col items-center justify-end gap-1 text-[#8a7860] hover:text-[#181511] transition-colors"
-          >
-            <Users className="h-8 w-8" />
-            <p className="text-xs font-medium leading-normal tracking-[0.015em]">Social</p>
-          </button>
-        </div>
-        <div className="h-5 bg-white" />
-      </div>
+
     </div>
   )
 } 

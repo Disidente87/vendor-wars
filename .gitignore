@@ -37,3 +37,6 @@ next-env.d.ts
 
 # vendor-wars directory created by neynar tool
 /vendor-wars/
+
+# figma reference folder (not for compilation)
+/figma/
