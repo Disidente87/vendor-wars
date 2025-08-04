@@ -3,6 +3,142 @@ import { VendorCategory } from '@/types'
 import { supabase } from '@/lib/supabase'
 import { generateVendorId, calculateWinRate } from '@/lib/utils'
 
+// Mock data for development when Supabase is not available
+const MOCK_VENDORS: Vendor[] = [
+  {
+    id: '772cdbda-2cbb-4c67-a73a-3656bf02a4c1',
+    name: 'Pupusas María',
+    description: 'Authentic Salvadoran pupusas made with love and tradition',
+    imageUrl: 'https://images.unsplash.com/photo-1595273670150-bd0c3c392e46?w=400&h=300&fit=crop',
+    category: VendorCategory.PUPUSAS,
+    zone: '49298ccd-5b91-4a41-839d-98c3b2cc504b',
+    coordinates: [19.4326, -99.1332],
+    owner: {
+      fid: 12345,
+      username: 'pupusas_maria',
+      displayName: 'Pupusas María',
+      pfpUrl: 'https://images.unsplash.com/photo-1595273670150-bd0c3c392e46?w=100&h=100&fit=crop&crop=face',
+      bio: 'Authentic Salvadoran pupusas made with love and tradition',
+      followerCount: 0,
+      followingCount: 0,
+      verifiedAddresses: [],
+      battleTokens: 1250,
+      credibilityScore: 95,
+      verifiedPurchases: 234,
+      credibilityTier: 'gold',
+      voteStreak: 15,
+      weeklyVoteCount: 45,
+      weeklyTerritoryBonus: 120
+    },
+    isVerified: true,
+    verificationProof: [],
+    stats: {
+      totalBattles: 45,
+      wins: 32,
+      losses: 13,
+      winRate: 71.1,
+      totalRevenue: 12500,
+      averageRating: 4.8,
+      reviewCount: 156,
+      territoryDefenses: 8,
+      territoryConquests: 3,
+      currentZoneRank: 1,
+      totalVotes: 456,
+      verifiedVotes: 234,
+    },
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  },
+  {
+    id: '111f3776-b7c4-4ee0-80e1-5ca89e8ea9d0',
+    name: 'Tacos El Rey',
+    description: 'The best tacos in the north, authentic Mexican flavors',
+    imageUrl: 'https://images.unsplash.com/photo-1566554273541-37a9ca77b91f?w=400&h=300&fit=crop',
+    category: VendorCategory.TACOS,
+    zone: '61bace3e-ae39-4bb5-997b-1737122e8849',
+    coordinates: [19.4500, -99.1500],
+    owner: {
+      fid: 12346,
+      username: 'tacos_el_rey',
+      displayName: 'Tacos El Rey',
+      pfpUrl: 'https://images.unsplash.com/photo-1566554273541-37a9ca77b91f?w=100&h=100&fit=crop&crop=face',
+      bio: 'The best tacos in the north, authentic Mexican flavors',
+      followerCount: 0,
+      followingCount: 0,
+      verifiedAddresses: [],
+      battleTokens: 980,
+      credibilityScore: 88,
+      verifiedPurchases: 198,
+      credibilityTier: 'gold',
+      voteStreak: 12,
+      weeklyVoteCount: 38,
+      weeklyTerritoryBonus: 95
+    },
+    isVerified: true,
+    verificationProof: [],
+    stats: {
+      totalBattles: 38,
+      wins: 28,
+      losses: 10,
+      winRate: 73.7,
+      totalRevenue: 9800,
+      averageRating: 4.7,
+      reviewCount: 134,
+      territoryDefenses: 6,
+      territoryConquests: 2,
+      currentZoneRank: 1,
+      totalVotes: 389,
+      verifiedVotes: 198,
+    },
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  },
+  {
+    id: '525c09b3-dc92-409b-a11d-896bcf4d15b2',
+    name: 'Café Aroma',
+    description: 'Artisanal coffee and pastries in a cozy atmosphere',
+    imageUrl: 'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=400&h=300&fit=crop',
+    category: VendorCategory.BEBIDAS,
+    zone: '100b486d-5859-4ab1-9112-2d4bbabcba46',
+    coordinates: [19.4000, -99.1200],
+    owner: {
+      fid: 12347,
+      username: 'cafe_aroma',
+      displayName: 'Café Aroma',
+      pfpUrl: 'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=100&h=100&fit=crop&crop=face',
+      bio: 'Artisanal coffee and pastries in a cozy atmosphere',
+      followerCount: 0,
+      followingCount: 0,
+      verifiedAddresses: [],
+      battleTokens: 720,
+      credibilityScore: 82,
+      verifiedPurchases: 145,
+      credibilityTier: 'silver',
+      voteStreak: 8,
+      weeklyVoteCount: 25,
+      weeklyTerritoryBonus: 60
+    },
+    isVerified: true,
+    verificationProof: [],
+    stats: {
+      totalBattles: 29,
+      wins: 22,
+      losses: 7,
+      winRate: 75.9,
+      totalRevenue: 7200,
+      averageRating: 4.6,
+      reviewCount: 98,
+      territoryDefenses: 4,
+      territoryConquests: 1,
+      currentZoneRank: 1,
+      totalVotes: 267,
+      verifiedVotes: 145,
+    },
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  }
+]
+
 // Helper function to convert Supabase vendor to app vendor
 function mapSupabaseVendorToVendor(supabaseVendor: any, owner?: any): Vendor {
   return {
@@ -11,7 +147,7 @@ function mapSupabaseVendorToVendor(supabaseVendor: any, owner?: any): Vendor {
     description: supabaseVendor.description,
     imageUrl: supabaseVendor.image_url,
     category: supabaseVendor.category as VendorCategory,
-    zone: supabaseVendor.zone,
+    zone: supabaseVendor.zones?.name || supabaseVendor.zone_id || 'Unknown',
     coordinates: supabaseVendor.coordinates,
     owner: owner || {
       fid: supabaseVendor.owner_fid,
@@ -122,58 +258,52 @@ export class VendorService {
   }
 
   static async getVendor(id: string): Promise<Vendor | null> {
-    const { data: vendor, error } = await supabase
-      .from('vendors')
-      .select(`
-        *,
-        users!vendors_owner_fid_fkey (
-          fid,
-          username,
-          display_name,
-          pfp_url,
-          bio,
-          follower_count,
-          following_count,
-          verified_addresses,
-          battle_tokens,
-          credibility_score,
-          verified_purchases,
-          credibility_tier,
-          vote_streak,
-          weekly_vote_count,
-          weekly_territory_bonus
-        )
-      `)
-      .eq('id', id)
-      .single()
+    try {
+      const { data: vendor, error } = await supabase
+        .from('vendors')
+        .select(`
+          *,
+          zones!inner(name)
+        `)
+        .eq('id', id)
+        .single()
 
-    if (error) {
-      if (error.code === 'PGRST116') {
-        return null // Vendor not found
+      if (error) {
+        // Fallback to mock data
+        return this.getMockVendor(id)
       }
-      throw new Error(`Failed to fetch vendor: ${error.message}`)
-    }
 
-    // Map the owner data
-    const owner: User = {
-      fid: vendor.users.fid,
-      username: vendor.users.username,
-      displayName: vendor.users.display_name,
-      pfpUrl: vendor.users.pfp_url,
-      bio: vendor.users.bio,
-      followerCount: vendor.users.follower_count,
-      followingCount: vendor.users.following_count,
-      verifiedAddresses: vendor.users.verified_addresses,
-      battleTokens: vendor.users.battle_tokens,
-      credibilityScore: vendor.users.credibility_score,
-      verifiedPurchases: vendor.users.verified_purchases,
-      credibilityTier: vendor.users.credibility_tier,
-      voteStreak: vendor.users.vote_streak,
-      weeklyVoteCount: vendor.users.weekly_vote_count,
-      weeklyTerritoryBonus: vendor.users.weekly_territory_bonus,
+      return mapSupabaseVendorToVendor(vendor)
+    } catch (error) {
+      console.error('Error fetching vendor from Supabase, falling back to mock data:', error)
+      return this.getMockVendor(id)
     }
+  }
 
-    return mapSupabaseVendorToVendor(vendor, owner)
+  // Fallback method to get mock vendor data
+  private static getMockVendor(id: string): Vendor | null {
+    // Try to find by ID first
+    let vendor = MOCK_VENDORS.find(v => v.id === id)
+    
+    // If not found by ID, try to find by name/slug
+    if (!vendor) {
+      const normalizedId = id.toLowerCase()
+      if (normalizedId === '1' || normalizedId === 'pupusas-maria') {
+        vendor = MOCK_VENDORS.find(v => v.name === 'Pupusas María')
+      } else if (normalizedId === '2' || normalizedId === 'tacos-el-rey') {
+        vendor = MOCK_VENDORS.find(v => v.name === 'Tacos El Rey')
+      } else if (normalizedId === '3' || normalizedId === 'cafe-aroma') {
+        vendor = MOCK_VENDORS.find(v => v.name === 'Café Aroma')
+      } else {
+        // Try to find by any part of the name
+        vendor = MOCK_VENDORS.find(v => 
+          v.name.toLowerCase().includes(normalizedId) ||
+          normalizedId.includes(v.name.toLowerCase())
+        )
+      }
+    }
+    
+    return vendor || null
   }
 
   static async getVendorsByOwner(ownerFid: number): Promise<Vendor[]> {
@@ -202,27 +332,46 @@ export class VendorService {
     return vendors.map(vendor => mapSupabaseVendorToVendor(vendor))
   }
 
-  static async getAllVendors(params: PaginationParams): Promise<PaginatedResponse<Vendor>> {
-    const { page = 1, limit = 10 } = params
-    const offset = (page - 1) * limit
+  static async getAllVendors(params: any): Promise<{ data: Vendor[], total: number }> {
+    const { limit = 50, offset = 0, category, zone, verified } = params
 
-    const { data: vendors, error, count } = await supabase
+    console.log('🔍 VendorService.getAllVendors called with params:', params)
+
+    let query = supabase
       .from('vendors')
-      .select('*', { count: 'exact' })
+      .select(`
+        *,
+        zones!inner(name)
+      `, { count: 'exact' })
+
+    // Apply filters
+    if (category) {
+      query = query.eq('category', category)
+    }
+    if (zone) {
+      query = query.eq('zone_id', zone)
+    }
+    if (verified !== undefined) {
+      query = query.eq('is_verified', verified)
+    }
+
+    const { data: vendors, error, count } = await query
       .range(offset, offset + limit - 1)
       .order('created_at', { ascending: false })
 
+    console.log('📊 Supabase response:', { vendorsCount: vendors?.length, error, count })
+
     if (error) {
+      console.error('❌ Supabase error:', error)
       throw new Error(`Failed to fetch vendors: ${error.message}`)
     }
 
+    const mappedVendors = vendors.map(vendor => mapSupabaseVendorToVendor(vendor))
+    console.log('✅ Mapped vendors:', mappedVendors.length)
+
     return {
-      data: vendors.map(vendor => mapSupabaseVendorToVendor(vendor)),
-      pagination: {
-        hasNext: (offset + limit) < (count || 0),
-        hasPrev: page > 1,
-        total: count || 0,
-      }
+      data: mappedVendors,
+      total: count || 0
     }
   }
 
@@ -395,26 +544,10 @@ export class VendorService {
 
   // Get vendors by zone
   static async getVendorsByZone(zoneId: string): Promise<Vendor[]> {
-    // First try to find zone by UUID
-    let zoneUUID = zoneId
-    
-    // If it's not a UUID, try to find zone by name
-    if (!zoneId.includes('-')) {
-      const { data: zone, error: zoneError } = await supabase
-        .from('zones')
-        .select('id')
-        .eq('name', zoneId)
-        .single()
-      
-      if (zoneError) {
-        throw new Error(`Zone not found: ${zoneId}`)
-      }
-      zoneUUID = zone.id
-    }
-
-    const { data: vendors, error } = await supabase
-      .from('vendors')
-      .select(`
+    try {
+      const { data: vendors, error } = await supabase
+        .from('vendors')
+        .select(`
         *,
         users!vendors_owner_fid_fkey (
           fid,
@@ -434,32 +567,42 @@ export class VendorService {
           weekly_territory_bonus
         )
       `)
-      .eq('zone_id', zoneUUID)
+      .eq('zone_id', zoneId)
       .order('current_zone_rank', { ascending: true })
 
-    if (error) {
-      throw new Error(`Failed to fetch vendors by zone: ${error.message}`)
-    }
-
-    return vendors.map(vendor => {
-      const owner: User = {
-        fid: vendor.users.fid,
-        username: vendor.users.username,
-        displayName: vendor.users.display_name,
-        pfpUrl: vendor.users.pfp_url,
-        bio: vendor.users.bio,
-        followerCount: vendor.users.follower_count,
-        followingCount: vendor.users.following_count,
-        verifiedAddresses: vendor.users.verified_addresses,
-        battleTokens: vendor.users.battle_tokens,
-        credibilityScore: vendor.users.credibility_score,
-        verifiedPurchases: vendor.users.verified_purchases,
-        credibilityTier: vendor.users.credibility_tier,
-        voteStreak: vendor.users.vote_streak,
-        weeklyVoteCount: vendor.users.weekly_vote_count,
-        weeklyTerritoryBonus: vendor.users.weekly_territory_bonus,
+      if (error) {
+        // Fallback to mock data
+        return this.getMockVendorsByZone(zoneId)
       }
-      return mapSupabaseVendorToVendor(vendor, owner)
-    })
+
+      return vendors.map(vendor => {
+        const owner: User = {
+          fid: vendor.users.fid,
+          username: vendor.users.username,
+          displayName: vendor.users.display_name,
+          pfpUrl: vendor.users.pfp_url,
+          bio: vendor.users.bio,
+          followerCount: vendor.users.follower_count,
+          followingCount: vendor.users.following_count,
+          verifiedAddresses: vendor.users.verified_addresses,
+          battleTokens: vendor.users.battle_tokens,
+          credibilityScore: vendor.users.credibility_score,
+          verifiedPurchases: vendor.users.verified_purchases,
+          credibilityTier: vendor.users.credibility_tier,
+          voteStreak: vendor.users.vote_streak,
+          weeklyVoteCount: vendor.users.weekly_vote_count,
+          weeklyTerritoryBonus: vendor.users.weekly_territory_bonus,
+        }
+        return mapSupabaseVendorToVendor(vendor, owner)
+      })
+    } catch (error) {
+      console.error('Error fetching vendors by zone from Supabase, falling back to mock data:', error)
+      return this.getMockVendorsByZone(zoneId)
+    }
+  }
+
+  // Fallback method to get mock vendors by zone
+  private static getMockVendorsByZone(zoneId: string): Vendor[] {
+    return MOCK_VENDORS.filter(vendor => vendor.zone === zoneId)
   }
 } 

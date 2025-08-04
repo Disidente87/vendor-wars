@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation'
 import { useMiniApp } from '@neynar/react'
 import { Crown, Flame, MapPin, Users, Zap } from 'lucide-react'
 import { useAuthSimulation } from '@/hooks/useAuthSimulation'
+import { useDevAuth } from '@/hooks/useDevAuth'
+import { VotingTest } from '@/components/VotingTest'
 
 export default function HomePage() {
   const router = useRouter()
@@ -12,8 +14,8 @@ export default function HomePage() {
   const [isConnecting, setIsConnecting] = useState(false)
   const [showTutorial, setShowTutorial] = useState(false)
   
-  // Use simulation for development
-  const { isAuthenticated, user, isLoading } = useAuthSimulation()
+  // Use development auth for local development
+  const { isAuthenticated, user, isLoading, signIn: devSignIn } = useDevAuth()
 
   const features = [
     {
@@ -54,11 +56,6 @@ export default function HomePage() {
   }, [isSDKLoaded, context])
 
   const handleConnect = async () => {
-    if (!isSDKLoaded) {
-      console.log('SDK not loaded yet')
-      return
-    }
-
     setIsConnecting(true)
     
     try {
@@ -67,32 +64,19 @@ export default function HomePage() {
         navigator.vibrate(100)
       }
 
-      // Check if user is already authenticated via context
-      if (context?.user) {
-        console.log('User already authenticated:', context.user)
-        router.push('/map')
-        return
-      }
-
-      // If not authenticated, we need to handle this differently
-      // For now, let's redirect to map and handle auth there
-      console.log('No user context found, redirecting to map')
-      router.push('/map')
+      // Use development authentication
+      await devSignIn()
       
     } catch (error) {
       console.error('Error during authentication:', error)
-      alert('Error connecting with Farcaster. Please try again.')
+      alert('Error connecting. Please try again.')
     } finally {
       setIsConnecting(false)
     }
   }
 
-  // If already authenticated, redirect to map
-  useEffect(() => {
-    if (isAuthenticated && !isLoading) {
-      router.push('/map')
-    }
-  }, [isAuthenticated, isLoading, router])
+  // If already authenticated, show voting test instead of redirecting
+  // This allows us to test the voting system locally
 
   if (showTutorial) {
     return (
@@ -228,6 +212,13 @@ export default function HomePage() {
                 Learn How It Works
               </Button>
             </div>
+
+            {/* Voting System Test */}
+            {isAuthenticated && (
+              <div className="p-6 bg-white/10 backdrop-blur-sm">
+                <VotingTest />
+              </div>
+            )}
           </div>
         </div>
       </Suspense>

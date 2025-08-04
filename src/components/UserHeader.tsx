@@ -6,12 +6,11 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { 
   User, 
   Trophy, 
-  Coins, 
   Bell, 
-  Settings,
-  LogOut
+  Settings
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import { TokenBalance } from './TokenBalance'
 
 export function UserHeader() {
   const { user } = useAuthSimulation()
@@ -39,10 +38,7 @@ export function UserHeader() {
                 <Trophy className="w-4 h-4" />
                 <span className="font-medium">1,234</span>
               </div>
-              <div className="flex items-center space-x-1 text-green-600">
-                <Coins className="w-4 h-4" />
-                <span className="font-medium">567</span>
-              </div>
+              <TokenBalance />
             </div>
 
             {/* Notifications */}

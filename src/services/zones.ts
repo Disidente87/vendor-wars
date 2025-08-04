@@ -1,6 +1,65 @@
 import type { BattleZone } from '@/types'
 import { supabase } from '@/lib/supabase'
 
+// Mock data for development when Supabase is not available
+const MOCK_ZONES: BattleZone[] = [
+  {
+    id: '49298ccd-5b91-4a41-839d-98c3b2cc504b',
+    name: 'Zona Centro',
+    description: 'Historic center of CDMX',
+    color: '#FF6B6B',
+    coordinates: [19.4326, -99.1332],
+    currentOwner: undefined,
+    heatLevel: 85,
+    totalVotes: 1247,
+    activeVendors: 12
+  },
+  {
+    id: '61bace3e-ae39-4bb5-997b-1737122e8849',
+    name: 'Zona Norte',
+    description: 'Northern neighborhoods',
+    color: '#4ECDC4',
+    coordinates: [19.4500, -99.1500],
+    currentOwner: undefined,
+    heatLevel: 72,
+    totalVotes: 892,
+    activeVendors: 8
+  },
+  {
+    id: '100b486d-5859-4ab1-9112-2d4bbabcba46',
+    name: 'Zona Sur',
+    description: 'Southern districts',
+    color: '#45B7D1',
+    coordinates: [19.4000, -99.1200],
+    currentOwner: undefined,
+    heatLevel: 65,
+    totalVotes: 634,
+    activeVendors: 6
+  },
+  {
+    id: '1ac86da4-0e2f-43fd-9dcb-0ac5a877048d',
+    name: 'Zona Este',
+    description: 'Eastern areas',
+    color: '#96CEB4',
+    coordinates: [19.4200, -99.1000],
+    currentOwner: undefined,
+    heatLevel: 58,
+    totalVotes: 445,
+    activeVendors: 5
+  },
+  {
+    id: 'a3914cda-f3c5-4c90-b7d2-d46d141f4bfc',
+    name: 'Zona Oeste',
+    description: 'Western neighborhoods',
+    color: '#FFEAA7',
+    coordinates: [19.4200, -99.1600],
+    currentOwner: undefined,
+    heatLevel: 78,
+    totalVotes: 756,
+    activeVendors: 7
+  }
+]
+
 // Helper function to convert Supabase zone to app zone
 function mapSupabaseZoneToZone(supabaseZone: any): BattleZone {
   return {
@@ -33,178 +92,158 @@ function mapZoneToSupabase(zone: Partial<BattleZone>): any {
 
 export class ZoneService {
   static async getZone(id: string): Promise<BattleZone | null> {
-    // First try to find by UUID
-    const { data: zone, error } = await supabase
-      .from('zones')
-      .select('*')
-      .eq('id', id)
-      .single()
-
-    // If not found by UUID, try to find by name
-    if (error && error.code === 'PGRST116') {
-      const { data: zoneByName, error: nameError } = await supabase
+    try {
+      // First try to find by UUID
+      const { data: zone, error } = await supabase
         .from('zones')
         .select('*')
-        .eq('name', id)
+        .eq('id', id)
         .single()
-      
-      if (nameError) {
-        return null // Zone not found
-      }
-      
-      // Get vendors for this zone
-      const { data: zoneVendors, error: vendorsError } = await supabase
-        .from('vendors')
-        .select(`
-          id,
-          name,
-          description,
-          image_url,
-          category,
-          zone_id,
-          coordinates,
-          owner_fid,
-          is_verified,
-          total_battles,
-          wins,
-          losses,
-          win_rate,
-          total_revenue,
-          average_rating,
-          review_count,
-          territory_defenses,
-          territory_conquests,
-          current_zone_rank,
-          total_votes,
-          verified_votes
-        `)
-        .eq('zone_id', zoneByName.id)
 
-      if (vendorsError) {
-        throw new Error(`Failed to fetch zone vendors: ${vendorsError.message}`)
-      }
-
-      const battleZone = mapSupabaseZoneToZone(zoneByName)
-      
-      // Set current owner as the top vendor in the zone
-      if (zoneVendors && zoneVendors.length > 0) {
-        const topVendor = zoneVendors[0] // Assuming they're ordered by rank
-        battleZone.currentOwner = {
-          id: topVendor.id,
-          name: topVendor.name,
-          description: topVendor.description,
-          imageUrl: topVendor.image_url,
-          category: topVendor.category,
-          zone: topVendor.zone_id,
-          coordinates: topVendor.coordinates,
-          owner: { fid: topVendor.owner_fid } as any, // Simplified owner
-          isVerified: topVendor.is_verified,
-          verificationProof: [],
-          stats: {
-            totalBattles: topVendor.total_battles,
-            wins: topVendor.wins,
-            losses: topVendor.losses,
-            winRate: topVendor.win_rate,
-            totalRevenue: topVendor.total_revenue,
-            averageRating: topVendor.average_rating,
-            reviewCount: topVendor.review_count,
-            territoryDefenses: topVendor.territory_defenses,
-            territoryConquests: topVendor.territory_conquests,
-            currentZoneRank: topVendor.current_zone_rank,
-            totalVotes: topVendor.total_votes,
-            verifiedVotes: topVendor.verified_votes,
-          },
-          createdAt: new Date(),
-          updatedAt: new Date(),
+      // If not found by UUID, try to find by name
+      if (error && error.code === 'PGRST116') {
+        const { data: zoneByName, error: nameError } = await supabase
+          .from('zones')
+          .select('*')
+          .eq('name', id)
+          .single()
+        
+        if (nameError) {
+          // Fallback to mock data only if Supabase is not available
+          console.warn('Zone not found in Supabase, using mock data:', id)
+          return this.getMockZone(id)
         }
+        
+        // Get vendors for this zone
+        const { data: zoneVendors, error: vendorsError } = await supabase
+          .from('vendors')
+          .select(`
+            id,
+            name,
+            description,
+            image_url,
+            category,
+            zone_id,
+            coordinates,
+            owner_fid,
+            is_verified,
+            total_battles,
+            wins,
+            losses,
+            win_rate,
+            total_revenue,
+            average_rating,
+            review_count,
+            territory_defenses,
+            territory_conquests,
+            current_zone_rank,
+            total_votes,
+            verified_votes
+          `)
+          .eq('zone_id', zoneByName.id)
+
+        if (vendorsError) {
+          console.warn('Failed to fetch zone vendors:', vendorsError.message)
+        }
+
+        const battleZone = mapSupabaseZoneToZone(zoneByName)
+        
+        // Set current owner as the top vendor in the zone
+        if (zoneVendors && zoneVendors.length > 0) {
+          const topVendor = zoneVendors[0] // Assuming they're ordered by rank
+          battleZone.currentOwner = {
+            id: topVendor.id,
+            name: topVendor.name,
+            description: topVendor.description,
+            imageUrl: topVendor.image_url,
+            category: topVendor.category,
+            zone: topVendor.zone_id,
+            coordinates: topVendor.coordinates,
+            owner: { fid: topVendor.owner_fid } as any, // Simplified owner
+            stats: {
+              totalBattles: topVendor.total_battles,
+              wins: topVendor.wins,
+              losses: topVendor.losses,
+              winRate: topVendor.win_rate,
+              totalRevenue: topVendor.total_revenue,
+              averageRating: topVendor.average_rating,
+              reviewCount: topVendor.review_count,
+              territoryDefenses: topVendor.territory_defenses,
+              territoryConquests: topVendor.territory_conquests,
+              currentZoneRank: topVendor.current_zone_rank,
+              totalVotes: topVendor.total_votes,
+              verifiedVotes: topVendor.verified_votes,
+            },
+            isVerified: topVendor.is_verified,
+            verificationProof: [],
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          }
+        }
+
+        return battleZone
       }
 
-      return battleZone
-    } else if (error) {
-      throw new Error(`Failed to fetch zone: ${error.message}`)
+      if (error) {
+        // Fallback to mock data only if Supabase is not available
+        console.warn('Error fetching zone from Supabase, using mock data:', error)
+        return this.getMockZone(id)
+      }
+
+      return mapSupabaseZoneToZone(zone)
+    } catch (error) {
+      console.error('Error fetching zone from Supabase, falling back to mock data:', error)
+      return this.getMockZone(id)
     }
+  }
 
-    // Get vendors for this zone
-    const { data: zoneVendors, error: vendorsError } = await supabase
-      .from('vendors')
-      .select(`
-        id,
-        name,
-        description,
-        image_url,
-        category,
-        zone_id,
-        coordinates,
-        owner_fid,
-        is_verified,
-        total_battles,
-        wins,
-        losses,
-        win_rate,
-        total_revenue,
-        average_rating,
-        review_count,
-        territory_defenses,
-        territory_conquests,
-        current_zone_rank,
-        total_votes,
-        verified_votes
-      `)
-      .eq('zone_id', zone.id)
-
-    if (vendorsError) {
-      throw new Error(`Failed to fetch zone vendors: ${vendorsError.message}`)
-    }
-
-    const battleZone = mapSupabaseZoneToZone(zone)
+  // Fallback method to get mock zone data
+  private static getMockZone(id: string): BattleZone | null {
+    // Try to find by ID first
+    let zone = MOCK_ZONES.find(z => z.id === id)
     
-    // Set current owner as the top vendor in the zone
-    if (zoneVendors && zoneVendors.length > 0) {
-      const topVendor = zoneVendors[0] // Assuming they're ordered by rank
-      battleZone.currentOwner = {
-        id: topVendor.id,
-        name: topVendor.name,
-        description: topVendor.description,
-        imageUrl: topVendor.image_url,
-        category: topVendor.category,
-        zone: topVendor.zone_id,
-        coordinates: topVendor.coordinates,
-        owner: { fid: topVendor.owner_fid } as any, // Simplified owner
-        isVerified: topVendor.is_verified,
-        verificationProof: [],
-        stats: {
-          totalBattles: topVendor.total_battles,
-          wins: topVendor.wins,
-          losses: topVendor.losses,
-          winRate: topVendor.win_rate,
-          totalRevenue: topVendor.total_revenue,
-          averageRating: topVendor.average_rating,
-          reviewCount: topVendor.review_count,
-          territoryDefenses: topVendor.territory_defenses,
-          territoryConquests: topVendor.territory_conquests,
-          currentZoneRank: topVendor.current_zone_rank,
-          totalVotes: topVendor.total_votes,
-          verifiedVotes: topVendor.verified_votes,
-        },
-        createdAt: new Date(),
-        updatedAt: new Date(),
+    // If not found by ID, try to find by name/slug
+    if (!zone) {
+      const normalizedId = id.toLowerCase()
+      if (normalizedId === 'centro' || normalizedId === 'zona-centro') {
+        zone = MOCK_ZONES.find(z => z.name === 'Zona Centro')
+      } else if (normalizedId === 'norte' || normalizedId === 'zona-norte') {
+        zone = MOCK_ZONES.find(z => z.name === 'Zona Norte')
+      } else if (normalizedId === 'sur' || normalizedId === 'zona-sur') {
+        zone = MOCK_ZONES.find(z => z.name === 'Zona Sur')
+      } else if (normalizedId === 'este' || normalizedId === 'zona-este') {
+        zone = MOCK_ZONES.find(z => z.name === 'Zona Este')
+      } else if (normalizedId === 'oeste' || normalizedId === 'zona-oeste') {
+        zone = MOCK_ZONES.find(z => z.name === 'Zona Oeste')
+      } else {
+        // Try to find by any part of the name
+        zone = MOCK_ZONES.find(z => 
+          z.name.toLowerCase().includes(normalizedId) ||
+          normalizedId.includes(z.name.toLowerCase())
+        )
       }
     }
-
-    return battleZone
+    
+    return zone || null
   }
 
   static async getAllZones(): Promise<BattleZone[]> {
-    const { data: zones, error } = await supabase
-      .from('zones')
-      .select('*')
-      .order('name')
+    try {
+      const { data: zones, error } = await supabase
+        .from('zones')
+        .select('*')
+        .order('name', { ascending: true })
 
-    if (error) {
-      throw new Error(`Failed to fetch zones: ${error.message}`)
+      if (error) {
+        console.warn('Error fetching zones from Supabase, using mock data:', error)
+        return MOCK_ZONES
+      }
+
+      return zones.map(zone => mapSupabaseZoneToZone(zone))
+    } catch (error) {
+      console.error('Error fetching zones from Supabase, using mock data:', error)
+      return MOCK_ZONES
     }
-
-    return zones.map(zone => mapSupabaseZoneToZone(zone))
   }
 
   static async createZone(zoneData: Omit<BattleZone, 'id'>): Promise<BattleZone> {

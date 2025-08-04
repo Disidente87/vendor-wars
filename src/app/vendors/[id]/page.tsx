@@ -3,8 +3,10 @@
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Trophy, Crown, Star, Users, Target } from 'lucide-react'
+import { ArrowLeft, Trophy, Crown, Star, Users, Target, Shield, AlertCircle } from 'lucide-react'
 import { VoteResultModal } from '@/components/VoteResultModal'
+import { useDevAuth } from '@/hooks/useDevAuth'
+import { useTokenBalance } from '@/hooks/useTokenBalance'
 import type { Vendor } from '@/types'
 import { getVendorIdFromSlug } from '@/lib/route-utils'
 
@@ -20,8 +22,11 @@ interface TopVoter {
 
 export default function VendorProfilePage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter()
+  const { user: authenticatedUser } = useDevAuth()
+  const { refreshBalance } = useTokenBalance()
   const [vendor, setVendor] = useState<Vendor | null>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<'about' | 'reviews' | 'rewards' | 'supporters'>('about')
   const [showVoteModal, setShowVoteModal] = useState(false)
   const [voteResult, setVoteResult] = useState<{
@@ -29,6 +34,7 @@ export default function VendorProfilePage({ params }: { params: Promise<{ id: st
     battleTokens: number
     isVerified: boolean
   } | null>(null)
+  const [isVoting, setIsVoting] = useState(false)
 
   useEffect(() => {
     const loadVendor = async () => {
@@ -41,6 +47,8 @@ export default function VendorProfilePage({ params }: { params: Promise<{ id: st
   const fetchVendor = async (id: string) => {
     try {
       setLoading(true)
+      setError(null)
+      
       // Try to get vendor ID from slug first
       const actualVendorId = getVendorIdFromSlug(id) || id
       
@@ -49,27 +57,65 @@ export default function VendorProfilePage({ params }: { params: Promise<{ id: st
       
       if (result.success) {
         setVendor(result.data)
+      } else {
+        setError(result.error || 'Vendor not found')
       }
     } catch (error) {
       console.error('Error fetching vendor:', error)
+      setError('Failed to load vendor')
     } finally {
       setLoading(false)
     }
   }
 
-  const handleVote = (isVerified: boolean = false) => {
-    if (!vendor) return
+  const handleVote = async (isVerified: boolean = false) => {
+    if (!vendor || !authenticatedUser) return
     
-    const battleTokens = isVerified ? 30 : 10
-    setVoteResult({
-      vendor: {
-        name: vendor.name,
-        imageUrl: vendor.imageUrl || 'https://lh3.googleusercontent.com/aida-public/AB6AXuAHROMh12mMM-2_gGTJ3qI5aTzS2u54hFmIE8RVqt907EZaLdl9Wci_s7MqEJLyqRqXi9_DYR7RKjXAETBsR6o5wbq0EzmfOueAay3hZwj3rnv9J88qPS_EMHpmdEzs9dOezTCe8KgHHwrozDymOIwt-gZd-tSI4HAQdkNxRca0CVF1tC-2ykiyxW2lySuWyqRKSYkowmjogIX02Mypco2Yv-_GTVECobgspT3GJUMkmMI3cGbInsrO0rAaDpjoUXsMXPT23HKyb7tK'
-      },
-      battleTokens,
-      isVerified
-    })
-    setShowVoteModal(true)
+    setIsVoting(true)
+    try {
+      const response = await fetch('/api/votes', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          vendorId: vendor.id,
+          userFid: authenticatedUser.fid.toString(),
+          voteType: isVerified ? 'verified' : 'regular',
+          // For verified votes, we'll need photo data in the future
+          photoUrl: isVerified ? 'https://example.com/photo.jpg' : undefined,
+          gpsLocation: isVerified ? { lat: 19.4326, lng: -99.1332 } : undefined
+        }),
+      })
+
+      const result = await response.json()
+      
+      if (result.success) {
+        setVoteResult({
+          vendor: {
+            name: vendor.name,
+            imageUrl: vendor.imageUrl || 'https://images.unsplash.com/photo-1595273670150-bd0c3c392e46?w=400&h=300&fit=crop'
+          },
+          battleTokens: result.data.tokensEarned,
+          isVerified
+        })
+        setShowVoteModal(true)
+        
+        // Refresh vendor data to update stats
+        fetchVendor(vendor.id)
+        // Refresh token balance
+        refreshBalance()
+      } else {
+        // Handle error - could show a toast notification
+        console.error('Vote failed:', result.error)
+        alert(`Vote failed: ${result.error}`)
+      }
+    } catch (error) {
+      console.error('Error submitting vote:', error)
+      alert('Failed to submit vote. Please try again.')
+    } finally {
+      setIsVoting(false)
+    }
   }
 
   const handleCloseVoteModal = () => {
@@ -77,156 +123,42 @@ export default function VendorProfilePage({ params }: { params: Promise<{ id: st
     setVoteResult(null)
   }
 
-  // Mock data for top voters
-  const getTopVoters = (vendorId: string): TopVoter[] => {
-    const topVotersData = {
-      '1': [
-        {
-          id: '1',
-          username: 'foodwarrior',
-          displayName: 'FoodWarrior',
-          avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&h=100&fit=crop&crop=face',
-          votesGiven: 15,
-          totalVotes: 89,
-          isVerified: true
-        },
-        {
-          id: '2',
-          username: 'tacolover',
-          displayName: 'TacoLover',
-          avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face',
-          votesGiven: 12,
-          totalVotes: 67,
-          isVerified: true
-        },
-        {
-          id: '3',
-          username: 'pupusas_fan',
-          displayName: 'PupusasFan',
-          avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=100&h=100&fit=crop&crop=face',
-          votesGiven: 8,
-          totalVotes: 45,
-          isVerified: false
-        }
-      ],
-      '2': [
-        {
-          id: '4',
-          username: 'taco_king',
-          displayName: 'TacoKing',
-          avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face',
-          votesGiven: 18,
-          totalVotes: 92,
-          isVerified: true
-        },
-        {
-          id: '5',
-          username: 'street_foodie',
-          displayName: 'StreetFoodie',
-          avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop&crop=face',
-          votesGiven: 14,
-          totalVotes: 78,
-          isVerified: true
-        },
-        {
-          id: '6',
-          username: 'mexican_cuisine',
-          displayName: 'MexicanCuisine',
-          avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&h=100&fit=crop&crop=face',
-          votesGiven: 9,
-          totalVotes: 56,
-          isVerified: false
-        }
-      ],
-      '3': [
-        {
-          id: '7',
-          username: 'coffee_master',
-          displayName: 'CoffeeMaster',
-          avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face',
-          votesGiven: 11,
-          totalVotes: 63,
-          isVerified: true
-        },
-        {
-          id: '8',
-          username: 'cafe_lover',
-          displayName: 'CafeLover',
-          avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=100&h=100&fit=crop&crop=face',
-          votesGiven: 7,
-          totalVotes: 41,
-          isVerified: false
-        },
-        {
-          id: '9',
-          username: 'barista_pro',
-          displayName: 'BaristaPro',
-          avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face',
-          votesGiven: 6,
-          totalVotes: 38,
-          isVerified: false
-        }
-      ],
-      '4': [
-        {
-          id: '10',
-          username: 'pizza_chef',
-          displayName: 'PizzaChef',
-          avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop&crop=face',
-          votesGiven: 13,
-          totalVotes: 71,
-          isVerified: true
-        },
-        {
-          id: '11',
-          username: 'italian_food',
-          displayName: 'ItalianFood',
-          avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&h=100&fit=crop&crop=face',
-          votesGiven: 10,
-          totalVotes: 58,
-          isVerified: true
-        },
-        {
-          id: '12',
-          username: 'napoli_fan',
-          displayName: 'NapoliFan',
-          avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face',
-          votesGiven: 8,
-          totalVotes: 47,
-          isVerified: false
-        }
-      ],
-      '5': [
-        {
-          id: '13',
-          username: 'sushi_master',
-          displayName: 'SushiMaster',
-          avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=100&h=100&fit=crop&crop=face',
-          votesGiven: 16,
-          totalVotes: 84,
-          isVerified: true
-        },
-        {
-          id: '14',
-          username: 'japanese_food',
-          displayName: 'JapaneseFood',
-          avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face',
-          votesGiven: 12,
-          totalVotes: 69,
-          isVerified: true
-        },
-        {
-          id: '15',
-          username: 'asian_cuisine',
-          displayName: 'AsianCuisine',
-          avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop&crop=face',
-          votesGiven: 9,
-          totalVotes: 52,
-          isVerified: false
-        }
-      ]
-    }
-    return topVotersData[vendorId as keyof typeof topVotersData] || topVotersData['1']
+  // Generate dynamic top voters based on vendor data
+  const getTopVoters = (vendor: Vendor): TopVoter[] => {
+    // This would come from an API call in a real implementation
+    // For now, we'll generate mock data based on the vendor
+    const baseVotes = vendor.stats.totalVotes
+    const verifiedVotes = vendor.stats.verifiedVotes
+    
+    return [
+      {
+        id: '1',
+        username: 'top_supporter',
+        displayName: 'Top Supporter',
+        avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&h=100&fit=crop&crop=face',
+        votesGiven: Math.floor(baseVotes * 0.15),
+        totalVotes: Math.floor(baseVotes * 0.25),
+        isVerified: true
+      },
+      {
+        id: '2',
+        username: 'loyal_customer',
+        displayName: 'Loyal Customer',
+        avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face',
+        votesGiven: Math.floor(baseVotes * 0.12),
+        totalVotes: Math.floor(baseVotes * 0.20),
+        isVerified: true
+      },
+      {
+        id: '3',
+        username: 'food_lover',
+        displayName: 'Food Lover',
+        avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=100&h=100&fit=crop&crop=face',
+        votesGiven: Math.floor(baseVotes * 0.08),
+        totalVotes: Math.floor(baseVotes * 0.15),
+        isVerified: false
+      }
+    ]
   }
 
   if (loading) {
@@ -240,16 +172,21 @@ export default function VendorProfilePage({ params }: { params: Promise<{ id: st
     )
   }
 
-  if (!vendor) {
+  if (error || !vendor) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <h3 className="text-lg font-medium text-gray-900 mb-2">Vendor not found</h3>
-          <p className="text-gray-600">The vendor you&apos;re looking for doesn&apos;t exist</p>
+          <p className="text-gray-600 mb-4">{error || "The vendor you're looking for doesn't exist"}</p>
+          <Button onClick={() => router.push('/vendors')} variant="outline">
+            Back to Vendors
+          </Button>
         </div>
       </div>
     )
   }
+
+  const topVoters = getTopVoters(vendor)
 
   return (
     <div
@@ -276,7 +213,7 @@ export default function VendorProfilePage({ params }: { params: Promise<{ id: st
             <div
               className="bg-cover bg-center flex flex-col justify-end overflow-hidden bg-white @[480px]:rounded-xl min-h-[218px]"
               style={{
-                backgroundImage: `linear-gradient(0deg, rgba(0, 0, 0, 0.4) 0%, rgba(0, 0, 0, 0) 25%), url("${vendor.imageUrl || 'https://lh3.googleusercontent.com/aida-public/AB6AXuCrD9M8Er4Pg28kaw2Bjkn0FLu1jTlcKyPvbrsABFCwGqf-obgbo8yFy2wE3Igl26yxziePEpVOH3m9oKv0mSwiihiDooSXgw9aP34JpuzGwSAVazGxITrtxU8tzTxdFsfNstO5WWMv1oFIz3uDXshtX6qK2-TOh6tyi3RPTG0Pyhe2o073A0bGAKFFEt9iHJfi1OMDOfdi2SST_CZ1YB2VBDT1I-Oji0CGq1rzyQgBBp_iUtJ9D-Xxmc1-FH4M6_OlC-aeT6DnKM4T'}")`
+                backgroundImage: `linear-gradient(0deg, rgba(0, 0, 0, 0.4) 0%, rgba(0, 0, 0, 0) 25%), url("${vendor.imageUrl || 'https://images.unsplash.com/photo-1595273670150-bd0c3c392e46?w=400&h=300&fit=crop'}")`
               }}
             >
               <div className="flex p-4">
@@ -288,21 +225,62 @@ export default function VendorProfilePage({ params }: { params: Promise<{ id: st
           </div>
         </div>
 
+        {/* Verification Status */}
+        <div className="px-4 py-3">
+          <div className="flex items-center justify-between bg-[#f5f3f0] rounded-xl p-4">
+            <div className="flex items-center gap-3">
+              {vendor.isVerified ? (
+                <>
+                  <Shield className="h-5 w-5 text-green-600" />
+                  <div>
+                    <p className="text-sm font-medium text-green-700">Verified Vendor</p>
+                    <p className="text-xs text-green-600">This vendor has been verified by our team</p>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <AlertCircle className="h-5 w-5 text-orange-600" />
+                  <div>
+                    <p className="text-sm font-medium text-orange-700">Unverified Vendor</p>
+                    <p className="text-xs text-orange-600">This vendor hasn&apos;t been verified yet</p>
+                  </div>
+                </>
+              )}
+            </div>
+            
+            {/* Show verification button only to owner */}
+            {authenticatedUser && vendor.owner?.fid === authenticatedUser.fid && !vendor.isVerified && (
+              <Button
+                onClick={() => router.push(`/vendors/${vendor.id}/verify`)}
+                className="bg-[#ee8c0b] hover:bg-[#d67d0a] text-white text-sm px-4 py-2 rounded-lg"
+              >
+                Verify Vendor
+              </Button>
+            )}
+          </div>
+        </div>
+
         {/* Action Buttons - Moved to top for better visibility */}
         <div className="px-4 py-4 bg-gradient-to-r from-orange-50 to-red-50 border-b border-orange-200">
           <div className="flex gap-3 justify-between max-w-md mx-auto">
             <Button
               onClick={() => handleVote(false)}
-              className="flex-1 cursor-pointer items-center justify-center overflow-hidden rounded-full h-12 px-6 bg-[#f2920c] text-[#181511] text-base font-bold leading-normal tracking-[0.015em] hover:bg-[#e0850b] shadow-lg hover:shadow-xl transition-all duration-200"
+              disabled={isVoting || !authenticatedUser}
+              className="flex-1 cursor-pointer items-center justify-center overflow-hidden rounded-full h-12 px-6 bg-[#f2920c] text-[#181511] text-base font-bold leading-normal tracking-[0.015em] hover:bg-[#e0850b] shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <span className="truncate">Vote & Support</span>
+              <span className="truncate">
+                {isVoting ? 'Voting...' : authenticatedUser ? 'Vote & Support' : 'Login to Vote'}
+              </span>
             </Button>
             <Button
               onClick={() => handleVote(true)}
+              disabled={isVoting || !authenticatedUser}
               variant="outline"
-              className="flex-1 cursor-pointer items-center justify-center overflow-hidden rounded-full h-12 px-6 bg-[#f5f3f0] text-[#181511] text-base font-bold leading-normal tracking-[0.015em] hover:bg-[#ebe8e4] border-[#f5f3f0] shadow-lg hover:shadow-xl transition-all duration-200"
+              className="flex-1 cursor-pointer items-center justify-center overflow-hidden rounded-full h-12 px-6 bg-[#f5f3f0] text-[#181511] text-base font-bold leading-normal tracking-[0.015em] hover:bg-[#ebe8e4] border-[#f5f3f0] shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <span className="truncate">Verified Vote</span>
+              <span className="truncate">
+                {isVoting ? 'Voting...' : authenticatedUser ? 'Verified Vote' : 'Login to Vote'}
+              </span>
             </Button>
           </div>
         </div>
@@ -376,7 +354,7 @@ export default function VendorProfilePage({ params }: { params: Promise<{ id: st
               Zone
             </h3>
             <p className="text-[#181511] text-base font-normal leading-normal pb-3 pt-1 px-4">
-              {vendor.zone || 'La Condesa'}
+              {vendor.zone || 'Zone information'}
             </p>
             
             <h3 className="text-[#181511] text-lg font-bold leading-tight tracking-[-0.015em] px-4 pb-2 pt-4">
@@ -387,35 +365,33 @@ export default function VendorProfilePage({ params }: { params: Promise<{ id: st
             </p>
             
             <h3 className="text-[#181511] text-lg font-bold leading-tight tracking-[-0.015em] px-4 pb-2 pt-4">
-              Hours
+              Description
             </h3>
             <p className="text-[#181511] text-base font-normal leading-normal pb-3 pt-1 px-4">
-              10 AM - 10 PM
+              {vendor.description}
             </p>
             
             <h3 className="text-[#181511] text-lg font-bold leading-tight tracking-[-0.015em] px-4 pb-2 pt-4">
-              Photos
+              Stats
             </h3>
-            <div className="flex w-full grow bg-white @container p-4">
-              <div className="w-full gap-1 overflow-hidden bg-white @[480px]:gap-2 aspect-[3/2] rounded-xl grid grid-cols-[2fr_1fr_1fr]">
-                <div
-                  className="w-full bg-center bg-no-repeat bg-cover aspect-auto rounded-none row-span-2"
-                  style={{
-                    backgroundImage: 'url("https://lh3.googleusercontent.com/aida-public/AB6AXuCii9Ybv_cNNleTHxmA6VLKt2wBNqHvp-jLEornC5c120rrZmDXgxLi2ySQTIJFhP-pWwgM6zLAodVFkjk5zo_nqF1xLLU03rJhmM8-kkhEkfUcg766VH-wNJJf9IGQMahBmFEUk6xWsJDWlA5PbkD8cvcVXQUglIhPlc8Q9FwoPTvtkx8JBwLA2R8wAps8ClQuaAUG2kwlkOrbFP-lsG0Jn03K3GQrOvG0fI1GqxgHDPVY7kyTKrUs4dQwogyKHVkS0GrpEkHNw15O")'
-                  }}
-                />
-                <div
-                  className="w-full bg-center bg-no-repeat bg-cover aspect-auto rounded-none col-span-2"
-                  style={{
-                    backgroundImage: 'url("https://lh3.googleusercontent.com/aida-public/AB6AXuB3F5G0by5kKp0DaE0K2mG7vKynCmW6-Y0GvnDH6plby6S7zLrToTzZrT6kvGWyI0Lwyfkpwa5sE4kD_hESi8dj-pzfNbKD2wsFGVP4h54JHgyd73uwTcSs4ewyNrRmZ6LDS5sPCdfJ47g9OivP7J6oB72Cn0JHByqV7uml2-vulge6jszQaXnWNxCsEXOsoarVZjUWD-D7Gvszd7sxxs4LkZReGlG5d_XFBtfzYM_iY4NU2_g4qdYTPTvAn5WgJwTpJLniSniVsxa6")'
-                  }}
-                />
-                <div
-                  className="w-full bg-center bg-no-repeat bg-cover aspect-auto rounded-none col-span-2"
-                  style={{
-                    backgroundImage: 'url("https://lh3.googleusercontent.com/aida-public/AB6AXuCsavZ2bgyx3mQJL04HOY2cobc4nlKZqx69lzEaTk7LCd6JvQeygDmuY0SkxiCkjisBvzeWsNn59i7d8KxQu2OjLsbD5UHUQ8fKvcytZowZ1S-wm8LUMofPHeTbuKSWcDioZ70VI5uX42IKe9HsipBPXwcQ3VnIeADUUtTg2OcCKEI7Oer63LRufR2Kk2rKrTFuSvQyOc7zIQQ4s-12qYlsCdrJf_0yYP2WAN3RhcoRWKZj0afZ8qkKCgE_-hAFit07HG_oA3wM045D")'
-                  }}
-                />
+            <div className="px-4 pb-3 pt-1">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-orange-50 p-3 rounded-lg">
+                  <div className="text-sm text-orange-600">Total Votes</div>
+                  <div className="text-lg font-bold text-orange-800">{vendor.stats.totalVotes}</div>
+                </div>
+                <div className="bg-green-50 p-3 rounded-lg">
+                  <div className="text-sm text-green-600">Win Rate</div>
+                  <div className="text-lg font-bold text-green-800">{vendor.stats.winRate}%</div>
+                </div>
+                <div className="bg-blue-50 p-3 rounded-lg">
+                  <div className="text-sm text-blue-600">Verified Votes</div>
+                  <div className="text-lg font-bold text-blue-800">{vendor.stats.verifiedVotes}</div>
+                </div>
+                <div className="bg-purple-50 p-3 rounded-lg">
+                  <div className="text-sm text-purple-600">Total Battles</div>
+                  <div className="text-lg font-bold text-purple-800">{vendor.stats.totalBattles}</div>
+                </div>
               </div>
             </div>
           </div>
@@ -448,7 +424,7 @@ export default function VendorProfilePage({ params }: { params: Promise<{ id: st
                 Top Supporters
               </h3>
               <div className="space-y-3">
-                {getTopVoters(vendor.id).map((voter, index) => (
+                {topVoters.map((voter, index) => (
                   <div 
                     key={voter.id}
                     className="flex items-center space-x-3 p-3 rounded-lg bg-white/80 backdrop-blur-sm border border-orange-200/30 hover:bg-white/90 transition-colors"
@@ -517,8 +493,6 @@ export default function VendorProfilePage({ params }: { params: Promise<{ id: st
           </div>
         )}
       </div>
-
-
 
       {/* Vote Result Modal */}
       {voteResult && (

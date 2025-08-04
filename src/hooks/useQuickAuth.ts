@@ -1,7 +1,27 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { sdk } from '@farcaster/miniapp-sdk';
+
+// Check if we're in a Farcaster Mini App environment
+const isFarcasterEnvironment = typeof window !== 'undefined' && 
+  (window.location.hostname.includes('warpcast.com') || 
+   window.location.hostname.includes('farcaster.xyz') ||
+   process.env.NODE_ENV === 'production');
+
+// Only import SDK if we're in the right environment
+let sdk: any = null;
+if (isFarcasterEnvironment) {
+  try {
+    // Use dynamic import instead of require
+    import('@farcaster/miniapp-sdk').then(module => {
+      sdk = module.sdk;
+    }).catch(error => {
+      console.warn('Farcaster SDK not available:', error);
+    });
+  } catch (error) {
+    console.warn('Farcaster SDK not available:', error);
+  }
+}
 
 /**
  * Represents the current authenticated user state
@@ -103,6 +123,13 @@ export function useQuickAuth(): UseQuickAuthReturn {
   useEffect(() => {
     const checkExistingAuthentication = async () => {
       try {
+        // If SDK is not available, use development mode
+        if (!sdk) {
+          console.log('SDK not available, using development mode');
+          setStatus('unauthenticated');
+          return;
+        }
+
         // Attempt to retrieve existing token from QuickAuth SDK
         const { token } = await sdk.quickAuth.getToken();
 
@@ -143,6 +170,18 @@ export function useQuickAuth(): UseQuickAuthReturn {
   const signIn = useCallback(async (): Promise<boolean> => {
     try {
       setStatus('loading');
+
+      // If SDK is not available, use development mode
+      if (!sdk) {
+        console.log('SDK not available, using development mode');
+        // Create a mock user for development
+        const mockUser: AuthenticatedUser = {
+          fid: 12345 // Mock FID for development
+        };
+        setAuthenticatedUser(mockUser);
+        setStatus('authenticated');
+        return true;
+      }
 
       // Get QuickAuth session token
       const { token } = await sdk.quickAuth.getToken();
@@ -189,6 +228,11 @@ export function useQuickAuth(): UseQuickAuthReturn {
    */
   const getToken = useCallback(async (): Promise<string | null> => {
     try {
+      // If SDK is not available, return null
+      if (!sdk) {
+        return null;
+      }
+
       const { token } = await sdk.quickAuth.getToken();
       return token;
     } catch (error) {

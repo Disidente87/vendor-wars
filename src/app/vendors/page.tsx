@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { 
@@ -22,15 +22,18 @@ import {
 interface Vendor {
   id: string
   name: string
-  handle: string
-  avatar: string
-  specialty: string
-  rating: number
-  totalVotes: number
-  territories: number
-  battleTokens: number
+  description: string
+  imageUrl: string
+  category: string
+  zone: string
   isVerified: boolean
-  status: 'active' | 'battling' | 'resting'
+  stats: {
+    totalVotes: number
+    verifiedVotes: number
+    winRate: number
+    totalBattles: number
+  }
+  createdAt: string
 }
 
 export default function VendorsPage() {
@@ -38,107 +41,40 @@ export default function VendorsPage() {
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list')
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedFilter, setSelectedFilter] = useState('all')
+  const [vendors, setVendors] = useState<Vendor[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  const vendors: Vendor[] = [
-    {
-      id: '1',
-      name: 'Pupusas María',
-      handle: '@Pupusas_María',
-      avatar: 'https://images.unsplash.com/photo-1595273670150-bd0c3c392e46?w=100&h=100&fit=crop&crop=face',
-      specialty: 'Pupusas Tradicionales',
-      rating: 4.8,
-      totalVotes: 1247,
-      territories: 3,
-      battleTokens: 8920,
-      isVerified: true,
-      status: 'active'
-    },
-    {
-      id: '2',
-      name: 'Tacos El Rey',
-      handle: '@Tacos_El_Rey',
-      avatar: 'https://images.unsplash.com/photo-1566554273541-37a9ca77b91f?w=100&h=100&fit=crop&crop=face',
-      specialty: 'Tacos de Carne Asada',
-      rating: 4.6,
-      totalVotes: 892,
-      territories: 2,
-      battleTokens: 6540,
-      isVerified: true,
-      status: 'battling'
-    },
-    {
-      id: '3',
-      name: 'Arepa House',
-      handle: '@Arepa_House',
-      avatar: 'https://images.unsplash.com/photo-1594736797933-d0e501ba2fe6?w=100&h=100&fit=crop&crop=face',
-      specialty: 'Arepas Venezolanas',
-      rating: 4.9,
-      totalVotes: 1567,
-      territories: 4,
-      battleTokens: 12340,
-      isVerified: true,
-      status: 'active'
-    },
-    {
-      id: '4',
-      name: 'Empanadas Doña Rosa',
-      handle: '@Empanadas_Doña_Rosa',
-      avatar: 'https://images.unsplash.com/photo-1547036967-23d11aacaee0?w=100&h=100&fit=crop&crop=face',
-      specialty: 'Empanadas Argentinas',
-      rating: 4.7,
-      totalVotes: 734,
-      territories: 1,
-      battleTokens: 5430,
-      isVerified: false,
-      status: 'resting'
-    },
-    {
-      id: '5',
-      name: 'Quesadillas Express',
-      handle: '@Quesadillas_Express',
-      avatar: 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=100&h=100&fit=crop&crop=face',
-      specialty: 'Quesadillas Gourmet',
-      rating: 4.5,
-      totalVotes: 456,
-      territories: 1,
-      battleTokens: 3210,
-      isVerified: false,
-      status: 'active'
+  // Fetch vendors from API
+  useEffect(() => {
+    const fetchVendors = async () => {
+      try {
+        setLoading(true)
+        const response = await fetch('/api/vendors')
+        const result = await response.json()
+        
+        if (result.success) {
+          setVendors(result.data)
+        } else {
+          setError(result.error || 'Failed to load vendors')
+        }
+      } catch (error) {
+        console.error('Error fetching vendors:', error)
+        setError('Failed to load vendors')
+      } finally {
+        setLoading(false)
+      }
     }
-  ]
+
+    fetchVendors()
+  }, [])
 
   const handleVendorClick = (vendorId: string) => {
-    // Add haptic feedback
-    if (typeof window !== 'undefined' && 'navigator' in window && 'vibrate' in navigator) {
-      navigator.vibrate(50)
-    }
     router.push(`/vendors/${vendorId}`)
   }
 
   const handleRegisterVendor = () => {
-    // Add haptic feedback
-    if (typeof window !== 'undefined' && 'navigator' in window && 'vibrate' in navigator) {
-      navigator.vibrate(100)
-    }
     router.push('/vendors/register')
-  }
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'active': return '#06d6a0'
-      case 'battling': return '#ff6b35'
-      case 'resting': return '#8d99ae'
-      default: return '#8d99ae'
-    }
-  }
-
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case 'active': return 'Active'
-      case 'battling': return 'In Battle'
-      case 'resting': return 'Resting'
-      default: return 'Unknown'
-    }
   }
 
   return (
@@ -210,77 +146,112 @@ export default function VendorsPage() {
         </div>
       </div>
 
-      {/* Vendors List */}
-      <div className="relative z-10 px-4 pb-20">
-        <div className="space-y-4">
-          {vendors.map((vendor) => (
-            <div
-              key={vendor.id}
-              onClick={() => handleVendorClick(vendor.id)}
-              className="bg-white/80 backdrop-blur-sm rounded-xl p-4 shadow-lg border border-[#ff6b35]/20 hover:bg-white/90 transition-all duration-300 cursor-pointer hover:scale-[1.02]"
+      {/* Loading State */}
+      {loading && (
+        <div className="relative z-10 px-4 pb-20">
+          <div className="bg-white/80 backdrop-blur-sm rounded-xl p-8 shadow-lg border border-[#ff6b35]/20 text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#ff6b35] mx-auto"></div>
+            <p className="mt-2 text-[#6b5d52]">Loading vendors...</p>
+          </div>
+        </div>
+      )}
+
+      {/* Error State */}
+      {error && (
+        <div className="relative z-10 px-4 pb-20">
+          <div className="bg-white/80 backdrop-blur-sm rounded-xl p-8 shadow-lg border border-red-200 text-center">
+            <p className="text-red-600">Error: {error}</p>
+            <button 
+              onClick={() => window.location.reload()} 
+              className="mt-2 px-4 py-2 bg-[#ff6b35] text-white rounded-lg hover:bg-[#e5562e]"
             >
-              <div className="flex items-center space-x-4">
-                {/* Avatar */}
-                <div className="relative">
-                  <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-[#ff6b35]">
-                    <img src={vendor.avatar} alt={vendor.name} className="w-full h-full object-cover" />
-                  </div>
-                  {vendor.isVerified && (
-                    <div className="absolute -top-1 -right-1 w-6 h-6 bg-[#ffd23f] rounded-full flex items-center justify-center">
-                      <Crown className="w-3 h-3 text-[#2d1810]" />
-                    </div>
-                  )}
-                </div>
+              Try Again
+            </button>
+          </div>
+        </div>
+      )}
 
-                {/* Vendor Info */}
-                <div className="flex-1">
-                  <div className="flex items-center space-x-2 mb-1">
-                    <h3 className="font-bold text-[#2d1810] text-lg">{vendor.name}</h3>
-                    <span className="text-[#6b5d52] text-sm">{vendor.handle}</span>
+      {/* Vendors List */}
+      {!loading && !error && (
+        <div className="relative z-10 px-4 pb-20">
+          <div className="space-y-4">
+            {vendors.map((vendor) => (
+              <div
+                key={vendor.id}
+                onClick={() => handleVendorClick(vendor.id)}
+                className="bg-white/80 backdrop-blur-sm rounded-xl p-4 shadow-lg border border-[#ff6b35]/20 hover:bg-white/90 transition-all duration-300 cursor-pointer hover:scale-[1.02]"
+              >
+                <div className="flex items-center space-x-4">
+                  {/* Avatar */}
+                  <div className="relative">
+                    <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-[#ff6b35]">
+                      <img 
+                        src={vendor.imageUrl || 'https://images.unsplash.com/photo-1595273670150-bd0c3c392e46?w=100&h=100&fit=crop&crop=face'} 
+                        alt={vendor.name} 
+                        className="w-full h-full object-cover" 
+                      />
+                    </div>
+                    {vendor.isVerified && (
+                      <div className="absolute -top-1 -right-1 w-6 h-6 bg-[#ffd23f] rounded-full flex items-center justify-center">
+                        <Crown className="w-3 h-3 text-[#2d1810]" />
+                      </div>
+                    )}
                   </div>
-                  <p className="text-[#6b5d52] text-sm mb-2">{vendor.specialty}</p>
-                  
-                  {/* Stats */}
-                  <div className="flex items-center space-x-4">
-                    <div className="flex items-center space-x-1">
-                      <Star className="w-4 h-4 text-[#ffd23f]" />
-                      <span className="text-sm font-semibold text-[#2d1810]">{vendor.rating}</span>
-                    </div>
-                    <div className="flex items-center space-x-1">
-                      <Flame className="w-4 h-4 text-[#ff6b35]" />
-                      <span className="text-sm text-[#6b5d52]">{vendor.totalVotes}</span>
-                    </div>
-                    <div className="flex items-center space-x-1">
-                      <Trophy className="w-4 h-4 text-[#06d6a0]" />
-                      <span className="text-sm text-[#6b5d52]">{vendor.territories}</span>
-                    </div>
-                    <div className="flex items-center space-x-1">
-                      <Coins className="w-4 h-4 text-[#ffd23f]" />
-                      <span className="text-sm text-[#6b5d52]">{vendor.battleTokens}</span>
-                    </div>
-                  </div>
-                </div>
 
-                {/* Status and Arrow */}
-                <div className="flex flex-col items-end space-y-2">
-                  <div 
-                    className="px-2 py-1 rounded-full text-xs font-medium"
-                    style={{ 
-                      backgroundColor: `${getStatusColor(vendor.status)}20`,
-                      color: getStatusColor(vendor.status)
-                    }}
-                  >
-                    {getStatusText(vendor.status)}
+                  {/* Vendor Info */}
+                  <div className="flex-1">
+                    <div className="flex items-center space-x-2 mb-1">
+                      <h3 className="font-bold text-[#2d1810] text-lg">{vendor.name}</h3>
+                      <span className="text-[#6b5d52] text-sm">@{vendor.name.toLowerCase().replace(/\s+/g, '_')}</span>
+                    </div>
+                    <p className="text-[#6b5d52] text-sm mb-2">{vendor.description?.substring(0, 60)}...</p>
+                    
+                    {/* Stats */}
+                    <div className="flex items-center space-x-4">
+                      <div className="flex items-center space-x-1">
+                        <Star className="w-4 h-4 text-[#ffd23f]" />
+                        <span className="text-sm font-semibold text-[#2d1810]">{vendor.stats?.winRate || 0}%</span>
+                      </div>
+                      <div className="flex items-center space-x-1">
+                        <Flame className="w-4 h-4 text-[#ff6b35]" />
+                        <span className="text-sm text-[#6b5d52]">{vendor.stats?.totalVotes || 0}</span>
+                      </div>
+                      <div className="flex items-center space-x-1">
+                        <Trophy className="w-4 h-4 text-[#06d6a0]" />
+                        <span className="text-sm text-[#6b5d52]">{vendor.stats?.totalBattles || 0}</span>
+                      </div>
+                      <div className="flex items-center space-x-1">
+                        <Coins className="w-4 h-4 text-[#ffd23f]" />
+                        <span className="text-sm text-[#6b5d52]">{vendor.stats?.verifiedVotes || 0}</span>
+                      </div>
+                    </div>
+                    
+                    {/* Zone */}
+                    <div className="flex items-center space-x-1 mt-1">
+                      <Map className="w-3 h-3 text-[#6b5d52]" />
+                      <span className="text-xs text-[#6b5d52]">{vendor.zone}</span>
+                    </div>
                   </div>
-                  <ArrowRight className="w-5 h-5 text-[#6b5d52]" />
+
+                  {/* Status and Arrow */}
+                  <div className="flex flex-col items-end space-y-2">
+                    <div 
+                      className="px-2 py-1 rounded-full text-xs font-medium"
+                      style={{ 
+                        backgroundColor: vendor.isVerified ? '#06d6a020' : '#ff6b3520',
+                        color: vendor.isVerified ? '#06d6a0' : '#ff6b35'
+                      }}
+                    >
+                      {vendor.isVerified ? 'Verified' : 'Unverified'}
+                    </div>
+                    <ArrowRight className="w-5 h-5 text-[#6b5d52]" />
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
-      </div>
-
-
+      )}
     </div>
   )
 } 

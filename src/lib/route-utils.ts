@@ -42,4 +42,44 @@ export function getVendorSlugFromId(id: string): string | null {
     }
   }
   return null
+}
+
+// Generate vendor slug from name
+export function generateVendorSlug(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, '') // Remove special characters
+    .replace(/\s+/g, '-') // Replace spaces with hyphens
+    .replace(/-+/g, '-') // Replace multiple hyphens with single
+    .trim()
+}
+
+// Generate vendor route from vendor data
+export function generateVendorRoute(vendor: { id: string; name: string }): string {
+  const slug = generateVendorSlug(vendor.name)
+  return `/vendors/${vendor.id}` // Using ID for now, can be changed to slug later
+}
+
+// Get all possible vendor routes (for static generation)
+export async function getAllVendorRoutes(): Promise<string[]> {
+  try {
+    // This would fetch from Supabase in a real implementation
+    // For now, return the known vendor routes
+    return Object.values(VENDOR_ROUTES).map(id => `/vendors/${id}`)
+  } catch (error) {
+    console.error('Error getting vendor routes:', error)
+    return []
+  }
+}
+
+// Get all possible zone routes (for static generation)
+export async function getAllZoneRoutes(): Promise<string[]> {
+  try {
+    // This would fetch from Supabase in a real implementation
+    // For now, return the known zone routes
+    return Object.keys(ZONE_ROUTES).map(slug => `/zones/${slug}`)
+  } catch (error) {
+    console.error('Error getting zone routes:', error)
+    return []
+  }
 } 

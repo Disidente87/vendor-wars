@@ -1,45 +1,79 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { VendorService } from '@/services/vendors'
-import { FarcasterService } from '@/services/farcaster'
-import { VendorCategory } from '@/types'
-import { z } from 'zod'
-
-const createVendorSchema = z.object({
-  name: z.string().min(3).max(50),
-  description: z.string().min(10).max(500),
-  imageUrl: z.string().url(),
-  category: z.nativeEnum(VendorCategory),
-  ownerFid: z.number(),
-})
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
-    const page = parseInt(searchParams.get('page') || '1')
-    const limit = parseInt(searchParams.get('limit') || '20')
+    const limit = parseInt(searchParams.get('limit') || '50')
+    const offset = parseInt(searchParams.get('offset') || '0')
     const category = searchParams.get('category')
-    const ownerFid = searchParams.get('ownerFid')
-    const search = searchParams.get('search')
+    const zone = searchParams.get('zone')
+    const verified = searchParams.get('verified')
 
-    if (search) {
-      const vendors = await VendorService.searchVendors(search)
-      return NextResponse.json({ success: true, data: vendors })
+    console.log('🔍 API /vendors called with params:', { limit, offset, category, zone, verified })
+
+    // Use direct Supabase query like the working test endpoint
+    const { createClient } = await import('@supabase/supabase-js')
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    )
+
+    const { data: vendors, error, count } = await supabase
+      .from('vendors')
+      .select(`
+        *,
+        zones!inner(name)
+      `, { count: 'exact' })
+      .range(offset, offset + limit - 1)
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      console.error('❌ Supabase error:', error)
+      return NextResponse.json(
+        { success: false, error: error.message },
+        { status: 500 }
+      )
     }
 
-    if (ownerFid) {
-      const vendors = await VendorService.getVendorsByOwner(parseInt(ownerFid))
-      return NextResponse.json({ success: true, data: vendors })
-    }
+    console.log('📊 Direct Supabase response:', { vendorsCount: vendors?.length, count })
 
-    if (category) {
-      const vendors = await VendorService.getVendorsByCategory(category as any)
-      return NextResponse.json({ success: true, data: vendors })
-    }
+    // Map vendors using the same function
+    const { VendorService } = await import('@/services/vendors')
+    const mappedVendors = vendors.map((vendor: any) => {
+      return {
+        id: vendor.id,
+        name: vendor.name,
+        description: vendor.description,
+        imageUrl: vendor.image_url,
+        category: vendor.category,
+        zone: vendor.zones?.name || vendor.zone_id || 'Unknown',
+        isVerified: vendor.is_verified,
+        stats: {
+          totalVotes: vendor.total_votes || 0,
+          verifiedVotes: vendor.verified_votes || 0,
+          winRate: vendor.win_rate || 0,
+          totalBattles: vendor.total_battles || 0,
+        },
+        createdAt: vendor.created_at,
+      }
+    })
 
-    const result = await VendorService.getAllVendors({ page, limit })
-    return NextResponse.json({ success: true, data: result })
+    console.log('✅ Mapped vendors:', mappedVendors.length)
+
+    return NextResponse.json({
+      success: true,
+      data: mappedVendors,
+      pagination: {
+        total: count || 0,
+        limit,
+        offset,
+        hasMore: offset + limit < (count || 0)
+      }
+    })
+
   } catch (error) {
-    console.error('Error fetching vendors:', error)
+    console.error('❌ Error fetching vendors:', error)
     return NextResponse.json(
       { success: false, error: 'Failed to fetch vendors' },
       { status: 500 }
@@ -50,43 +84,48 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const validatedData = createVendorSchema.parse(body)
+    const { name, description, imageUrl, category, zone, ownerFid } = body
 
-    // Get user from Farcaster
-    const user = await FarcasterService.getUserByFid(validatedData.ownerFid)
-    if (!user) {
+    // Validate required fields
+    if (!name || !description || !category || !zone) {
       return NextResponse.json(
-        { success: false, error: 'User not found' },
-        { status: 404 }
-      )
-    }
-
-    // Check if user has reached vendor limit
-    const userVendorCount = await VendorService.getVendorCountByOwner(validatedData.ownerFid)
-    if (userVendorCount >= 5) {
-      return NextResponse.json(
-        { success: false, error: 'Maximum number of vendors reached' },
+        { success: false, error: 'Missing required fields' },
         { status: 400 }
       )
     }
 
+    // Create vendor
     const vendor = await VendorService.createVendor({
-      name: validatedData.name,
-      description: validatedData.description,
-      imageUrl: validatedData.imageUrl,
-      category: validatedData.category,
-      owner: user,
+      name,
+      description,
+      imageUrl: imageUrl || 'https://images.unsplash.com/photo-1595273670150-bd0c3c392e46?w=400&h=300&fit=crop',
+      category,
+      owner: {
+        fid: parseInt(ownerFid) || 12345,
+        username: '',
+        displayName: '',
+        pfpUrl: '',
+        bio: '',
+        followerCount: 0,
+        followingCount: 0,
+        verifiedAddresses: [],
+        battleTokens: 0,
+        credibilityScore: 0,
+        verifiedPurchases: 0,
+        credibilityTier: 'bronze',
+        voteStreak: 0,
+        weeklyVoteCount: 0,
+        weeklyTerritoryBonus: 0
+      }
     })
 
-    return NextResponse.json({ success: true, data: vendor })
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { success: false, error: 'Invalid input data', details: error.errors },
-        { status: 400 }
-      )
-    }
+    return NextResponse.json({
+      success: true,
+      data: vendor,
+      message: 'Vendor created successfully'
+    })
 
+  } catch (error) {
     console.error('Error creating vendor:', error)
     return NextResponse.json(
       { success: false, error: 'Failed to create vendor' },

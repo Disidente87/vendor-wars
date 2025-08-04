@@ -1,8 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, CheckCircle, AlertCircle } from 'lucide-react'
+import { useDevAuth } from '@/hooks/useDevAuth'
 
 interface VendorFormData {
   name: string
@@ -14,7 +15,11 @@ interface VendorFormData {
 
 export default function VendorRegistrationPage() {
   const router = useRouter()
+  const { user: authenticatedUser, isAuthenticated, isLoading } = useDevAuth()
   const [currentStep, setCurrentStep] = useState(1)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle')
+  const [errorMessage, setErrorMessage] = useState('')
   const [formData, setFormData] = useState<VendorFormData>({
     name: '',
     logo: '',
@@ -25,6 +30,13 @@ export default function VendorRegistrationPage() {
 
   const totalSteps = 5
 
+  // Redirect if not authenticated
+  useEffect(() => {
+    if (!isAuthenticated && !isLoading) {
+      router.push('/')
+    }
+  }, [isAuthenticated, isLoading, router])
+
   const handleInputChange = (field: keyof VendorFormData, value: string) => {
     setFormData(prev => ({
       ...prev,
@@ -32,13 +44,55 @@ export default function VendorRegistrationPage() {
     }))
   }
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (currentStep < totalSteps) {
       setCurrentStep(currentStep + 1)
     } else {
-      // TODO: Submit vendor registration
-      console.log('Submitting vendor registration:', formData)
-      router.push('/vendors')
+      await submitVendorRegistration()
+    }
+  }
+
+  const submitVendorRegistration = async () => {
+    if (!authenticatedUser) {
+      setErrorMessage('You must be logged in to register a vendor')
+      setSubmitStatus('error')
+      return
+    }
+
+    setIsSubmitting(true)
+    setSubmitStatus('idle')
+    setErrorMessage('')
+
+    try {
+      const response = await fetch('/api/vendors/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...formData,
+          ownerFid: authenticatedUser.fid.toString(),
+          ownerName: authenticatedUser.displayName
+        }),
+      })
+
+      const result = await response.json()
+
+      if (result.success) {
+        setSubmitStatus('success')
+        setTimeout(() => {
+          router.push(`/vendors/${result.data.id}`)
+        }, 2000)
+      } else {
+        setErrorMessage(result.error || 'Failed to register vendor')
+        setSubmitStatus('error')
+      }
+    } catch (error) {
+      console.error('Error registering vendor:', error)
+      setErrorMessage('Network error. Please try again.')
+      setSubmitStatus('error')
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -197,6 +251,21 @@ export default function VendorRegistrationPage() {
 
         {/* Current Step Form */}
         {renderCurrentStep()}
+
+        {/* Status Messages */}
+        {submitStatus === 'success' && (
+          <div className="flex items-center gap-2 px-4 py-3 bg-green-50 text-green-700 rounded-lg mx-4">
+            <CheckCircle className="h-5 w-5" />
+            <span>Vendor registered successfully! Redirecting...</span>
+          </div>
+        )}
+
+        {submitStatus === 'error' && (
+          <div className="flex items-center gap-2 px-4 py-3 bg-red-50 text-red-700 rounded-lg mx-4">
+            <AlertCircle className="h-5 w-5" />
+            <span>{errorMessage}</span>
+          </div>
+        )}
       </div>
 
       {/* Bottom Section */}
@@ -204,15 +273,15 @@ export default function VendorRegistrationPage() {
         <div className="flex px-4 py-3 justify-end">
           <button
             onClick={handleNext}
-            disabled={isNextDisabled()}
+            disabled={isNextDisabled() || isSubmitting}
             className={`flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-full h-10 px-4 text-[#181511] text-sm font-bold leading-normal tracking-[0.015em] transition-colors ${
-              isNextDisabled()
+              isNextDisabled() || isSubmitting
                 ? 'bg-[#e6e1db] text-[#8a7860] cursor-not-allowed'
                 : 'bg-[#ee8c0b] hover:bg-[#d67d0a]'
             }`}
           >
             <span className="truncate">
-              {currentStep === totalSteps ? 'Submit' : 'Next'}
+              {isSubmitting ? 'Submitting...' : currentStep === totalSteps ? 'Submit' : 'Next'}
             </span>
           </button>
         </div>

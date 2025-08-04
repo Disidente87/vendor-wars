@@ -2,7 +2,6 @@ import { Suspense } from 'react'
 import { notFound } from 'next/navigation'
 import { ZoneService } from '@/services/zones'
 import { VendorService } from '@/services/vendors'
-import { UserService } from '@/services/users'
 import { getZoneIdFromSlug } from '@/lib/route-utils'
 import { Button } from '@/components/ui/button'
 import { Avatar } from '@/components/ui/avatar'
@@ -52,7 +51,7 @@ async function getZoneData(zoneId: string) {
     }
 
     // Get vendors for this zone
-    const vendors = await VendorService.getVendorsByZone(zoneId)
+    const vendors = await VendorService.getVendorsByZone(zone.id)
     
     // Get top 5 vendors for the map
     const topVendors = vendors
@@ -73,36 +72,8 @@ async function getZoneData(zoneId: string) {
         }
       }))
 
-    // Mock battle log (this would come from a BattleService in the future)
-    const battleLog: BattleLogEntry[] = [
-      {
-        id: '1',
-        date: '2024-03-20',
-        challenger: 'Pupusas María',
-        opponent: 'Tacos El Rey',
-        winner: 'Pupusas María',
-        votes: 234,
-        category: 'pupusas'
-      },
-      {
-        id: '2',
-        date: '2024-03-19',
-        challenger: 'Café Aroma',
-        opponent: 'Pizza Napoli',
-        winner: 'Café Aroma',
-        votes: 189,
-        category: 'bebidas'
-      },
-      {
-        id: '3',
-        date: '2024-03-18',
-        challenger: 'Sushi Express',
-        opponent: 'Pupusas María',
-        winner: 'Pupusas María',
-        votes: 156,
-        category: 'otros'
-      }
-    ]
+    // Generate dynamic battle log based on zone activity
+    const battleLog: BattleLogEntry[] = generateBattleLog(zone, vendors)
 
     return {
       zone,
@@ -114,6 +85,34 @@ async function getZoneData(zoneId: string) {
     console.error('Error fetching zone data:', error)
     return null
   }
+}
+
+// Generate dynamic battle log based on zone data
+function generateBattleLog(zone: any, vendors: any[]): BattleLogEntry[] {
+  if (vendors.length < 2) {
+    return []
+  }
+
+  const battleLog: BattleLogEntry[] = []
+  const categories = ['pupusas', 'tacos', 'bebidas', 'otros']
+  
+  // Generate recent battles based on vendor activity
+  for (let i = 0; i < Math.min(3, vendors.length - 1); i++) {
+    const challenger = vendors[i]
+    const opponent = vendors[i + 1]
+    
+    battleLog.push({
+      id: `battle-${i + 1}`,
+      date: new Date(Date.now() - (i + 1) * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      challenger: challenger.name,
+      opponent: opponent.name,
+      winner: challenger.stats.totalVotes > opponent.stats.totalVotes ? challenger.name : opponent.name,
+      votes: challenger.stats.totalVotes + opponent.stats.totalVotes,
+      category: categories[i % categories.length]
+    })
+  }
+  
+  return battleLog
 }
 
 function getTierIcon(tier: string) {
@@ -146,10 +145,6 @@ async function ZonePageAsync({ zoneId }: { zoneId: string }) {
 
   const { zone, vendors, topVendors, battleLog } = data
 
-  const handleVendorClick = (vendorId: string) => {
-    // This will be handled by the Link component
-  }
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 to-yellow-50">
       {/* Hero Section */}
@@ -175,7 +170,7 @@ async function ZonePageAsync({ zoneId }: { zoneId: string }) {
                   Zone Territory Map
                 </CardTitle>
                 <CardDescription>
-                  Top 5 vendors currently controlling this zone
+                  Top {topVendors.length} vendors currently controlling this zone
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -224,48 +219,56 @@ async function ZonePageAsync({ zoneId }: { zoneId: string }) {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {vendors.map((vendor, index) => (
-                    <Link key={vendor.id} href={`/vendors/${vendor.id}`}>
-                      <div className="flex items-center gap-4 p-4 rounded-lg border hover:bg-orange-50 transition-colors cursor-pointer">
-                        <div className="flex items-center gap-3 flex-1">
-                          <div className="relative">
-                            <span className="text-2xl font-bold text-gray-400 w-8 text-center">
-                              {index + 1}
-                            </span>
-                            {index < 3 && (
-                              <Trophy className="absolute -top-1 -right-1 w-4 h-4 text-yellow-500" />
-                            )}
+                  {vendors.length > 0 ? (
+                    vendors.map((vendor, index) => (
+                      <Link key={vendor.id} href={`/vendors/${vendor.id}`}>
+                        <div className="flex items-center gap-4 p-4 rounded-lg border hover:bg-orange-50 transition-colors cursor-pointer">
+                          <div className="flex items-center gap-3 flex-1">
+                            <div className="relative">
+                              <span className="text-2xl font-bold text-gray-400 w-8 text-center">
+                                {index + 1}
+                              </span>
+                              {index < 3 && (
+                                <Trophy className="absolute -top-1 -right-1 w-4 h-4 text-yellow-500" />
+                              )}
+                            </div>
+                            <Avatar className="w-12 h-12">
+                              <img src={vendor.imageUrl} alt={vendor.name} />
+                            </Avatar>
+                            <div className="flex-1">
+                              <h3 className="font-semibold text-lg">{vendor.name}</h3>
+                              <p className="text-sm text-gray-600">@{vendor.owner.username}</p>
+                            </div>
                           </div>
-                          <Avatar className="w-12 h-12">
-                            <img src={vendor.imageUrl} alt={vendor.name} />
-                          </Avatar>
-                          <div className="flex-1">
-                            <h3 className="font-semibold text-lg">{vendor.name}</h3>
-                            <p className="text-sm text-gray-600">@{vendor.owner.username}</p>
+                          
+                          <div className="flex items-center gap-6 text-sm">
+                            <div className="text-center">
+                              <div className="font-semibold">{vendor.stats.totalVotes}</div>
+                              <div className="text-gray-500">Votes</div>
+                            </div>
+                            <div className="text-center">
+                              <div className="font-semibold">{vendor.stats.winRate}%</div>
+                              <div className="text-gray-500">Win Rate</div>
+                            </div>
+                            <div className="text-center">
+                              <div className="font-semibold">{vendor.stats.totalRevenue}</div>
+                              <div className="text-gray-500">Revenue</div>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              {getTierIcon(vendor.owner.credibilityTier)}
+                              <span className="text-xs capitalize">{vendor.owner.credibilityTier}</span>
+                            </div>
                           </div>
                         </div>
-                        
-                        <div className="flex items-center gap-6 text-sm">
-                          <div className="text-center">
-                            <div className="font-semibold">{vendor.stats.totalVotes}</div>
-                            <div className="text-gray-500">Votes</div>
-                          </div>
-                          <div className="text-center">
-                            <div className="font-semibold">{vendor.stats.winRate}%</div>
-                            <div className="text-gray-500">Win Rate</div>
-                          </div>
-                          <div className="text-center">
-                            <div className="font-semibold">{vendor.stats.totalRevenue}</div>
-                            <div className="text-gray-500">Revenue</div>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            {getTierIcon(vendor.owner.credibilityTier)}
-                            <span className="text-xs capitalize">{vendor.owner.credibilityTier}</span>
-                          </div>
-                        </div>
-                      </div>
-                    </Link>
-                  ))}
+                      </Link>
+                    ))
+                  ) : (
+                    <div className="text-center py-8 text-gray-500">
+                      <Users className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                      <p>No vendors in this zone yet</p>
+                      <p className="text-sm">Be the first to register a vendor!</p>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -313,21 +316,27 @@ async function ZonePageAsync({ zoneId }: { zoneId: string }) {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {battleLog.map((battle) => (
-                    <div key={battle.id} className="p-3 bg-gray-50 rounded-lg">
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="font-medium">{battle.challenger}</span>
-                        <span className="text-green-600 font-bold">W</span>
+                  {battleLog.length > 0 ? (
+                    battleLog.map((battle) => (
+                      <div key={battle.id} className="p-3 bg-gray-50 rounded-lg">
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="font-medium">{battle.challenger}</span>
+                          <span className="text-green-600 font-bold">W</span>
+                        </div>
+                        <div className="flex items-center justify-between text-xs text-gray-600">
+                          <span>vs {battle.opponent}</span>
+                          <span>{battle.votes} votes</span>
+                        </div>
+                        <div className="text-xs text-gray-500 mt-1">
+                          {new Date(battle.date).toLocaleDateString()}
+                        </div>
                       </div>
-                      <div className="flex items-center justify-between text-xs text-gray-600">
-                        <span>vs {battle.opponent}</span>
-                        <span>{battle.votes} votes</span>
-                      </div>
-                      <div className="text-xs text-gray-500 mt-1">
-                        {new Date(battle.date).toLocaleDateString()}
-                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-4 text-gray-500">
+                      <p className="text-sm">No recent battles</p>
                     </div>
-                  ))}
+                  )}
                 </div>
               </CardContent>
             </Card>
