@@ -4,8 +4,7 @@ import { Button } from '@/components/ui/button'
 import { useRouter } from 'next/navigation'
 import { useMiniApp } from '@neynar/react'
 import { Crown, Flame, MapPin, Users, Zap } from 'lucide-react'
-import { useAuthSimulation } from '@/hooks/useAuthSimulation'
-import { useDevAuth } from '@/hooks/useDevAuth'
+import { useFarcasterAuth } from '@/hooks/useFarcasterAuth'
 import { VotingTest } from '@/components/VotingTest'
 
 export default function HomePage() {
@@ -14,8 +13,8 @@ export default function HomePage() {
   const [isConnecting, setIsConnecting] = useState(false)
   const [showTutorial, setShowTutorial] = useState(false)
   
-  // Use development auth for local development
-  const { isAuthenticated, user, isLoading, signIn: devSignIn } = useDevAuth()
+  // Use real Farcaster authentication
+  const { isAuthenticated, user, isLoading, signIn, error } = useFarcasterAuth()
 
   const features = [
     {
@@ -64,8 +63,8 @@ export default function HomePage() {
         navigator.vibrate(100)
       }
 
-      // Use development authentication
-      await devSignIn()
+      // Use real Farcaster authentication
+      await signIn()
       
     } catch (error) {
       console.error('Error during authentication:', error)
@@ -75,58 +74,64 @@ export default function HomePage() {
     }
   }
 
-  // If already authenticated, show voting test instead of redirecting
-  // This allows us to test the voting system locally
-
-  if (showTutorial) {
+  // Show loading state
+  if (isLoading) {
     return (
-      <div className="h-full bg-gradient-to-br from-[#ff6b35] via-[#ffd23f] to-[#06d6a0] p-4 flex flex-col">
-        <div className="flex-1 flex flex-col justify-center space-y-6">
-          <div className="p-6 bg-white/95 backdrop-blur-sm border-2 border-[#ff6b35]/20 shadow-2xl rounded-xl">
-            <h2 className="text-2xl font-bold text-center mb-4 text-[#2d1810]">How Vendor Wars Works</h2>
-            <div className="space-y-4">
-              <div className="flex items-start space-x-3">
-                <div className="w-8 h-8 rounded-full bg-[#ff6b35] text-white flex items-center justify-center text-sm font-bold">1</div>
-                <div>
-                  <h3 className="font-semibold text-[#2d1810]">Explore Your Barrio</h3>
-                  <p className="text-sm text-[#6b5d52]">Browse the battle map and discover zones controlled by different vendors</p>
-                </div>
-              </div>
-              <div className="flex items-start space-x-3">
-                <div className="w-8 h-8 rounded-full bg-[#ffd23f] text-[#2d1810] flex items-center justify-center text-sm font-bold">2</div>
-                <div>
-                  <h3 className="font-semibold text-[#2d1810]">Vote & Support</h3>
-                  <p className="text-sm text-[#6b5d52]">Cast votes for your favorite vendors to help them control territories</p>
-                </div>
-              </div>
-              <div className="flex items-start space-x-3">
-                <div className="w-8 h-8 rounded-full bg-[#06d6a0] text-white flex items-center justify-center text-sm font-bold">3</div>
-                <div>
-                  <h3 className="font-semibold text-[#2d1810]">Earn Rewards</h3>
-                  <p className="text-sm text-[#6b5d52]">Get BATTLE tokens for voting and unlock exclusive NFT badges</p>
-                </div>
-              </div>
-              <div className="flex items-start space-x-3">
-                <div className="w-8 h-8 rounded-full bg-[#e63946] text-white flex items-center justify-center text-sm font-bold">4</div>
-                <div>
-                  <h3 className="font-semibold text-[#2d1810]">Defend & Conquer</h3>
-                  <p className="text-sm text-[#6b5d52]">Help your vendors maintain control and expand their territories</p>
-                </div>
-              </div>
-            </div>
-          </div>
-          <Button 
-            onClick={() => setShowTutorial(false)}
-            className="bg-[#ff6b35] hover:bg-[#e5562e] text-white shadow-xl"
-          >
-            <Zap className="w-5 h-5 mr-2" />
-            Got It! Let&apos;s Battle
-          </Button>
+      <div className="h-full bg-gradient-to-br from-[#ff6b35] via-[#ffd23f] to-[#06d6a0] p-4 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
+          <p className="text-white font-medium">Connecting to Farcaster...</p>
         </div>
       </div>
     )
   }
 
+  // Show error state
+  if (error) {
+    return (
+      <div className="h-full bg-gradient-to-br from-[#ff6b35] via-[#ffd23f] to-[#06d6a0] p-4 flex items-center justify-center">
+        <div className="text-center max-w-md">
+          <div className="bg-white/95 backdrop-blur-sm border-2 border-red-200 shadow-2xl rounded-xl p-6">
+            <h2 className="text-xl font-bold text-red-600 mb-2">Connection Error</h2>
+            <p className="text-gray-600 mb-4">{error}</p>
+            <Button onClick={handleConnect} className="w-full">
+              Try Again
+            </Button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // If already authenticated, show voting test
+  if (isAuthenticated && user) {
+    return (
+      <div className="h-full bg-gradient-to-br from-[#ff6b35] via-[#ffd23f] to-[#06d6a0] p-4">
+        <div className="max-w-md mx-auto">
+          <div className="bg-white/95 backdrop-blur-sm border-2 border-[#ff6b35]/20 shadow-2xl rounded-xl p-6 mb-4">
+            <div className="flex items-center space-x-3 mb-4">
+              <img 
+                src={user.pfpUrl} 
+                alt={user.displayName}
+                className="w-12 h-12 rounded-full border-2 border-[#ff6b35]"
+              />
+              <div>
+                <h2 className="font-bold text-lg">{user.displayName}</h2>
+                <p className="text-sm text-gray-600">@{user.username}</p>
+              </div>
+            </div>
+            <p className="text-sm text-gray-600 mb-4">
+              Welcome to Vendor Wars! You're now connected with your Farcaster account.
+            </p>
+          </div>
+          
+          <VotingTest />
+        </div>
+      </div>
+    )
+  }
+
+  // If not authenticated, show the main page
   return (
     <main className="min-h-screen">
       <Suspense fallback={

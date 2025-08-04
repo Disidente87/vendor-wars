@@ -4,11 +4,11 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { useDevAuth } from '@/hooks/useDevAuth'
+import { useFarcasterAuth } from '@/hooks/useFarcasterAuth'
 import { useTokenBalance } from '@/hooks/useTokenBalance'
 
 export function VotingTest() {
-  const { user: authenticatedUser } = useDevAuth()
+  const { user: authenticatedUser } = useFarcasterAuth()
   const { balance, refreshBalance } = useTokenBalance()
   const [isVoting, setIsVoting] = useState(false)
   const [lastVoteResult, setLastVoteResult] = useState<any>(null)
@@ -85,6 +85,7 @@ export function VotingTest() {
           <div>
             <p className="font-medium">{authenticatedUser.displayName}</p>
             <p className="text-sm text-gray-600">@{authenticatedUser.username}</p>
+            <p className="text-xs text-gray-500">FID: {authenticatedUser.fid}</p>
           </div>
           <Badge variant="secondary">
             {balance?.toLocaleString() || 0} $BATTLE
@@ -98,7 +99,7 @@ export function VotingTest() {
             disabled={isVoting}
             className="w-full"
           >
-            {isVoting ? 'Voting...' : 'Vote Regular (5 tokens)'}
+            {isVoting ? 'Voting...' : 'Vote Regular (10 tokens)'}
           </Button>
           
           <Button
@@ -107,21 +108,21 @@ export function VotingTest() {
             variant="outline"
             className="w-full"
           >
-            {isVoting ? 'Voting...' : 'Vote Verified (15 tokens)'}
+            {isVoting ? 'Voting...' : 'Vote Verified (30 tokens)'}
           </Button>
         </div>
 
         {/* Error Display */}
         {error && (
           <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-            <p className="text-red-700 text-sm">{error}</p>
+            <p className="text-red-600 text-sm">{error}</p>
           </div>
         )}
 
         {/* Success Display */}
         {lastVoteResult && (
           <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
-            <p className="text-green-700 font-medium">Vote Successful!</p>
+            <p className="text-green-600 text-sm font-medium">Vote successful!</p>
             <p className="text-green-600 text-sm">
               Tokens earned: {lastVoteResult.tokensEarned}
             </p>
@@ -136,15 +137,13 @@ export function VotingTest() {
           </div>
         )}
 
-        {/* Refresh Button */}
-        <Button
-          onClick={refreshBalance}
-          variant="ghost"
-          size="sm"
-          className="w-full"
-        >
-          Refresh Balance
-        </Button>
+        {/* Instructions */}
+        <div className="text-xs text-gray-500 space-y-1">
+          <p>• Regular votes earn 10 $BATTLE tokens</p>
+          <p>• Verified votes earn 30 $BATTLE tokens</p>
+          <p>• No voting restrictions (testing mode)</p>
+          <p>• Your Farcaster FID: {authenticatedUser.fid}</p>
+        </div>
       </CardContent>
     </Card>
   )

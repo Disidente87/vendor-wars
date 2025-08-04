@@ -1,30 +1,54 @@
 import { FARCASTER_CONFIG } from '@/config/farcaster'
 import type { User } from '@/types'
 
-// Mock implementation for development
-// TODO: Implement proper Neynar API integration
-
 export class FarcasterService {
   static async getUserByFid(fid: number): Promise<User | null> {
     try {
-      // Mock user data for development
-      return {
-        fid,
-        username: `user_${fid}`,
-        displayName: `User ${fid}`,
-        pfpUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=${fid}`,
-        followerCount: Math.floor(Math.random() * 1000),
-        followingCount: Math.floor(Math.random() * 500),
-        bio: `Vendor Wars enthusiast #${fid}`,
-        verifiedAddresses: [],
-        battleTokens: Math.floor(Math.random() * 1000),
-        credibilityScore: Math.floor(Math.random() * 100),
-        verifiedPurchases: Math.floor(Math.random() * 50),
-        credibilityTier: ['bronze', 'silver', 'gold', 'platinum'][Math.floor(Math.random() * 4)] as any,
-        voteStreak: Math.floor(Math.random() * 7),
-        weeklyVoteCount: Math.floor(Math.random() * 20),
-        weeklyTerritoryBonus: Math.floor(Math.random() * 100),
+      // Use Neynar API to get real user data
+      const response = await fetch(`${FARCASTER_CONFIG.NEYNAR_BASE_URL}/farcaster/user/bulk`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'api_key': FARCASTER_CONFIG.NEYNAR_API_KEY,
+        },
+        body: JSON.stringify({
+          fids: [fid]
+        })
+      })
+
+      if (!response.ok) {
+        console.error('Neynar API error:', response.status, response.statusText)
+        return null
       }
+
+      const data = await response.json()
+      
+      if (data.users && data.users.length > 0) {
+        const neynarUser = data.users[0]
+        
+        // Get user's token balance from our database
+        const tokenBalance = await this.getUserTokenBalance(fid)
+        
+        return {
+          fid: neynarUser.fid,
+          username: neynarUser.username,
+          displayName: neynarUser.displayName,
+          pfpUrl: neynarUser.pfpUrl,
+          followerCount: neynarUser.followerCount,
+          followingCount: neynarUser.followingCount,
+          bio: neynarUser.bio,
+          verifiedAddresses: neynarUser.verifiedAddresses || [],
+          battleTokens: tokenBalance,
+          credibilityScore: await this.getUserCredibilityScore(fid),
+          verifiedPurchases: await this.getUserVerifiedPurchases(fid),
+          credibilityTier: await this.getUserCredibilityTier(fid),
+          voteStreak: await this.getUserVoteStreak(fid),
+          weeklyVoteCount: await this.getUserWeeklyVoteCount(fid),
+          weeklyTerritoryBonus: await this.getUserWeeklyTerritoryBonus(fid),
+        }
+      }
+
+      return null
     } catch (error) {
       console.error('Error fetching user by FID:', error)
       return null
@@ -33,25 +57,26 @@ export class FarcasterService {
 
   static async getUserByUsername(username: string): Promise<User | null> {
     try {
-      // Mock implementation
-      const mockFid = Math.floor(Math.random() * 10000)
-      return {
-        fid: mockFid,
-        username,
-        displayName: `User ${mockFid}`,
-        pfpUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=${mockFid}`,
-        followerCount: Math.floor(Math.random() * 1000),
-        followingCount: Math.floor(Math.random() * 500),
-        bio: `Vendor Wars enthusiast`,
-        verifiedAddresses: [],
-        battleTokens: Math.floor(Math.random() * 1000),
-        credibilityScore: Math.floor(Math.random() * 100),
-        verifiedPurchases: Math.floor(Math.random() * 50),
-        credibilityTier: ['bronze', 'silver', 'gold', 'platinum'][Math.floor(Math.random() * 4)] as any,
-        voteStreak: Math.floor(Math.random() * 7),
-        weeklyVoteCount: Math.floor(Math.random() * 20),
-        weeklyTerritoryBonus: Math.floor(Math.random() * 100),
+      // Use Neynar API to get user by username
+      const response = await fetch(`${FARCASTER_CONFIG.NEYNAR_BASE_URL}/farcaster/user/search?q=${username}`, {
+        headers: {
+          'api_key': FARCASTER_CONFIG.NEYNAR_API_KEY,
+        }
+      })
+
+      if (!response.ok) {
+        console.error('Neynar API error:', response.status, response.statusText)
+        return null
       }
+
+      const data = await response.json()
+      
+      if (data.users && data.users.length > 0) {
+        const neynarUser = data.users[0]
+        return this.getUserByFid(neynarUser.fid)
+      }
+
+      return null
     } catch (error) {
       console.error('Error fetching user by username:', error)
       return null
@@ -60,93 +85,113 @@ export class FarcasterService {
 
   static async getUsersByFids(fids: number[]): Promise<User[]> {
     try {
-      // Mock implementation
-      return fids.map(fid => ({
-        fid,
-        username: `user_${fid}`,
-        displayName: `User ${fid}`,
-        pfpUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=${fid}`,
-        followerCount: Math.floor(Math.random() * 1000),
-        followingCount: Math.floor(Math.random() * 500),
-        bio: `Vendor Wars enthusiast #${fid}`,
-        verifiedAddresses: [],
-        battleTokens: Math.floor(Math.random() * 1000),
-        credibilityScore: Math.floor(Math.random() * 100),
-        verifiedPurchases: Math.floor(Math.random() * 50),
-        credibilityTier: ['bronze', 'silver', 'gold', 'platinum'][Math.floor(Math.random() * 4)] as any,
-        voteStreak: Math.floor(Math.random() * 7),
-        weeklyVoteCount: Math.floor(Math.random() * 20),
-        weeklyTerritoryBonus: Math.floor(Math.random() * 100),
-      }))
+      const users: User[] = []
+      
+      // Process in batches of 100 (Neynar API limit)
+      for (let i = 0; i < fids.length; i += 100) {
+        const batch = fids.slice(i, i + 100)
+        
+        const response = await fetch(`${FARCASTER_CONFIG.NEYNAR_BASE_URL}/farcaster/user/bulk`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'api_key': FARCASTER_CONFIG.NEYNAR_API_KEY,
+          },
+          body: JSON.stringify({
+            fids: batch
+          })
+        })
+
+        if (response.ok) {
+          const data = await response.json()
+          
+          if (data.users) {
+            for (const neynarUser of data.users) {
+              const user = await this.getUserByFid(neynarUser.fid)
+              if (user) {
+                users.push(user)
+              }
+            }
+          }
+        }
+      }
+
+      return users
     } catch (error) {
       console.error('Error fetching users by FIDs:', error)
       return []
     }
   }
 
-  static async validateUserToken(token: string): Promise<User | null> {
+  // Helper methods to get user-specific data from our database
+  private static async getUserTokenBalance(fid: number): Promise<number> {
     try {
-      // This would typically validate a JWT or similar token
-      // For now, we'll return null as this needs to be implemented
-      // based on your specific authentication flow
-      return null
+      // This would query your database for the user's token balance
+      // For now, return a default value
+      return 0
     } catch (error) {
-      console.error('Error validating user token:', error)
-      return null
+      console.error('Error getting user token balance:', error)
+      return 0
     }
   }
 
-  static async getFollowers(fid: number, limit: number = 50): Promise<User[]> {
+  private static async getUserCredibilityScore(fid: number): Promise<number> {
     try {
-      // Mock implementation
-      const mockFollowers = Array.from({ length: Math.min(limit, 10) }, (_, i) => ({
-        fid: fid + 1000 + i,
-        username: `follower_${fid + 1000 + i}`,
-        displayName: `Follower ${fid + 1000 + i}`,
-        pfpUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=${fid + 1000 + i}`,
-        followerCount: Math.floor(Math.random() * 1000),
-        followingCount: Math.floor(Math.random() * 500),
-        bio: `Vendor Wars follower`,
-        verifiedAddresses: [],
-        battleTokens: Math.floor(Math.random() * 1000),
-        credibilityScore: Math.floor(Math.random() * 100),
-        verifiedPurchases: Math.floor(Math.random() * 50),
-        credibilityTier: ['bronze', 'silver', 'gold', 'platinum'][Math.floor(Math.random() * 4)] as any,
-        voteStreak: Math.floor(Math.random() * 7),
-        weeklyVoteCount: Math.floor(Math.random() * 20),
-        weeklyTerritoryBonus: Math.floor(Math.random() * 100),
-      }))
-      return mockFollowers
+      // This would query your database for the user's credibility score
+      return 50 // Default score
     } catch (error) {
-      console.error('Error fetching followers:', error)
-      return []
+      console.error('Error getting user credibility score:', error)
+      return 50
     }
   }
 
-  static async getFollowing(fid: number, limit: number = 50): Promise<User[]> {
+  private static async getUserVerifiedPurchases(fid: number): Promise<number> {
     try {
-      // Mock implementation
-      const mockFollowing = Array.from({ length: Math.min(limit, 10) }, (_, i) => ({
-        fid: fid + 2000 + i,
-        username: `following_${fid + 2000 + i}`,
-        displayName: `Following ${fid + 2000 + i}`,
-        pfpUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=${fid + 2000 + i}`,
-        followerCount: Math.floor(Math.random() * 1000),
-        followingCount: Math.floor(Math.random() * 500),
-        bio: `Vendor Wars following`,
-        verifiedAddresses: [],
-        battleTokens: Math.floor(Math.random() * 1000),
-        credibilityScore: Math.floor(Math.random() * 100),
-        verifiedPurchases: Math.floor(Math.random() * 50),
-        credibilityTier: ['bronze', 'silver', 'gold', 'platinum'][Math.floor(Math.random() * 4)] as any,
-        voteStreak: Math.floor(Math.random() * 7),
-        weeklyVoteCount: Math.floor(Math.random() * 20),
-        weeklyTerritoryBonus: Math.floor(Math.random() * 100),
-      }))
-      return mockFollowing
+      // This would query your database for the user's verified purchases count
+      return 0
     } catch (error) {
-      console.error('Error fetching following:', error)
-      return []
+      console.error('Error getting user verified purchases:', error)
+      return 0
+    }
+  }
+
+  private static async getUserCredibilityTier(fid: number): Promise<'bronze' | 'silver' | 'gold' | 'platinum'> {
+    try {
+      // This would query your database for the user's credibility tier
+      return 'bronze'
+    } catch (error) {
+      console.error('Error getting user credibility tier:', error)
+      return 'bronze'
+    }
+  }
+
+  private static async getUserVoteStreak(fid: number): Promise<number> {
+    try {
+      // This would query your database for the user's vote streak
+      return 0
+    } catch (error) {
+      console.error('Error getting user vote streak:', error)
+      return 0
+    }
+  }
+
+  private static async getUserWeeklyVoteCount(fid: number): Promise<number> {
+    try {
+      // This would query your database for the user's weekly vote count
+      return 0
+    } catch (error) {
+      console.error('Error getting user weekly vote count:', error)
+      return 0
+    }
+  }
+
+  private static async getUserWeeklyTerritoryBonus(fid: number): Promise<number> {
+    try {
+      // This would query your database for the user's weekly territory bonus
+      return 0
+    } catch (error) {
+      console.error('Error getting user weekly territory bonus:', error)
+      return 0
     }
   }
 } 

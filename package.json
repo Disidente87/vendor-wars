@@ -46,7 +46,11 @@
     "delete:all-user-votes": "npx tsx scripts/delete-all-user-votes.ts",
     "check:all-vendors": "npx tsx scripts/check-all-vendors.ts",
     "test:vendors-api": "npx tsx scripts/test-vendors-api.ts",
-    "test:vendor-service": "npx tsx scripts/test-vendor-service.ts"
+    "test:vendor-service": "npx tsx scripts/test-vendor-service.ts",
+    "test:unlimited-voting": "npx tsx scripts/test-unlimited-voting.ts",
+    "clear:test-votes": "npx tsx scripts/clear-test-votes.ts",
+    "verify:vote-counting": "npx tsx scripts/verify-vote-counting.ts",
+    "check:farcaster-setup": "npx tsx scripts/check-farcaster-setup.ts"
   },
   "dependencies": {
     "@coinbase/onchainkit": "^0.38.18",

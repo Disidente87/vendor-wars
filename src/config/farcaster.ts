@@ -19,13 +19,13 @@ export const FARCASTER_CONFIG = {
     BATTLE_DURATION_HOURS: 24,
     MAX_VENDORS_PER_USER: 5,
     MIN_VOTES_TO_WIN: 10,
-    VOTE_COOLDOWN_MINUTES: 60,
+    VOTE_COOLDOWN_MINUTES: 0, // REMOVED COOLDOWN: Allow immediate voting for testing
     VERIFIED_VOTE_MULTIPLIER: 3, // 3x tokens for verified purchases
     BASE_VOTE_TOKENS: 10, // Base tokens per vote
     TERRITORY_DEFENSE_BONUS: 20, // Bonus for maintaining #1 for 24h
     TERRITORY_CONQUEST_BONUS: 50, // Bonus for taking #1 from another
-    WEEKLY_VOTE_CAP: 200, // Max tokens per week from voting
-    WEEKLY_TERRITORY_CAP: 100, // Max tokens per week from territory bonuses
+    WEEKLY_VOTE_CAP: 999999, // REMOVED CAP: Allow unlimited votes per week for testing
+    WEEKLY_TERRITORY_CAP: 999999, // REMOVED CAP: Allow unlimited territory bonuses for testing
   },
   
   // Battle Zones (Zonas de Batalla) - CDMX focused

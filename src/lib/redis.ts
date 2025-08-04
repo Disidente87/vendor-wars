@@ -34,15 +34,13 @@ export const REDIS_KEYS = {
 export const rateLimiter = {
   // Check if user can vote for a specific vendor
   async canVoteForVendor(userFid: string, vendorId: string): Promise<boolean> {
-    const key = `${REDIS_KEYS.VOTE_LIMIT}:${userFid}:${vendorId}:${getCurrentDay()}`
-    const currentVotes = await redis.get(key) || 0
-    
-    // Max 3 votes per vendor per day
-    return (currentVotes as number) < 3
+    // REMOVED RESTRICTION: Allow unlimited votes per vendor per day for testing
+    return true
   },
 
   // Increment vote count for user-vendor pair
   async incrementVoteCount(userFid: string, vendorId: string): Promise<void> {
+    // REMOVED RESTRICTION: Still track for analytics but don't limit
     const key = `${REDIS_KEYS.VOTE_LIMIT}:${userFid}:${vendorId}:${getCurrentDay()}`
     await redis.incr(key)
     // Expire at end of day
@@ -51,15 +49,13 @@ export const rateLimiter = {
 
   // Check weekly vote limit
   async canVoteThisWeek(userFid: string): Promise<boolean> {
-    const key = `${REDIS_KEYS.VOTE_LIMIT}:${userFid}:weekly:${getCurrentWeek()}`
-    const weeklyVotes = await redis.get(key) || 0
-    
-    // Max 200 votes per week
-    return (weeklyVotes as number) < 200
+    // REMOVED RESTRICTION: Allow unlimited votes per week for testing
+    return true
   },
 
   // Increment weekly vote count
   async incrementWeeklyVoteCount(userFid: string): Promise<void> {
+    // REMOVED RESTRICTION: Still track for analytics but don't limit
     const key = `${REDIS_KEYS.VOTE_LIMIT}:${userFid}:weekly:${getCurrentWeek()}`
     await redis.incr(key)
     // Expire at end of week

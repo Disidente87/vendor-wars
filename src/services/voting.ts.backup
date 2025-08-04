@@ -40,6 +40,31 @@ export class VotingService {
     try {
       const { userFid, vendorId, voteType, photoUrl, gpsLocation, verificationConfidence } = voteData
 
+      // 1. Rate limiting checks
+      const canVoteForVendor = await rateLimiter.canVoteForVendor(userFid, vendorId)
+      if (!canVoteForVendor) {
+        return {
+          success: false,
+          tokensEarned: 0,
+          newBalance: 0,
+          streakBonus: 0,
+          territoryBonus: 0,
+          error: 'Daily vote limit reached for this vendor (max 3 votes per day)'
+        }
+      }
+
+      const canVoteThisWeek = await rateLimiter.canVoteThisWeek(userFid)
+      if (!canVoteThisWeek) {
+        return {
+          success: false,
+          tokensEarned: 0,
+          newBalance: 0,
+          streakBonus: 0,
+          territoryBonus: 0,
+          error: 'Weekly vote limit reached (max 200 votes per week)'
+        }
+      }
+
       // 2. Anti-fraud checks for verified votes
       if (voteType === 'verified' && photoUrl) {
         const photoHash = await this.generatePhotoHash(photoUrl)
@@ -61,18 +86,17 @@ export class VotingService {
       // 3. Calculate tokens
       const tokenCalculation = await this.calculateTokens(userFid, vendorId, voteType)
 
-      // REMOVED WEEKLY CAP CHECK: Allow unlimited token earning for testing
       // 4. Check weekly token cap
-      // if (tokenCalculation.totalTokens > tokenCalculation.weeklyCapRemaining) {
-      //   return {
-      //     success: false,
-      //     tokensEarned: 0,
-      //     newBalance: 0,
-      //     streakBonus: 0,
-      //     territoryBonus: 0,
-      //     error: 'Weekly token earning limit reached'
-      //   }
-      // }
+      if (tokenCalculation.totalTokens > tokenCalculation.weeklyCapRemaining) {
+        return {
+          success: false,
+          tokensEarned: 0,
+          newBalance: 0,
+          streakBonus: 0,
+          territoryBonus: 0,
+          error: 'Weekly token earning limit reached'
+        }
+      }
 
       // 5. Create vote record in database
       const voteId = uuidv4()
@@ -89,6 +113,25 @@ export class VotingService {
         reason: `${voteType === 'verified' ? 'Verified' : 'Regular'} vote for vendor`,
         attestation_id: null, // Will be set if verified vote
         created_at: new Date().toISOString()
+      }
+
+      // Check if user already voted in this battle
+      const { data: existingVote, error: checkError } = await supabase
+        .from('votes')
+        .select('id')
+        .eq('voter_fid', userFid)
+        .eq('battle_id', DEFAULT_BATTLE_ID)
+        .single()
+
+      if (existingVote) {
+        return {
+          success: false,
+          tokensEarned: 0,
+          newBalance: 0,
+          streakBonus: 0,
+          territoryBonus: 0,
+          error: 'You have already voted in this battle'
+        }
       }
 
       // Insert the vote
@@ -138,6 +181,10 @@ export class VotingService {
           .update({ attestation_id: attestationId })
           .eq('id', voteId)
       }
+
+      // 7. Update rate limiting counters
+      await rateLimiter.incrementVoteCount(userFid, vendorId)
+      await rateLimiter.incrementWeeklyVoteCount(userFid)
 
       // 8. Update user tokens
       const newBalance = await tokenManager.addTokens(userFid, tokenCalculation.totalTokens)
@@ -190,14 +237,15 @@ export class VotingService {
 
     const totalTokens = actualBaseTokens + streakBonus + territoryBonus
 
-    // REMOVED WEEKLY CAP: Allow unlimited token earning for testing
-    const weeklyCapRemaining = 999999 // Effectively unlimited
+    // Weekly cap check
+    const weeklyTokensEarned = await this.getWeeklyTokensEarned(userFid)
+    const weeklyCapRemaining = Math.max(0, 200 - weeklyTokensEarned)
 
     return {
       baseTokens: actualBaseTokens,
       streakBonus,
       territoryBonus,
-      totalTokens, // No longer capped by weekly limit
+      totalTokens: Math.min(totalTokens, weeklyCapRemaining),
       weeklyCapRemaining
     }
   }

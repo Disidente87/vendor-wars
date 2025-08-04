@@ -101,19 +101,20 @@ export class BattleService {
       return null
     }
 
+    // REMOVED COOLDOWN CHECK: Allow immediate voting for testing
     // Check cooldown
-    const lastVote = Array.from(votes.values())
-      .filter(vote => vote.voter.fid === data.voter.fid)
-      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())[0]
+    // const lastVote = Array.from(votes.values())
+    //   .filter(vote => vote.voter.fid === data.voter.fid)
+    //   .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())[0]
 
-    if (lastVote) {
-      const timeSinceLastVote = Date.now() - lastVote.createdAt.getTime()
-      const cooldownMs = FARCASTER_CONFIG.FEATURES.VOTE_COOLDOWN_MINUTES * 60 * 1000
+    // if (lastVote) {
+    //   const timeSinceLastVote = Date.now() - lastVote.createdAt.getTime()
+    //   const cooldownMs = FARCASTER_CONFIG.FEATURES.VOTE_COOLDOWN_MINUTES * 60 * 1000
       
-      if (timeSinceLastVote < cooldownMs) {
-        return null
-      }
-    }
+    //   if (timeSinceLastVote < cooldownMs) {
+    //     return null
+    //   }
+    // }
 
     const vote: Vote = {
       id: `vote_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
