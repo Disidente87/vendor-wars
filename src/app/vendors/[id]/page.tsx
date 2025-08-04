@@ -3,9 +3,9 @@
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Trophy, Crown, Star, Users, Target, Shield, AlertCircle } from 'lucide-react'
+import { ArrowLeft, Trophy, Users, Target, Shield, AlertCircle } from 'lucide-react'
 import { VoteResultModal } from '@/components/VoteResultModal'
-import { useDevAuth } from '@/hooks/useDevAuth'
+import { useFarcasterAuth } from '@/hooks/useFarcasterAuth'
 import { useTokenBalance } from '@/hooks/useTokenBalance'
 import type { Vendor } from '@/types'
 import { getVendorIdFromSlug } from '@/lib/route-utils'
@@ -22,7 +22,7 @@ interface TopVoter {
 
 export default function VendorProfilePage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter()
-  const { user: authenticatedUser } = useDevAuth()
+  const { user: authenticatedUser, isAuthenticated, isLoading } = useFarcasterAuth()
   const { refreshBalance } = useTokenBalance()
   const [vendor, setVendor] = useState<Vendor | null>(null)
   const [loading, setLoading] = useState(true)
@@ -100,19 +100,13 @@ export default function VendorProfilePage({ params }: { params: Promise<{ id: st
           isVerified
         })
         setShowVoteModal(true)
-        
-        // Refresh vendor data to update stats
-        fetchVendor(vendor.id)
-        // Refresh token balance
-        refreshBalance()
+        refreshBalance() // Refresh token balance
       } else {
-        // Handle error - could show a toast notification
-        console.error('Vote failed:', result.error)
-        alert(`Vote failed: ${result.error}`)
+        setError(result.error || 'Vote failed')
       }
     } catch (error) {
       console.error('Error submitting vote:', error)
-      alert('Failed to submit vote. Please try again.')
+      setError('Failed to submit vote. Please try again.')
     } finally {
       setIsVoting(false)
     }
@@ -159,6 +153,36 @@ export default function VendorProfilePage({ params }: { params: Promise<{ id: st
         isVerified: false
       }
     ]
+  }
+
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-[#fff8f0] to-[#f4f1eb] flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#ff6b35] mx-auto mb-4"></div>
+          <p className="text-[#2d1810] font-medium">Loading...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Show authentication required state
+  if (!isAuthenticated || !authenticatedUser) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-[#fff8f0] to-[#f4f1eb] flex items-center justify-center">
+        <div className="bg-white/80 backdrop-blur-sm rounded-xl p-6 shadow-lg border border-[#ff6b35]/20 text-center max-w-md mx-4">
+          <h2 className="text-xl font-bold text-[#2d1810] mb-2">Authentication Required</h2>
+          <p className="text-[#6b5d52] text-sm mb-4">Please connect your Farcaster account to vote for vendors.</p>
+          <Button
+            onClick={() => router.push('/')}
+            className="bg-[#ff6b35] hover:bg-[#e5562e] text-white font-medium py-3 rounded-xl shadow-lg"
+          >
+            Connect Farcaster
+          </Button>
+        </div>
+      </div>
+    )
   }
 
   if (loading) {
