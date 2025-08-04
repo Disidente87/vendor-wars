@@ -395,6 +395,23 @@ export class VendorService {
 
   // Get vendors by zone
   static async getVendorsByZone(zoneId: string): Promise<Vendor[]> {
+    // First try to find zone by UUID
+    let zoneUUID = zoneId
+    
+    // If it's not a UUID, try to find zone by name
+    if (!zoneId.includes('-')) {
+      const { data: zone, error: zoneError } = await supabase
+        .from('zones')
+        .select('id')
+        .eq('name', zoneId)
+        .single()
+      
+      if (zoneError) {
+        throw new Error(`Zone not found: ${zoneId}`)
+      }
+      zoneUUID = zone.id
+    }
+
     const { data: vendors, error } = await supabase
       .from('vendors')
       .select(`
@@ -417,7 +434,7 @@ export class VendorService {
           weekly_territory_bonus
         )
       `)
-      .eq('zone', zoneId)
+      .eq('zone_id', zoneUUID)
       .order('current_zone_rank', { ascending: true })
 
     if (error) {

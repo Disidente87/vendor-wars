@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { VendorService } from '@/services/vendors'
 import { z } from 'zod'
 import { VendorCategory } from '@/types'
+import { getVendorIdFromSlug } from '@/lib/route-utils'
 
 const updateVendorSchema = z.object({
   name: z.string().min(3).max(50).optional(),
@@ -22,7 +23,9 @@ export async function GET(
     )
   }
   try {
-    const vendor = await VendorService.getVendor(id)
+    // Try to get vendor ID from slug first
+    const actualVendorId = getVendorIdFromSlug(id) || id
+    const vendor = await VendorService.getVendor(actualVendorId)
     
     if (!vendor) {
       return NextResponse.json(
@@ -64,7 +67,8 @@ export async function PUT(
       )
     }
 
-    const vendor = await VendorService.getVendor(id)
+    const actualVendorId = getVendorIdFromSlug(id) || id
+    const vendor = await VendorService.getVendor(actualVendorId)
     if (!vendor) {
       return NextResponse.json(
         { success: false, error: 'Vendor not found' },
@@ -79,7 +83,7 @@ export async function PUT(
       )
     }
 
-    const updatedVendor = await VendorService.updateVendor(id, validatedData)
+    const updatedVendor = await VendorService.updateVendor(actualVendorId, validatedData)
     
     if (!updatedVendor) {
       return NextResponse.json(
@@ -127,7 +131,8 @@ export async function DELETE(
       )
     }
 
-    const success = await VendorService.deleteVendor(id, parseInt(ownerFid))
+    const actualVendorId = getVendorIdFromSlug(id) || id
+    const success = await VendorService.deleteVendor(actualVendorId, parseInt(ownerFid))
     
     if (!success) {
       return NextResponse.json(

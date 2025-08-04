@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { ArrowLeft, Trophy, Crown, Star, Users, Target } from 'lucide-react'
 import { VoteResultModal } from '@/components/VoteResultModal'
 import type { Vendor } from '@/types'
+import { getVendorIdFromSlug } from '@/lib/route-utils'
 
 interface TopVoter {
   id: string
@@ -40,7 +41,10 @@ export default function VendorProfilePage({ params }: { params: Promise<{ id: st
   const fetchVendor = async (id: string) => {
     try {
       setLoading(true)
-      const response = await fetch(`/api/vendors/${id}`)
+      // Try to get vendor ID from slug first
+      const actualVendorId = getVendorIdFromSlug(id) || id
+      
+      const response = await fetch(`/api/vendors/${actualVendorId}`)
       const result = await response.json()
       
       if (result.success) {

@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import { ZoneService } from '@/services/zones'
 import { VendorService } from '@/services/vendors'
 import { UserService } from '@/services/users'
+import { getZoneIdFromSlug } from '@/lib/route-utils'
 import { Button } from '@/components/ui/button'
 import { Avatar } from '@/components/ui/avatar'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -42,7 +43,10 @@ interface ZonePageProps {
 
 async function getZoneData(zoneId: string) {
   try {
-    const zone = await ZoneService.getZone(zoneId)
+    // Try to get zone ID from slug first
+    const actualZoneId = getZoneIdFromSlug(zoneId) || zoneId
+    
+    const zone = await ZoneService.getZone(actualZoneId)
     if (!zone) {
       return null
     }

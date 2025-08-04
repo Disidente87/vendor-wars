@@ -33,17 +33,35 @@ function mapZoneToSupabase(zone: Partial<BattleZone>): any {
 
 export class ZoneService {
   static async getZone(id: string): Promise<BattleZone | null> {
+    // First try to find by UUID
     const { data: zone, error } = await supabase
       .from('zones')
-      .select(`
-        *,
-        vendors!zones_current_owner_id_fkey (
+      .select('*')
+      .eq('id', id)
+      .single()
+
+    // If not found by UUID, try to find by name
+    if (error && error.code === 'PGRST116') {
+      const { data: zoneByName, error: nameError } = await supabase
+        .from('zones')
+        .select('*')
+        .eq('name', id)
+        .single()
+      
+      if (nameError) {
+        return null // Zone not found
+      }
+      
+      // Get vendors for this zone
+      const { data: zoneVendors, error: vendorsError } = await supabase
+        .from('vendors')
+        .select(`
           id,
           name,
           description,
           image_url,
           category,
-          zone,
+          zone_id,
           coordinates,
           owner_fid,
           is_verified,
@@ -59,46 +77,114 @@ export class ZoneService {
           current_zone_rank,
           total_votes,
           verified_votes
-        )
-      `)
-      .eq('id', id)
-      .single()
+        `)
+        .eq('zone_id', zoneByName.id)
 
-    if (error) {
-      if (error.code === 'PGRST116') {
-        return null // Zone not found
+      if (vendorsError) {
+        throw new Error(`Failed to fetch zone vendors: ${vendorsError.message}`)
       }
+
+      const battleZone = mapSupabaseZoneToZone(zoneByName)
+      
+      // Set current owner as the top vendor in the zone
+      if (zoneVendors && zoneVendors.length > 0) {
+        const topVendor = zoneVendors[0] // Assuming they're ordered by rank
+        battleZone.currentOwner = {
+          id: topVendor.id,
+          name: topVendor.name,
+          description: topVendor.description,
+          imageUrl: topVendor.image_url,
+          category: topVendor.category,
+          zone: topVendor.zone_id,
+          coordinates: topVendor.coordinates,
+          owner: { fid: topVendor.owner_fid } as any, // Simplified owner
+          isVerified: topVendor.is_verified,
+          verificationProof: [],
+          stats: {
+            totalBattles: topVendor.total_battles,
+            wins: topVendor.wins,
+            losses: topVendor.losses,
+            winRate: topVendor.win_rate,
+            totalRevenue: topVendor.total_revenue,
+            averageRating: topVendor.average_rating,
+            reviewCount: topVendor.review_count,
+            territoryDefenses: topVendor.territory_defenses,
+            territoryConquests: topVendor.territory_conquests,
+            currentZoneRank: topVendor.current_zone_rank,
+            totalVotes: topVendor.total_votes,
+            verifiedVotes: topVendor.verified_votes,
+          },
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        }
+      }
+
+      return battleZone
+    } else if (error) {
       throw new Error(`Failed to fetch zone: ${error.message}`)
+    }
+
+    // Get vendors for this zone
+    const { data: zoneVendors, error: vendorsError } = await supabase
+      .from('vendors')
+      .select(`
+        id,
+        name,
+        description,
+        image_url,
+        category,
+        zone_id,
+        coordinates,
+        owner_fid,
+        is_verified,
+        total_battles,
+        wins,
+        losses,
+        win_rate,
+        total_revenue,
+        average_rating,
+        review_count,
+        territory_defenses,
+        territory_conquests,
+        current_zone_rank,
+        total_votes,
+        verified_votes
+      `)
+      .eq('zone_id', zone.id)
+
+    if (vendorsError) {
+      throw new Error(`Failed to fetch zone vendors: ${vendorsError.message}`)
     }
 
     const battleZone = mapSupabaseZoneToZone(zone)
     
-    // Map current owner if exists
-    if (zone.vendors) {
+    // Set current owner as the top vendor in the zone
+    if (zoneVendors && zoneVendors.length > 0) {
+      const topVendor = zoneVendors[0] // Assuming they're ordered by rank
       battleZone.currentOwner = {
-        id: zone.vendors.id,
-        name: zone.vendors.name,
-        description: zone.vendors.description,
-        imageUrl: zone.vendors.image_url,
-        category: zone.vendors.category,
-        zone: zone.vendors.zone,
-        coordinates: zone.vendors.coordinates,
-        owner: { fid: zone.vendors.owner_fid } as any, // Simplified owner
-        isVerified: zone.vendors.is_verified,
+        id: topVendor.id,
+        name: topVendor.name,
+        description: topVendor.description,
+        imageUrl: topVendor.image_url,
+        category: topVendor.category,
+        zone: topVendor.zone_id,
+        coordinates: topVendor.coordinates,
+        owner: { fid: topVendor.owner_fid } as any, // Simplified owner
+        isVerified: topVendor.is_verified,
         verificationProof: [],
         stats: {
-          totalBattles: zone.vendors.total_battles,
-          wins: zone.vendors.wins,
-          losses: zone.vendors.losses,
-          winRate: zone.vendors.win_rate,
-          totalRevenue: zone.vendors.total_revenue,
-          averageRating: zone.vendors.average_rating,
-          reviewCount: zone.vendors.review_count,
-          territoryDefenses: zone.vendors.territory_defenses,
-          territoryConquests: zone.vendors.territory_conquests,
-          currentZoneRank: zone.vendors.current_zone_rank,
-          totalVotes: zone.vendors.total_votes,
-          verifiedVotes: zone.vendors.verified_votes,
+          totalBattles: topVendor.total_battles,
+          wins: topVendor.wins,
+          losses: topVendor.losses,
+          winRate: topVendor.win_rate,
+          totalRevenue: topVendor.total_revenue,
+          averageRating: topVendor.average_rating,
+          reviewCount: topVendor.review_count,
+          territoryDefenses: topVendor.territory_defenses,
+          territoryConquests: topVendor.territory_conquests,
+          currentZoneRank: topVendor.current_zone_rank,
+          totalVotes: topVendor.total_votes,
+          verifiedVotes: topVendor.verified_votes,
         },
         createdAt: new Date(),
         updatedAt: new Date(),

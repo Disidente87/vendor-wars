@@ -1,0 +1,45 @@
+// Zone name to ID mapping for friendly URLs
+export const ZONE_ROUTES = {
+  'centro': '49298ccd-5b91-4a41-839d-98c3b2cc504b',
+  'norte': '61bace3e-ae39-4bb5-997b-1737122e8849',
+  'sur': '100b486d-5859-4ab1-9112-2d4bbabcba46',
+  'este': '1ac86da4-0e2f-43fd-9dcb-0ac5a877048d',
+  'oeste': 'a3914cda-f3c5-4c90-b7d2-d46d141f4bfc'
+} as const
+
+// Vendor name to ID mapping for friendly URLs
+export const VENDOR_ROUTES = {
+  'pupusas-maria': '772cdbda-2cbb-4c67-a73a-3656bf02a4c1',
+  'tacos-el-rey': '111f3776-b7c4-4ee0-80e1-5ca89e8ea9d0',
+  'cafe-aroma': '525c09b3-dc92-409b-a11d-896bcf4d15b2',
+  'pizza-napoli': '85f2a3a9-b9a7-4213-92bb-0b902d3ab4d1',
+  'sushi-express': 'bf47b04b-cdd8-4dd3-bfac-5a379ce07f28'
+} as const
+
+export function getZoneIdFromSlug(slug: string): string | null {
+  const normalizedSlug = slug.toLowerCase()
+  return ZONE_ROUTES[normalizedSlug as keyof typeof ZONE_ROUTES] || null
+}
+
+export function getVendorIdFromSlug(slug: string): string | null {
+  const normalizedSlug = slug.toLowerCase()
+  return VENDOR_ROUTES[normalizedSlug as keyof typeof VENDOR_ROUTES] || null
+}
+
+export function getZoneSlugFromId(id: string): string | null {
+  for (const [slug, zoneId] of Object.entries(ZONE_ROUTES)) {
+    if (zoneId === id) {
+      return slug
+    }
+  }
+  return null
+}
+
+export function getVendorSlugFromId(id: string): string | null {
+  for (const [slug, vendorId] of Object.entries(VENDOR_ROUTES)) {
+    if (vendorId === id) {
+      return slug
+    }
+  }
+  return null
+} 
