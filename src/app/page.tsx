@@ -121,7 +121,7 @@ export default function HomePage() {
               </div>
             </div>
             <p className="text-sm text-gray-600 mb-4">
-              Welcome to Vendor Wars! You're now connected with your Farcaster account.
+              Welcome to Vendor Wars! You&apos;re now connected with your Farcaster account.
             </p>
           </div>
           
