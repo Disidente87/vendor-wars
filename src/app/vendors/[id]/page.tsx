@@ -96,7 +96,11 @@ export default function VendorProfilePage({ params }: { params: Promise<{ id: st
     if (!vendor || !authenticatedUser) return
     
     setIsVoting(true)
+    setError(null) // Clear previous errors
+    
     try {
+      console.log('🗳️ Submitting vote for vendor:', vendor.id, vendor.name)
+      
       const response = await fetch('/api/votes', {
         method: 'POST',
         headers: {
@@ -113,6 +117,7 @@ export default function VendorProfilePage({ params }: { params: Promise<{ id: st
       })
 
       const result = await response.json()
+      console.log('🗳️ Vote response:', result)
       
       if (result.success) {
         setVoteResult({
@@ -132,10 +137,11 @@ export default function VendorProfilePage({ params }: { params: Promise<{ id: st
           loadTopVoters()
         }
       } else {
+        console.error('❌ Vote failed:', result.error)
         setError(result.error || 'Vote failed')
       }
     } catch (error) {
-      console.error('Error submitting vote:', error)
+      console.error('❌ Error submitting vote:', error)
       setError('Failed to submit vote. Please try again.')
     } finally {
       setIsVoting(false)

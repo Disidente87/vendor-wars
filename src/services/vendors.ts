@@ -1,7 +1,19 @@
 import type { Vendor, User, PaginationParams, PaginatedResponse } from '@/types'
 import { VendorCategory } from '@/types'
-import { supabase } from '@/lib/supabase'
+import { createClient, SupabaseClient } from '@supabase/supabase-js'
 import { generateVendorId, calculateWinRate } from '@/lib/utils'
+
+// Function to get Supabase client
+function getSupabaseClient() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  
+  if (!supabaseUrl || !supabaseAnonKey) {
+    throw new Error('Missing Supabase environment variables')
+  }
+  
+  return createClient(supabaseUrl, supabaseAnonKey)
+}
 
 // Mock data for development when Supabase is not available
 const MOCK_VENDORS: Vendor[] = [
@@ -244,6 +256,7 @@ export class VendorService {
       verified_votes: 0,
     }
 
+    const supabase = getSupabaseClient()
     const { data: newVendor, error } = await supabase
       .from('vendors')
       .insert(vendorData)
@@ -259,6 +272,9 @@ export class VendorService {
 
   static async getVendor(id: string): Promise<Vendor | null> {
     try {
+      console.log('🔍 VendorService.getVendor called with ID:', id)
+      
+      const supabase = getSupabaseClient()
       const { data: vendor, error } = await supabase
         .from('vendors')
         .select(`
@@ -269,44 +285,27 @@ export class VendorService {
         .single()
 
       if (error) {
-        // Fallback to mock data
-        return this.getMockVendor(id)
+        console.error('❌ Supabase error in getVendor:', error)
+        throw new Error(`Failed to fetch vendor: ${error.message}`)
       }
 
+      if (!vendor) {
+        console.log('⚠️ Vendor not found in Supabase')
+        return null
+      }
+
+      console.log('✅ Vendor found:', vendor.name)
       return mapSupabaseVendorToVendor(vendor)
     } catch (error) {
-      console.error('Error fetching vendor from Supabase, falling back to mock data:', error)
-      return this.getMockVendor(id)
+      console.error('❌ Error fetching vendor from Supabase:', error)
+      throw new Error(`Failed to fetch vendor: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
   }
 
-  // Fallback method to get mock vendor data
-  private static getMockVendor(id: string): Vendor | null {
-    // Try to find by ID first
-    let vendor = MOCK_VENDORS.find(v => v.id === id)
-    
-    // If not found by ID, try to find by name/slug
-    if (!vendor) {
-      const normalizedId = id.toLowerCase()
-      if (normalizedId === '1' || normalizedId === 'pupusas-maria') {
-        vendor = MOCK_VENDORS.find(v => v.name === 'Pupusas María')
-      } else if (normalizedId === '2' || normalizedId === 'tacos-el-rey') {
-        vendor = MOCK_VENDORS.find(v => v.name === 'Tacos El Rey')
-      } else if (normalizedId === '3' || normalizedId === 'cafe-aroma') {
-        vendor = MOCK_VENDORS.find(v => v.name === 'Café Aroma')
-      } else {
-        // Try to find by any part of the name
-        vendor = MOCK_VENDORS.find(v => 
-          v.name.toLowerCase().includes(normalizedId) ||
-          normalizedId.includes(v.name.toLowerCase())
-        )
-      }
-    }
-    
-    return vendor || null
-  }
+
 
   static async getVendorsByOwner(ownerFid: number): Promise<Vendor[]> {
+    const supabase = getSupabaseClient()
     const { data: vendors, error } = await supabase
       .from('vendors')
       .select('*')
@@ -320,6 +319,7 @@ export class VendorService {
   }
 
   static async getVendorsByCategory(category: VendorCategory): Promise<Vendor[]> {
+    const supabase = getSupabaseClient()
     const { data: vendors, error } = await supabase
       .from('vendors')
       .select('*')
@@ -337,45 +337,52 @@ export class VendorService {
 
     console.log('🔍 VendorService.getAllVendors called with params:', params)
 
-    let query = supabase
-      .from('vendors')
-      .select(`
-        *,
-        zones!inner(name)
-      `, { count: 'exact' })
+    try {
+      const supabase = getSupabaseClient()
+      let query = supabase
+        .from('vendors')
+        .select(`
+          *,
+          zones!inner(name)
+        `, { count: 'exact' })
 
-    // Apply filters
-    if (category) {
-      query = query.eq('category', category)
-    }
-    if (zone) {
-      query = query.eq('zone_id', zone)
-    }
-    if (verified !== undefined) {
-      query = query.eq('is_verified', verified)
-    }
+      // Apply filters
+      if (category) {
+        query = query.eq('category', category)
+      }
+      if (zone) {
+        query = query.eq('zone_id', zone)
+      }
+      if (verified !== undefined) {
+        query = query.eq('is_verified', verified)
+      }
 
-    const { data: vendors, error, count } = await query
-      .range(offset, offset + limit - 1)
-      .order('created_at', { ascending: false })
+      const { data: vendors, error, count } = await query
+        .range(offset, offset + limit - 1)
+        .order('created_at', { ascending: false })
 
-    console.log('📊 Supabase response:', { vendorsCount: vendors?.length, error, count })
+      console.log('📊 Supabase response:', { vendorsCount: vendors?.length, error, count })
 
-    if (error) {
-      console.error('❌ Supabase error:', error)
-      throw new Error(`Failed to fetch vendors: ${error.message}`)
-    }
+      if (error) {
+        console.error('❌ Supabase error:', error)
+        throw new Error(`Failed to fetch vendors: ${error.message}`)
+      }
 
-    const mappedVendors = vendors.map(vendor => mapSupabaseVendorToVendor(vendor))
-    console.log('✅ Mapped vendors:', mappedVendors.length)
+      const mappedVendors = vendors.map(vendor => mapSupabaseVendorToVendor(vendor))
+      console.log('✅ Mapped vendors:', mappedVendors.length)
 
-    return {
-      data: mappedVendors,
-      total: count || 0
+      return {
+        data: mappedVendors,
+        total: count || 0
+      }
+    } catch (error) {
+      console.error('❌ Error in getAllVendors:', error)
+      throw new Error(`Failed to fetch vendors: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
   }
 
   static async searchVendors(query: string): Promise<Vendor[]> {
+    const supabase = getSupabaseClient()
     const { data: vendors, error } = await supabase
       .from('vendors')
       .select('*')
@@ -397,6 +404,7 @@ export class VendorService {
     if (updates.imageUrl) updateData.image_url = updates.imageUrl
     if (updates.category) updateData.category = updates.category
 
+    const supabase = getSupabaseClient()
     const { data: vendor, error } = await supabase
       .from('vendors')
       .update(updateData)
@@ -415,6 +423,7 @@ export class VendorService {
   }
 
   static async deleteVendor(id: string, ownerFid: number): Promise<boolean> {
+    const supabase = getSupabaseClient()
     const { error } = await supabase
       .from('vendors')
       .delete()
@@ -444,6 +453,7 @@ export class VendorService {
     if (stats.totalVotes !== undefined) updateData.total_votes = stats.totalVotes
     if (stats.verifiedVotes !== undefined) updateData.verified_votes = stats.verifiedVotes
 
+    const supabase = getSupabaseClient()
     const { data: vendor, error } = await supabase
       .from('vendors')
       .update(updateData)
@@ -462,6 +472,7 @@ export class VendorService {
   }
 
   static async getTopVendors(limit: number = 10): Promise<Vendor[]> {
+    const supabase = getSupabaseClient()
     const { data: vendors, error } = await supabase
       .from('vendors')
       .select('*')
@@ -477,6 +488,7 @@ export class VendorService {
   }
 
   static async getVendorsByWinRate(minWinRate: number = 50): Promise<Vendor[]> {
+    const supabase = getSupabaseClient()
     const { data: vendors, error } = await supabase
       .from('vendors')
       .select('*')
@@ -491,6 +503,7 @@ export class VendorService {
   }
 
   static async getVendorsByBattleCount(minBattles: number = 5): Promise<Vendor[]> {
+    const supabase = getSupabaseClient()
     const { data: vendors, error } = await supabase
       .from('vendors')
       .select('*')
@@ -505,6 +518,7 @@ export class VendorService {
   }
 
   static async getVendorCount(): Promise<number> {
+    const supabase = getSupabaseClient()
     const { count, error } = await supabase
       .from('vendors')
       .select('*', { count: 'exact', head: true })
@@ -517,6 +531,7 @@ export class VendorService {
   }
 
   static async getVendorCountByCategory(category: VendorCategory): Promise<number> {
+    const supabase = getSupabaseClient()
     const { count, error } = await supabase
       .from('vendors')
       .select('*', { count: 'exact', head: true })
@@ -530,6 +545,7 @@ export class VendorService {
   }
 
   static async getVendorCountByOwner(ownerFid: number): Promise<number> {
+    const supabase = getSupabaseClient()
     const { count, error } = await supabase
       .from('vendors')
       .select('*', { count: 'exact', head: true })
@@ -545,6 +561,7 @@ export class VendorService {
   // Get vendors by zone
   static async getVendorsByZone(zoneId: string): Promise<Vendor[]> {
     try {
+      const supabase = getSupabaseClient()
       const { data: vendors, error } = await supabase
         .from('vendors')
         .select(`
@@ -571,8 +588,8 @@ export class VendorService {
       .order('current_zone_rank', { ascending: true })
 
       if (error) {
-        // Fallback to mock data
-        return this.getMockVendorsByZone(zoneId)
+        console.error('❌ Supabase error in getVendorsByZone:', error)
+        throw new Error(`Failed to fetch vendors by zone: ${error.message}`)
       }
 
       return vendors.map(vendor => {
@@ -596,13 +613,10 @@ export class VendorService {
         return mapSupabaseVendorToVendor(vendor, owner)
       })
     } catch (error) {
-      console.error('Error fetching vendors by zone from Supabase, falling back to mock data:', error)
-      return this.getMockVendorsByZone(zoneId)
+      console.error('❌ Error fetching vendors by zone from Supabase:', error)
+      throw new Error(`Failed to fetch vendors by zone: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
   }
 
-  // Fallback method to get mock vendors by zone
-  private static getMockVendorsByZone(zoneId: string): Vendor[] {
-    return MOCK_VENDORS.filter(vendor => vendor.zone === zoneId)
-  }
+
 } 

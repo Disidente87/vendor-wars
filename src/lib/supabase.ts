@@ -18,6 +18,10 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     params: {
       eventsPerSecond: 10
     }
+  },
+  // Add global fetch configuration for Node.js compatibility
+  global: {
+    fetch: fetch
   }
 })
 

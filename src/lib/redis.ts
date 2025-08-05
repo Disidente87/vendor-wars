@@ -108,7 +108,9 @@ export const streakManager = {
   // Increment vote streak (only once per day)
   async incrementStreak(userFid: string): Promise<number> {
     const today = getCurrentDay()
+    const yesterday = getYesterday()
     const dailyKey = `${REDIS_KEYS.VOTE_STREAKS}:${userFid}:${today}`
+    const yesterdayKey = `${REDIS_KEYS.VOTE_STREAKS}:${userFid}:${yesterday}`
     const streakKey = `${REDIS_KEYS.VOTE_STREAKS}:${userFid}`
     
     // Check if user already voted today
@@ -120,7 +122,18 @@ export const streakManager = {
       return currentStreak as number
     }
     
-    // User hasn't voted today, increment streak and mark today as voted
+    // Check if user voted yesterday
+    const votedYesterday = await redis.exists(yesterdayKey)
+    
+    if (!votedYesterday) {
+      // User didn't vote yesterday, reset streak to 1
+      await redis.set(streakKey, 1)
+      await redis.setex(dailyKey, 86400, '1') // Mark today as voted (24 hours)
+      await redis.expire(streakKey, 172800) // Expire streak after 2 days
+      return 1
+    }
+    
+    // User voted yesterday, increment streak and mark today as voted
     const newStreak = await redis.incr(streakKey)
     await redis.setex(dailyKey, 86400, '1') // Mark today as voted (24 hours)
     await redis.expire(streakKey, 172800) // Expire streak after 2 days
@@ -132,6 +145,22 @@ export const streakManager = {
   async resetStreak(userFid: string): Promise<void> {
     const key = `${REDIS_KEYS.VOTE_STREAKS}:${userFid}`
     await redis.del(key)
+  },
+
+  // Check if user missed a day and reset streak if needed
+  async checkAndResetStreakIfNeeded(userFid: string): Promise<void> {
+    const today = getCurrentDay()
+    const yesterday = getYesterday()
+    const dailyKey = `${REDIS_KEYS.VOTE_STREAKS}:${userFid}:${today}`
+    const yesterdayKey = `${REDIS_KEYS.VOTE_STREAKS}:${userFid}:${yesterday}`
+    
+    // If user didn't vote today and didn't vote yesterday, reset streak
+    const votedToday = await redis.exists(dailyKey)
+    const votedYesterday = await redis.exists(yesterdayKey)
+    
+    if (!votedToday && !votedYesterday) {
+      await this.resetStreak(userFid)
+    }
   }
 }
 
@@ -187,6 +216,13 @@ export const fraudDetection = {
 // Utility functions
 function getCurrentDay(): string {
   return new Date().toISOString().split('T')[0]
+}
+
+function getYesterday(): string {
+  const today = new Date()
+  const yesterday = new Date(today)
+  yesterday.setDate(today.getDate() - 1)
+  return yesterday.toISOString().split('T')[0]
 }
 
 function getCurrentWeek(): string {

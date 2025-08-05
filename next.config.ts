@@ -8,6 +8,13 @@ const nextConfig: NextConfig = {
       ...config.watchOptions,
       ignored: /figma/,
     };
+    
+    // Exclude scripts directory from build
+    config.module.rules.push({
+      test: /scripts\/.*\.ts$/,
+      loader: 'ignore-loader'
+    });
+    
     return config;
   },
 };

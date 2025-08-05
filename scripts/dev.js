@@ -1,4 +1,4 @@
-import localtunnel from 'localtunnel';
+import ngrok from 'ngrok';
 import { spawn } from 'child_process';
 import { createServer } from 'net';
 import dotenv from 'dotenv';
@@ -101,8 +101,8 @@ async function startDev() {
   let miniAppUrl;
 
   if (useTunnel) {
-    // Start localtunnel and get URL
-    tunnel = await localtunnel({ port: port });
+    // Start ngrok tunnel and get URL
+    tunnel = await ngrok.connect({ port: port });
     let ip;
     try {
       ip = await fetch('https://ipv4.icanhazip.com').then(res => res.text()).then(ip => ip.trim());
@@ -110,28 +110,21 @@ async function startDev() {
       console.error('Error getting IP address:', error);
     }
 
-    miniAppUrl = tunnel.url;
+    miniAppUrl = tunnel;
     console.log(`
-🌐 Local tunnel URL: ${tunnel.url}
+🌐 Ngrok tunnel URL: ${tunnel}
 
 💻 To test on desktop:
-   1. Open the localtunnel URL in your browser: ${tunnel.url}
-   2. Enter your IP address in the password field${ip ? `: ${ip}` : ''} (note that this IP may be incorrect if you are using a VPN)
-   3. Click "Click to Submit" -- your mini app should now load in the browser
-   4. Navigate to the Warpcast Mini App Developer Tools: https://warpcast.com/~/developers
-   5. Enter your mini app URL: ${tunnel.url}
-   6. Click "Preview" to launch your mini app within Warpcast (note that it may take ~10 seconds to load)
-
-
-❗️ You will not be able to load your mini app in Warpcast until    ❗️
-❗️ you submit your IP address in the localtunnel password field ❗️
-
+   1. Open the ngrok URL in your browser: ${tunnel}
+   2. Navigate to the Warpcast Mini App Developer Tools: https://warpcast.com/~/developers
+   3. Enter your mini app URL: ${tunnel}
+   4. Click "Preview" to launch your mini app within Warpcast (note that it may take ~10 seconds to load)
 
 📱 To test in Warpcast mobile app:
    1. Open Warpcast on your phone
    2. Go to Settings > Developer > Mini Apps
-   4. Enter this URL: ${tunnel.url}
-   5. Click "Preview" (note that it may take ~10 seconds to load)
+   3. Enter this URL: ${tunnel}
+   4. Click "Preview" (note that it may take ~10 seconds to load)
 `);
   } else {
     miniAppUrl = `http://localhost:${port}`;
@@ -184,10 +177,10 @@ async function startDev() {
       
       if (tunnel) {
         try {
-          await tunnel.close();
-          console.log('🌐 Tunnel closed');
+          await ngrok.kill();
+          console.log('🌐 Ngrok tunnel closed');
         } catch (e) {
-          console.log('Note: Tunnel already closed');
+          console.log('Note: Ngrok tunnel already closed');
         }
       }
 

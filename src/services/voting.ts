@@ -1,6 +1,18 @@
-import { supabase } from '@/lib/supabase'
+import { createClient, SupabaseClient } from '@supabase/supabase-js'
 import { rateLimiter, tokenManager, streakManager, fraudDetection } from '@/lib/redis'
 import { v4 as uuidv4 } from 'uuid'
+
+// Function to get Supabase client
+function getSupabaseClient() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  
+  if (!supabaseUrl || !supabaseAnonKey) {
+    throw new Error('Missing Supabase environment variables')
+  }
+  
+  return createClient(supabaseUrl, supabaseAnonKey)
+}
 
 // Map of vendor IDs to their battle IDs (created by the script)
 const VENDOR_BATTLE_MAP: Record<string, string> = {
@@ -44,12 +56,43 @@ export interface TokenCalculation {
 }
 
 export class VotingService {
+  private static supabase: SupabaseClient | null = null
+
+  /**
+   * Initialize Supabase client if not already done
+   */
+  private static ensureSupabaseClient() {
+    if (!this.supabase) {
+      this.supabase = getSupabaseClient()
+    }
+  }
+
   /**
    * Register a vote for a vendor
    */
   static async registerVote(voteData: VoteData): Promise<VoteResult> {
+    this.ensureSupabaseClient()
     try {
       const { userFid, vendorId, voteType, photoUrl, gpsLocation, verificationConfidence } = voteData
+
+      // 1. Validate vendor exists first
+      const { data: vendor, error: vendorError } = await this.supabase!
+        .from('vendors')
+        .select('id, name')
+        .eq('id', vendorId)
+        .single()
+
+      if (vendorError || !vendor) {
+        console.error('Vendor not found:', vendorId, vendorError)
+        return {
+          success: false,
+          tokensEarned: 0,
+          newBalance: 0,
+          streakBonus: 0,
+          territoryBonus: 0,
+          error: 'Vendor not found'
+        }
+      }
 
       // 2. Anti-fraud checks for verified votes
       if (voteType === 'verified' && photoUrl) {
@@ -106,7 +149,7 @@ export class VotingService {
       }
 
       // Insert the vote
-      const { error: voteError } = await supabase
+      const { error: voteError } = await this.supabase!
         .from('votes')
         .insert(voteRecord)
 
@@ -126,7 +169,7 @@ export class VotingService {
       let attestationId: string | null = null
       if (voteType === 'verified' && photoUrl) {
         attestationId = uuidv4()
-        await supabase
+        await this.supabase!
           .from('attestations')
           .insert({
             id: attestationId,
@@ -147,31 +190,31 @@ export class VotingService {
           })
 
         // Update vote with attestation ID
-        await supabase
+        await this.supabase!
           .from('votes')
           .update({ attestation_id: attestationId })
           .eq('id', voteId)
       }
 
-      // 8. Update user tokens in Redis and database
+      // 7. Update user tokens in Redis and database
       const newBalance = await tokenManager.addTokens(userFid, tokenCalculation.totalTokens)
       
       // Also update database
-      await supabase
+      await this.supabase!
         .from('users')
         .update({ battle_tokens: newBalance })
         .eq('fid', userFid)
 
-      // 9. Update vote streak
+      // 8. Update vote streak
       const newStreak = await streakManager.incrementStreak(userFid)
       
       // Also update vote streak in database
-      await supabase
+      await this.supabase!
         .from('users')
         .update({ vote_streak: newStreak })
         .eq('fid', userFid)
 
-      // 10. Update vendor stats (this will be batched later)
+      // 9. Update vendor stats (this will be batched later)
       await this.updateVendorStats(vendorId, voteType === 'verified')
 
       return {
@@ -200,6 +243,7 @@ export class VotingService {
    * Calculate tokens for a vote according to PRD rules
    */
   static async calculateTokens(userFid: string, vendorId: string, voteType: 'regular' | 'verified'): Promise<TokenCalculation> {
+    this.ensureSupabaseClient()
     // Base tokens
     const baseTokens = voteType === 'verified' ? 30 : 10
 
@@ -232,7 +276,8 @@ export class VotingService {
    * Get user's vote history
    */
   static async getUserVoteHistory(userFid: string, limit: number = 50): Promise<any[]> {
-    const { data, error } = await supabase
+    this.ensureSupabaseClient()
+    const { data, error } = await this.supabase!
       .from('votes')
       .select(`
         *,
@@ -263,7 +308,8 @@ export class VotingService {
    * Get vendor's vote statistics
    */
   static async getVendorVoteStats(vendorId: string): Promise<any> {
-    const { data, error } = await supabase
+    this.ensureSupabaseClient()
+    const { data, error } = await this.supabase!
       .from('votes')
       .select('*')
       .eq('vendor_id', vendorId)
@@ -275,7 +321,7 @@ export class VotingService {
 
     const totalVotes = data?.length || 0
     const verifiedVotes = data?.filter(vote => vote.is_verified).length || 0
-    const totalTokens = data?.reduce((sum, vote) => sum + (vote.token_reward || 0), 0) || 0
+    const totalTokens = data?.reduce((sum: number, vote: any) => sum + (vote.token_reward || 0), 0) || 0
 
     return {
       totalVotes,
@@ -289,9 +335,10 @@ export class VotingService {
    * Check if this is the first vote of the day for user-vendor pair
    */
   private static async isFirstVoteOfDay(userFid: string, vendorId: string): Promise<boolean> {
+    this.ensureSupabaseClient()
     const today = new Date().toISOString().split('T')[0]
     
-    const { data, error } = await supabase
+    const { data, error } = await this.supabase!
       .from('votes')
       .select('id')
       .eq('voter_fid', userFid)
@@ -312,9 +359,10 @@ export class VotingService {
    * Get weekly tokens earned by user
    */
   private static async getWeeklyTokensEarned(userFid: string): Promise<number> {
+    this.ensureSupabaseClient()
     const weekStart = this.getWeekStart()
     
-    const { data, error } = await supabase
+    const { data, error } = await this.supabase!
       .from('votes')
       .select('token_reward')
       .eq('voter_fid', userFid)
@@ -325,7 +373,7 @@ export class VotingService {
       return 0
     }
 
-    return data?.reduce((sum, vote) => sum + (vote.token_reward || 0), 0) || 0
+    return data?.reduce((sum: number, vote: any) => sum + (vote.token_reward || 0), 0) || 0
   }
 
   /**

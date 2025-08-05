@@ -20,6 +20,28 @@ export function useFarcasterAuth(): UseFarcasterAuthReturn {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  // Function to check and reset streak if needed
+  const checkAndResetStreak = async (userFid: number) => {
+    try {
+      const response = await fetch('/api/users/streak/check', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ userFid: userFid.toString() }),
+      })
+      
+      const result = await response.json()
+      if (result.success) {
+        console.log('Streak checked and reset if needed:', result.data)
+        return result.data.streak
+      }
+    } catch (error) {
+      console.error('Error checking streak:', error)
+    }
+    return null
+  }
+
   useEffect(() => {
     const initializeAuth = async () => {
       if (!isSDKLoaded || !context) {
@@ -40,7 +62,16 @@ export function useFarcasterAuth(): UseFarcasterAuthReturn {
           const result = await response.json()
           
           if (result.success) {
-            setUser(result.data)
+            // Check and reset streak if needed
+            const updatedStreak = await checkAndResetStreak(currentUser.fid)
+            
+            // Update user with potentially corrected streak
+            const updatedUser = {
+              ...result.data,
+              voteStreak: updatedStreak !== null ? updatedStreak : result.data.voteStreak
+            }
+            
+            setUser(updatedUser)
             setIsAuthenticated(true)
           } else {
             // Create new user if not found
