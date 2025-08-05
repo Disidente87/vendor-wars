@@ -53,30 +53,60 @@ const MOCK_VENDORS = [
 // TODO: Battle system coming soon - for now creating unique battle IDs per vendor
 // This will be replaced with proper battle logic in future updates
 
-// Function to get battle ID for a vendor (temporary implementation)
-function getVendorBattleId(vendorId: string, voteNumber: number = 1): string {
-  // TODO: Implement proper battle system
-  // For now, generate unique battle IDs to avoid constraint violations
+// Function to get battle ID with encoded information (UUID format)
+function getEncodedBattleId(vendorId: string, userFid: string, voteNumber: number = 1): string {
+  // Format: {vendor8}-{year}-{MMDD}-{vote1}{user6}
+  // Example: 111f3776-2024-1215-0001-000000465823
   
-  // Map of vendor IDs to their specific battle IDs (for first vote of the day)
-  const VENDOR_BATTLE_MAP: Record<string, string> = {
-    '772cdbda-2cbb-4c67-a73a-3656bf02a4c1': '034ce452-3409-4fa2-86ae-40f4293b0c60', // Pupusas María
-    '111f3776-b7c4-4ee0-80e1-5ca89e8ea9d0': '14e8042f-46a5-4174-837b-be35f01486e6', // Tacos El Rey
-    '525c09b3-dc92-409b-a11d-896bcf4d15b2': '31538f18-f74a-4783-b1b6-d26dfdaa920b', // Café Aroma
-    '85f2a3a9-b9a7-4213-92bb-0b902d3ab4d1': '4f87c3c6-0d38-4e84-afc1-60b52b363bab', // Pizza Napoli
-    'bf47b04b-cdd8-4dd3-bfac-5a379ce07f28': '006703c7-379c-41ee-95f2-d2a56d44f332'  // Sushi Express
+  // Extract first 8 characters from vendor ID
+  const vendor8 = vendorId.substring(0, 8)
+  
+  // Get current date components
+  const today = new Date()
+  const year = today.getFullYear().toString()
+  const month = (today.getMonth() + 1).toString().padStart(2, '0')
+  const day = today.getDate().toString().padStart(2, '0')
+  const mmdd = month + day
+  
+  // Vote number padded to 4 characters (0001, 0002, 0003)
+  const vote4 = voteNumber.toString().padStart(4, '0')
+  
+  // User FID padded to 12 characters
+  const user12 = userFid.padStart(12, '0')
+  
+  return `${vendor8}-${year}-${mmdd}-${vote4}-${user12}`
+}
+
+// Function to decode battle ID information
+function decodeBattleId(battleId: string): {
+  vendorId: string,
+  userFid: string,
+  date: string,
+  voteNumber: number,
+  fullBattleId: string
+} | null {
+  try {
+    const parts = battleId.split('-')
+    if (parts.length !== 5) return null
+    
+    const [vendor8, year, mmdd, vote4, user12] = parts
+    
+    // Extract information
+    const vendorId = vendor8 // Vendor prefix (first 8 chars)
+    const userFid = user12.replace(/^0+/, '') // Remove leading zeros from user FID
+    const date = year + mmdd // Combine year and MMDD
+    const voteNumber = parseInt(vote4)
+    
+    return {
+      vendorId,
+      userFid,
+      date,
+      voteNumber,
+      fullBattleId: battleId
+    }
+  } catch (error) {
+    return null
   }
-  
-  // For first vote of the day, use vendor-specific battle ID
-  if (voteNumber === 1) {
-    return VENDOR_BATTLE_MAP[vendorId] || '216b4979-c7e4-44db-a002-98860913639c'
-  }
-  
-  // For second and third votes, generate unique battle IDs to avoid constraint violations
-  // Use timestamp + random number to ensure uniqueness
-  const timestamp = Date.now()
-  const random = Math.floor(Math.random() * 1000000)
-  return `temp-battle-${vendorId}-${voteNumber}-${timestamp}-${random}`
 }
 
 // Function to get vendor from mock data when Supabase is not available
@@ -339,15 +369,18 @@ export class VotingService {
       // 6. Create vote record in database (only if Supabase is available)
       const voteId = uuidv4()
       
-      // Determine battle ID based on the actual vote number for today
-      // For the first vote of the day, use vendor-specific battle ID
-      // For subsequent votes (2nd, 3rd), generate unique battle IDs
+      // Determine battle ID with encoded information
+      // Each vote gets a unique battle ID that encodes vendor, user, date, and vote number
       const voteNumber = todayVotesCount + 1 // This will be the vote number for this vote
-      const battleId = voteNumber === 1 
-        ? getVendorBattleId(vendorId, 1) // First vote: vendor-specific battle ID
-        : getVendorBattleId(vendorId, voteNumber) // Subsequent votes: unique battle ID
+      const battleId = getEncodedBattleId(vendorId, userFid, voteNumber)
       
-      console.log(`🗳️ Vote #${voteNumber} for vendor ${vendorId}, using battle ID: ${battleId}`)
+      console.log(`🗳️ Vote #${voteNumber} for user ${userFid}, vendor ${vendorId}, using battle ID: ${battleId}`)
+      
+      // Decode and log the battle ID information for debugging
+      const decodedInfo = decodeBattleId(battleId)
+      if (decodedInfo) {
+        console.log(`📊 Battle ID decoded: Vendor=${decodedInfo.vendorId}, User=${decodedInfo.userFid}, Date=${decodedInfo.date}, Vote=${decodedInfo.voteNumber}`)
+      }
       
       // Always include battle_id since it's NOT NULL
       const voteRecord: any = {
@@ -431,7 +464,7 @@ export class VotingService {
         }
       }
 
-      // 8. Update user tokens in Redis and database
+      // 8. Update user tokens in Redis and database (ONLY if vote was successful)
       const newBalance = await this.safeRedisOperation(
         () => tokenManager.addTokens(userFid, tokenCalculation.totalTokens),
         () => mockRedis.addTokens(userFid, tokenCalculation.totalTokens)
@@ -447,7 +480,7 @@ export class VotingService {
         console.warn('⚠️ Supabase not available for user update, continuing with Redis only')
       }
 
-      // 9. Update vote streak
+      // 9. Update vote streak (ONLY if vote was successful)
       const newStreak = await this.safeRedisOperation(
         () => streakManager.incrementStreak(userFid),
         () => mockRedis.incrementStreak(userFid)
@@ -463,7 +496,7 @@ export class VotingService {
         console.warn('⚠️ Supabase not available for streak update, continuing with Redis only')
       }
 
-      // 10. Update vendor stats (this will be batched later)
+      // 10. Update vendor stats (ONLY if vote was successful)
       await this.updateVendorStats(vendorId, voteType === 'verified')
 
       return {

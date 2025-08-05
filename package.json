@@ -57,7 +57,11 @@
     "cleanup:temp-battles": "npx tsx scripts/cleanup-temp-battles.ts",
     "test:vote-registration": "npx tsx scripts/test-vote-registration.ts",
     "debug:vote-issue": "npx tsx scripts/debug-vote-issue.ts",
-    "debug:vendor-not-found": "npx tsx scripts/debug-vendor-not-found.ts"
+    "debug:vendor-not-found": "npx tsx scripts/debug-vendor-not-found.ts",
+    "create:user-battles": "npx tsx scripts/create-user-battles.ts",
+    "test:user-battle-system": "npx tsx scripts/test-user-battle-system.ts",
+    "test:encoded-battle-system": "npx tsx scripts/test-encoded-battle-system.ts",
+    "create:encoded-battles": "npx tsx scripts/create-encoded-battles.ts"
   },
   "dependencies": {
     "@coinbase/onchainkit": "^0.38.18",
