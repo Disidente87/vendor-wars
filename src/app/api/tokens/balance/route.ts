@@ -14,24 +14,39 @@ export async function GET(request: NextRequest) {
       )
     }
 
+    let balance = 0
+
     // Try to get from cache first
-    let balance = await tokenManager.getUserTokens(userFid)
+    try {
+      balance = await tokenManager.getUserTokens(userFid)
+    } catch (error) {
+      console.warn('⚠️ Redis not available, fetching from database only')
+    }
 
-    // If not in cache, fetch from database
+    // If not in cache or Redis failed, fetch from database
     if (balance === 0) {
-      const { data: user, error } = await supabase
-        .from('users')
-        .select('battle_tokens')
-        .eq('fid', userFid)
-        .single()
+      try {
+        const { data: user, error } = await supabase
+          .from('users')
+          .select('battle_tokens')
+          .eq('fid', userFid)
+          .single()
 
-      if (error) {
-        console.error('Error fetching user tokens:', error)
+        if (error) {
+          console.error('Error fetching user tokens:', error)
+          balance = 0
+        } else {
+          balance = user?.battle_tokens || 0
+          // Try to cache the result if Redis is available
+          try {
+            await tokenManager.updateUserTokens(userFid, balance)
+          } catch (cacheError) {
+            console.warn('⚠️ Could not cache balance in Redis')
+          }
+        }
+      } catch (dbError) {
+        console.error('Error accessing database:', dbError)
         balance = 0
-      } else {
-        balance = user?.battle_tokens || 0
-        // Cache the result
-        await tokenManager.updateUserTokens(userFid, balance)
       }
     }
 
@@ -74,24 +89,54 @@ export async function POST(request: NextRequest) {
 
     let newBalance: number
 
-    if (operation === 'add') {
-      newBalance = await tokenManager.addTokens(userFid, amount)
-    } else if (operation === 'subtract') {
-      newBalance = await tokenManager.addTokens(userFid, -amount)
-    } else {
-      // set operation
-      await tokenManager.updateUserTokens(userFid, amount)
-      newBalance = amount
+    // Try Redis operations first
+    try {
+      if (operation === 'add') {
+        newBalance = await tokenManager.addTokens(userFid, amount)
+      } else if (operation === 'subtract') {
+        newBalance = await tokenManager.addTokens(userFid, -amount)
+      } else {
+        // set operation
+        await tokenManager.updateUserTokens(userFid, amount)
+        newBalance = amount
+      }
+    } catch (redisError) {
+      console.warn('⚠️ Redis not available, using database only')
+      
+      // Get current balance from database
+      const { data: user, error: fetchError } = await supabase
+        .from('users')
+        .select('battle_tokens')
+        .eq('fid', userFid)
+        .single()
+
+      const currentBalance = user?.battle_tokens || 0
+
+      if (operation === 'add') {
+        newBalance = currentBalance + amount
+      } else if (operation === 'subtract') {
+        newBalance = Math.max(0, currentBalance - amount)
+      } else {
+        newBalance = amount
+      }
     }
 
     // Update database
-    const { error } = await supabase
-      .from('users')
-      .update({ battle_tokens: newBalance })
-      .eq('fid', userFid)
+    try {
+      const { error } = await supabase
+        .from('users')
+        .update({ battle_tokens: newBalance })
+        .eq('fid', userFid)
 
-    if (error) {
-      console.error('Error updating user tokens in database:', error)
+      if (error) {
+        console.error('Error updating user tokens in database:', error)
+        return NextResponse.json(
+          { success: false, error: 'Failed to update database' },
+          { status: 500 }
+        )
+      }
+    } catch (dbError) {
+      console.error('Error accessing database:', dbError)
       return NextResponse.json(
         { success: false, error: 'Failed to update database' },
         { status: 500 }

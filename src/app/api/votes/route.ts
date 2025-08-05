@@ -33,7 +33,9 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Register the vote
+    console.log('🗳️ Processing vote:', { userFid, vendorId, voteType })
+
+    // Register the vote using the corrected VotingService
     const result = await VotingService.registerVote({
       userFid,
       vendorId,
@@ -44,11 +46,14 @@ export async function POST(request: NextRequest) {
     })
 
     if (!result.success) {
+      console.error('❌ Vote registration failed:', result.error)
       return NextResponse.json(
         { success: false, error: result.error },
         { status: 400 }
       )
     }
+
+    console.log('✅ Vote registered successfully:', result)
 
     return NextResponse.json({
       success: true,
@@ -63,7 +68,7 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Error in vote registration:', error)
+    console.error('❌ Error in vote registration:', error)
     return NextResponse.json(
       { success: false, error: 'Internal server error' },
       { status: 500 }
@@ -79,8 +84,12 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '50')
 
     if (userFid) {
-      // Get user's vote history
+      // Get user's vote history using the corrected VotingService
+      console.log('📜 Fetching vote history for user:', userFid)
       const voteHistory = await VotingService.getUserVoteHistory(userFid, limit)
+      
+      console.log('✅ Vote history fetched:', voteHistory.length, 'votes')
+      
       return NextResponse.json({
         success: true,
         data: voteHistory
@@ -88,8 +97,12 @@ export async function GET(request: NextRequest) {
     }
 
     if (vendorId) {
-      // Get vendor's vote statistics
+      // Get vendor's vote statistics using the corrected VotingService
+      console.log('📊 Fetching vendor stats for:', vendorId)
       const vendorStats = await VotingService.getVendorVoteStats(vendorId)
+      
+      console.log('✅ Vendor stats fetched:', vendorStats)
+      
       return NextResponse.json({
         success: true,
         data: vendorStats
@@ -102,7 +115,7 @@ export async function GET(request: NextRequest) {
     )
 
   } catch (error) {
-    console.error('Error fetching votes:', error)
+    console.error('❌ Error fetching votes:', error)
     return NextResponse.json(
       { success: false, error: 'Internal server error' },
       { status: 500 }

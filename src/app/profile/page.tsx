@@ -167,10 +167,11 @@ export default function ProfilePage() {
         const verifiedVotes = votes.filter((vote: any) => vote.is_verified).length
         const uniqueVendors = new Set(votes.map((vote: any) => vote.vendor_id)).size
 
-        // Calculate level based on total votes
-        const level = Math.floor(totalVotes / 10) + 1
-        const experience = totalVotes * 10
-        const experienceToNext = level * 100
+        // Calculate level based on total votes (10 XP per vote)
+        const totalXP = totalVotes * 10
+        const level = Math.floor(totalXP / 100) + 1
+        const experience = totalXP % 100
+        const experienceToNext = 100
 
         // Determine rank based on activity
         let rank = 'Newcomer'
@@ -184,7 +185,7 @@ export default function ProfilePage() {
           level,
           experience,
           experienceToNext,
-          battleTokens: balance || 0,
+          battleTokens: balance || farcasterUser.battleTokens || 0,
           totalVotes,
           verifiedVotes,
           vendorsVotedFor: uniqueVendors,
@@ -197,6 +198,10 @@ export default function ProfilePage() {
         }
 
         setUserStats(stats)
+      } else {
+        console.error('Failed to fetch vote history:', result.error)
+        // Fallback to basic stats
+        setUserStats(getFallbackStats())
       }
     } catch (error) {
       console.error('Error fetching user stats:', error)

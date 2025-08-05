@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, CheckCircle, AlertCircle } from 'lucide-react'
-import { useDevAuth } from '@/hooks/useDevAuth'
+import { useFarcasterAuth } from '@/hooks/useFarcasterAuth'
 
 interface VendorFormData {
   name: string
@@ -15,7 +15,7 @@ interface VendorFormData {
 
 export default function VendorRegistrationPage() {
   const router = useRouter()
-  const { user: authenticatedUser, isAuthenticated, isLoading } = useDevAuth()
+  const { user: authenticatedUser, isAuthenticated, isLoading } = useFarcasterAuth()
   const [currentStep, setCurrentStep] = useState(1)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle')

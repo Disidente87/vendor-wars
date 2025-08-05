@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from 'react'
-import { useQuickAuth } from './useQuickAuth'
+import { useFarcasterAuth } from './useFarcasterAuth'
 
 export function useTokenBalance() {
-  const { authenticatedUser } = useQuickAuth()
+  const { user: authenticatedUser } = useFarcasterAuth()
   const [balance, setBalance] = useState<number | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -24,10 +24,18 @@ export function useTokenBalance() {
         setBalance(result.data.balance)
       } else {
         setError(result.error || 'Failed to fetch balance')
+        // Fallback to user's battle tokens if available
+        if (authenticatedUser.battleTokens) {
+          setBalance(authenticatedUser.battleTokens)
+        }
       }
     } catch (error) {
       console.error('Error fetching token balance:', error)
       setError('Failed to fetch balance')
+      // Fallback to user's battle tokens if available
+      if (authenticatedUser.battleTokens) {
+        setBalance(authenticatedUser.battleTokens)
+      }
     } finally {
       setLoading(false)
     }
