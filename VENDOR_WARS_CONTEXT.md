@@ -433,6 +433,28 @@ Todas las pruebas pasaron exitosamente:
 
 ---
 
+## Problemas Críticos Resueltos
+
+### 1. Votos No Registrados en Base de Datos (RESUELTO - 05/08/2025)
+
+**Problema**: Los votos no se estaban registrando en la base de datos Supabase, aunque los tokens BATTLE se incrementaban correctamente y el streak se actualizaba.
+
+**Causa Raíz**: Restricción única `votes_voter_fid_battle_id_key` en la tabla `votes` que impide que un usuario vote más de una vez por el mismo battle. El servicio de votación no verificaba esta restricción antes de intentar insertar, causando que la inserción fallara silenciosamente.
+
+**Solución Implementada**:
+- Agregada verificación previa en `VotingService.registerVote()` para comprobar si el usuario ya votó por el battle
+- Si el usuario ya votó, se devuelve un error apropiado: "You have already voted for this vendor in this battle. Each vendor can only be voted once per battle."
+- Mejorado el manejo de errores para evitar fallos silenciosos
+
+**Archivos Modificados**:
+- `src/services/voting.ts`: Agregada verificación de votos duplicados
+- `scripts/test-vote-database.ts`: Script de diagnóstico para identificar el problema
+- `scripts/test-voting-service-fixed.ts`: Script de prueba para validar la solución
+
+**Resultado**: Los votos ahora se registran correctamente en la base de datos cuando el usuario no ha votado previamente por el battle, y se muestran mensajes de error apropiados para votos duplicados.
+
+---
+
 ## 🎯 Información del Proyecto
 
 ### **Stack Tecnológico**

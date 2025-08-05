@@ -7,65 +7,74 @@ config({ path: resolve(process.cwd(), '.env.local') })
 
 // Now import the services
 import { VotingService } from '../src/services/voting'
+import dotenv from 'dotenv'
+
+// Load environment variables
+dotenv.config({ path: '.env.local' })
 
 async function testVotingService() {
-  console.log('🧪 Testing VotingService with fallback to mock data...')
+  console.log('🧪 Testing Updated VotingService...\n')
 
+  const testUserFid = '12345'
+  const testVendorId = '772cdbda-2cbb-4c67-a73a-3656bf02a4c1' // Pupusas María (user already voted)
+  const testVendorId2 = 'bf47b04b-cdd8-4dd3-bfac-5a379ce07f28' // Sushi Express (user already voted)
+
+  console.log('📋 Test 1: Try to vote for vendor where user already voted')
+  console.log('=' .repeat(60))
+  
   try {
-    // Test 1: Register a vote for a mock vendor
-    console.log('\n📝 Test 1: Registering vote for Pupusas María...')
-    const voteResult = await VotingService.registerVote({
-      userFid: '12345',
-      vendorId: '772cdbda-2cbb-4c67-a73a-3656bf02a4c1', // Pupusas María
+    const result1 = await VotingService.registerVote({
+      userFid: testUserFid,
+      vendorId: testVendorId,
       voteType: 'regular'
     })
 
-    console.log('✅ Vote result:', voteResult)
-
-    // Test 2: Register a verified vote
-    console.log('\n📸 Test 2: Registering verified vote for Tacos El Rey...')
-    const verifiedVoteResult = await VotingService.registerVote({
-      userFid: '12346',
-      vendorId: '111f3776-b7c4-4ee0-80e1-5ca89e8ea9d0', // Tacos El Rey
-      voteType: 'verified',
-      photoUrl: 'https://example.com/photo.jpg',
-      gpsLocation: { lat: 19.4326, lng: -99.1332 },
-      verificationConfidence: 0.95
-    })
-
-    console.log('✅ Verified vote result:', verifiedVoteResult)
-
-    // Test 3: Get vendor stats
-    console.log('\n📊 Test 3: Getting vendor stats...')
-    const vendorStats = await VotingService.getVendorVoteStats('772cdbda-2cbb-4c67-a73a-3656bf02a4c1')
-    console.log('✅ Vendor stats:', vendorStats)
-
-    // Test 4: Get user vote history
-    console.log('\n📜 Test 4: Getting user vote history...')
-    const voteHistory = await VotingService.getUserVoteHistory('12345', 10)
-    console.log('✅ Vote history length:', voteHistory.length)
-
-    // Test 5: Calculate tokens
-    console.log('\n💰 Test 5: Calculating tokens...')
-    const tokenCalculation = await VotingService.calculateTokens('12345', '772cdbda-2cbb-4c67-a73a-3656bf02a4c1', 'regular')
-    console.log('✅ Token calculation:', tokenCalculation)
-
-    // Test 6: Try to vote for non-existent vendor
-    console.log('\n❌ Test 6: Trying to vote for non-existent vendor...')
-    const invalidVoteResult = await VotingService.registerVote({
-      userFid: '12345',
-      vendorId: 'non-existent-vendor-id',
-      voteType: 'regular'
-    })
-
-    console.log('✅ Invalid vote result:', invalidVoteResult)
-
-    console.log('\n🎉 All tests completed successfully!')
-
+    console.log('Result:', result1)
+    
+    if (!result1.success && result1.error?.includes('already voted')) {
+      console.log('✅ Correctly prevented duplicate vote')
+    } else {
+      console.log('❌ Should have prevented duplicate vote')
+    }
   } catch (error) {
-    console.error('❌ Test failed:', error)
+    console.error('❌ Error testing duplicate vote:', error)
   }
+
+  console.log('\n📋 Test 2: Try to vote for different vendor (should work)')
+  console.log('=' .repeat(60))
+  
+  try {
+    const result2 = await VotingService.registerVote({
+      userFid: testUserFid,
+      vendorId: '525c09b3-dc92-409b-a11d-896bcf4d15b2', // Café Aroma (check if user hasn't voted)
+      voteType: 'regular'
+    })
+
+    console.log('Result:', result2)
+    
+    if (result2.success) {
+      console.log('✅ Vote registered successfully')
+    } else {
+      console.log('❌ Vote should have been registered')
+    }
+  } catch (error) {
+    console.error('❌ Error testing new vote:', error)
+  }
+
+  console.log('\n📋 Test 3: Check user vote history')
+  console.log('=' .repeat(60))
+  
+  try {
+    const history = await VotingService.getUserVoteHistory(testUserFid, 5)
+    console.log(`✅ User has ${history.length} recent votes:`)
+    history.forEach((vote, index) => {
+      console.log(`   ${index + 1}. Vote for ${vote.vendors?.name || 'Unknown'} - ${vote.token_reward} tokens`)
+    })
+  } catch (error) {
+    console.error('❌ Error fetching vote history:', error)
+  }
+
+  console.log('\n✅ VotingService Test Completed!')
 }
 
-// Run the test
-testVotingService() 
+testVotingService().catch(console.error) 

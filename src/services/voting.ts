@@ -232,11 +232,39 @@ export class VotingService {
       //   }
       // }
 
-      // 5. Create vote record in database (only if Supabase is available)
-      const voteId = uuidv4()
-      
-      // Get battle ID for this vendor
+      // 5. Check if user already voted for this battle
       const battleId = getVendorBattleId(vendorId)
+      
+      try {
+        const { data: existingVote, error: checkError } = await this.supabase!
+          .from('votes')
+          .select('id, created_at, token_reward')
+          .eq('voter_fid', userFid)
+          .eq('battle_id', battleId)
+          .single()
+
+        if (existingVote) {
+          console.log('⚠️ User already voted for this battle:', existingVote.id)
+          return {
+            success: false,
+            tokensEarned: 0,
+            newBalance: 0,
+            streakBonus: 0,
+            territoryBonus: 0,
+            error: 'You have already voted for this vendor in this battle. Each vendor can only be voted once per battle.'
+          }
+        }
+        
+        if (checkError && checkError.code !== 'PGRST116') {
+          console.error('Error checking existing vote:', checkError)
+          // Continue with vote insertion if we can't check
+        }
+      } catch (error) {
+        console.warn('⚠️ Could not check existing vote, proceeding with insertion')
+      }
+
+      // 6. Create vote record in database (only if Supabase is available)
+      const voteId = uuidv4()
       
       // Always include battle_id since it's NOT NULL
       const voteRecord: any = {
@@ -268,7 +296,7 @@ export class VotingService {
         console.warn('⚠️ Supabase not available for vote recording, continuing with mock data')
       }
 
-      // 6. Create attestation if verified vote (only if Supabase is available)
+      // 7. Create attestation if verified vote (only if Supabase is available)
       let attestationId: string | null = null
       if (voteType === 'verified' && photoUrl) {
         attestationId = uuidv4()
@@ -303,7 +331,7 @@ export class VotingService {
         }
       }
 
-      // 7. Update user tokens in Redis and database
+      // 8. Update user tokens in Redis and database
       const newBalance = await this.safeRedisOperation(
         () => tokenManager.addTokens(userFid, tokenCalculation.totalTokens),
         () => mockRedis.addTokens(userFid, tokenCalculation.totalTokens)
@@ -319,7 +347,7 @@ export class VotingService {
         console.warn('⚠️ Supabase not available for user update, continuing with Redis only')
       }
 
-      // 8. Update vote streak
+      // 9. Update vote streak
       const newStreak = await this.safeRedisOperation(
         () => streakManager.incrementStreak(userFid),
         () => mockRedis.incrementStreak(userFid)
@@ -335,7 +363,7 @@ export class VotingService {
         console.warn('⚠️ Supabase not available for streak update, continuing with Redis only')
       }
 
-      // 9. Update vendor stats (this will be batched later)
+      // 10. Update vendor stats (this will be batched later)
       await this.updateVendorStats(vendorId, voteType === 'verified')
 
       return {
