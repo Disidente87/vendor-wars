@@ -10,7 +10,7 @@ const navigation = [
   { name: 'Home', href: '/', icon: Home },
   { name: 'Map', href: '/map', icon: MapPin },
   { name: 'Vendors', href: '/vendors', icon: Users },
-  { name: 'Battles', href: '/battles', icon: Sword },
+  { name: 'Battles', href: '/battles', icon: Sword, disabled: true },
   { name: 'Leaderboard', href: '/leaderboard', icon: Trophy },
   { name: 'Notifications', href: '/notifications', icon: Bell },
   { name: 'Frames', href: '/frame', icon: Frame },
@@ -37,19 +37,29 @@ export function Navigation() {
           <div className="hidden md:flex items-center space-x-8">
             {navigation.map((item) => {
               const isActive = pathname === item.href
+              const isDisabled = item.disabled
+              
               return (
                 <Link
                   key={item.name}
-                  href={item.href}
+                  href={isDisabled ? '#' : item.href}
+                  onClick={isDisabled ? (e) => e.preventDefault() : undefined}
                   className={cn(
                     'flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium transition-colors',
-                    isActive
+                    isDisabled
+                      ? 'text-gray-400 cursor-not-allowed opacity-50'
+                      : isActive
                       ? 'bg-orange-100 text-orange-700'
                       : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
                   )}
                 >
                   <item.icon className="h-4 w-4" />
                   <span>{item.name}</span>
+                  {isDisabled && (
+                    <span className="text-xs bg-gray-200 text-gray-500 px-1 py-0.5 rounded">
+                      Soon
+                    </span>
+                  )}
                 </Link>
               )
             })}
@@ -82,19 +92,29 @@ export function Navigation() {
         <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
           {navigation.map((item) => {
             const isActive = pathname === item.href
+            const isDisabled = item.disabled
+            
             return (
               <Link
                 key={item.name}
-                href={item.href}
+                href={isDisabled ? '#' : item.href}
+                onClick={isDisabled ? (e) => e.preventDefault() : undefined}
                 className={cn(
                   'flex items-center space-x-2 px-3 py-2 rounded-md text-base font-medium transition-colors',
-                  isActive
+                  isDisabled
+                    ? 'text-gray-400 cursor-not-allowed opacity-50'
+                    : isActive
                     ? 'bg-orange-100 text-orange-700'
                     : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
                 )}
               >
                 <item.icon className="h-5 w-5" />
                 <span>{item.name}</span>
+                {isDisabled && (
+                  <span className="text-xs bg-gray-200 text-gray-500 px-1 py-0.5 rounded ml-auto">
+                    Soon
+                  </span>
+                )}
               </Link>
             )
           })}

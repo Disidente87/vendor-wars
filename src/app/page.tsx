@@ -6,6 +6,7 @@ import { useMiniApp } from '@neynar/react'
 import { Crown, Flame, MapPin, Users, Zap } from 'lucide-react'
 import { useFarcasterAuth } from '@/hooks/useFarcasterAuth'
 import { VotingTest } from '@/components/VotingTest'
+import { BattleSystemComingSoon } from '@/components/battle-system-coming-soon'
 
 export default function HomePage() {
   const router = useRouter()
@@ -19,8 +20,8 @@ export default function HomePage() {
   const features = [
     {
       icon: <MapPin className="w-6 h-6" />,
-      title: "Conquer Territories",
-      description: "Vote for your favorite vendors to control zones"
+      title: "Vote for Vendors",
+      description: "Support your favorite local businesses"
     },
     {
       icon: <Crown className="w-6 h-6" />,
@@ -29,8 +30,8 @@ export default function HomePage() {
     },
     {
       icon: <Flame className="w-6 h-6" />,
-      title: "Join the Fight",
-      description: "Defend your barrio in epic vendor wars"
+      title: "Build Streaks",
+      description: "Vote daily to increase your rewards"
     },
     {
       icon: <Users className="w-6 h-6" />,
@@ -134,6 +135,11 @@ export default function HomePage() {
           </div>
           
           <VotingTest />
+          
+          {/* Battle System Coming Soon */}
+          <div className="mt-6">
+            <BattleSystemComingSoon />
+          </div>
         </div>
       </div>
     )
@@ -184,7 +190,7 @@ export default function HomePage() {
                     Vendor Wars
                   </h1>
                   <p className="text-xl text-white/90 font-medium">
-                    Fight for Your Barrio!
+                    Support Your Local Vendors!
                   </p>
                 </div>
 
