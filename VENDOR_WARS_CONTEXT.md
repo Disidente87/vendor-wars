@@ -5,13 +5,14 @@
 ### 🎯 **Estado Actual**
 Vendor Wars es una aplicación completamente funcional y robusta que maneja todos los problemas identificados con un sistema de fallback integral. La aplicación gamifica la cultura gastronómica local en LATAM convirtiendo las compras a vendedores en batallas territoriales.
 
-### ✅ **Problemas Resueltos (6/6)**
+### ✅ **Problemas Resueltos (7/7)**
 1. **Tokens BATTLE** - Ahora se muestran correctamente en el perfil de usuario
 2. **Historial de Votos** - Los votos del día se muestran y actualizan correctamente
 3. **Sistema de XP** - La experiencia aumenta apropiadamente con cada voto
 4. **Votos Múltiples** - Se puede votar por diferentes vendedores sin errores
 5. **Registro de Vendedores** - El botón "+Register" funciona correctamente
 6. **Votos en Base de Datos** - Los votos se registran correctamente en Supabase
+7. **Sistema de Votación Múltiple** - Implementado sistema completo de hasta 3 votos por vendor por día
 
 ### 🏗️ **Arquitectura Mejorada**
 - **Sistema de Fallback Robusto**: Funciona sin Supabase o Redis
@@ -592,6 +593,105 @@ UPSTASH_REDIS_REST_URL=
 UPSTASH_REDIS_REST_TOKEN=
 NEXT_PUBLIC_NEYNAR_API_KEY=
 ```
+
+---
+
+## 🆕 **Sistema de Votación Múltiple Implementado (Diciembre 2024)**
+
+### **Problema Identificado:**
+Los usuarios no podían votar múltiples veces por el mismo vendor debido a restricciones de battle IDs fijos por vendor.
+
+### **Solución Implementada:**
+
+#### **1. Lógica de Battle IDs por Número de Voto:**
+```typescript
+function getVendorBattleId(vendorId: string, voteNumber: number = 1): string {
+  // Para el primer voto del día: usa battle ID específico del vendor
+  if (voteNumber === 1) {
+    return VENDOR_BATTLE_MAP[vendorId] || '216b4979-c7e4-44db-a002-98860913639c'
+  }
+  
+  // Para segundo y tercer voto: usa battle ID genérico
+  return '99999999-9999-9999-9999-999999999999'
+}
+```
+
+#### **2. Determinación Automática del Número de Voto:**
+```typescript
+// Cuenta votos del día para este vendor
+const todayVotesCount = todayVotes ? todayVotes.length : 0
+const voteNumber = todayVotesCount + 1 // Este será el número de voto para hoy
+const battleId = getVendorBattleId(vendorId, voteNumber)
+```
+
+#### **3. Comportamiento del Sistema:**
+
+**✅ Votos Permitidos:**
+- **Primer voto**: 10 tokens + battle ID específico del vendor
+- **Segundo voto**: 15 tokens + battle ID genérico (`99999999-...`)
+- **Tercer voto**: 20 tokens + battle ID genérico (`99999999-...`)
+
+**❌ Voto Rechazado:**
+- **Cuarto voto**: Mensaje de error: `"You have already voted 3 times for this vendor today. Come back tomorrow to vote again!"`
+
+### **Ventajas de la Implementación:**
+
+1. **Organización de Datos**:
+   - Primer voto usa battle ID específico del vendor
+   - Votos adicionales usan battle ID genérico
+   - Facilita futura activación del sistema de batallas
+
+2. **Cumplimiento de PRD**:
+   - Hasta 3 votos por vendor por día
+   - Tokens decrecientes (10, 15, 20)
+   - Mensaje de error apropiado para límite excedido
+
+3. **Integridad de Base de Datos**:
+   - Todos los battle IDs existen en la tabla `battles`
+   - Satisfacen foreign key constraints
+   - No hay errores de restricciones únicas
+
+4. **Preparación para Futuro**:
+   - Battle IDs específicos listos para sistema de batallas
+   - Battle IDs genéricos separados para votos adicionales
+   - Fácil migración cuando se active el sistema completo
+
+### **Archivos Modificados:**
+
+#### **Archivo Principal:**
+- `src/services/voting.ts` - Implementación completa del sistema de votación múltiple
+
+#### **Scripts de Prueba:**
+- `scripts/create-generic-battle.ts` - Crea battle ID genérico en base de datos
+- `scripts/test-vote-system-final.ts` - Prueba sistema completo de votación
+- `scripts/test-multiple-votes-fixed.ts` - Prueba votos múltiples
+
+### **Resultados de Pruebas:**
+```
+✅ First vote: Uses vendor-specific battle ID
+✅ Second vote: Uses generic battle ID (99999999-...)
+✅ Third vote: Uses generic battle ID (99999999-...)
+✅ Fourth vote: Rejected with appropriate message
+✅ All votes register correctly in database
+✅ Battle IDs satisfy foreign key constraints
+```
+
+### **Beneficios del Sistema:**
+
+1. **Experiencia de Usuario Mejorada**:
+   - Usuarios pueden votar hasta 3 veces por vendor favorito
+   - Feedback claro sobre límites de votación
+   - Tokens incrementales para incentivar participación
+
+2. **Arquitectura Limpia**:
+   - Separación clara entre votos principales y adicionales
+   - Battle IDs organizados por propósito
+   - Fácil mantenimiento y debugging
+
+3. **Escalabilidad**:
+   - Preparado para activación del sistema de batallas
+   - Estructura de datos optimizada
+   - Límites configurables por vendor
 
 ---
 
