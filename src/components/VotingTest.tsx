@@ -6,10 +6,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { useFarcasterAuth } from '@/hooks/useFarcasterAuth'
 import { useTokenBalance } from '@/hooks/useTokenBalance'
+import { useVoteStreak } from '@/hooks/useVoteStreak'
 
 export function VotingTest() {
   const { user: authenticatedUser } = useFarcasterAuth()
   const { balance, refreshBalance } = useTokenBalance()
+  const { streak, refreshStreak } = useVoteStreak()
   const [isVoting, setIsVoting] = useState(false)
   const [lastVoteResult, setLastVoteResult] = useState<any>(null)
   const [error, setError] = useState<string | null>(null)
@@ -49,6 +51,7 @@ export function VotingTest() {
       if (result.success) {
         setLastVoteResult(result.data)
         refreshBalance() // Refresh token balance
+        refreshStreak() // Refresh vote streak
       } else {
         setError(result.error || 'Vote failed')
       }
@@ -86,10 +89,13 @@ export function VotingTest() {
             <p className="font-medium">{authenticatedUser.displayName}</p>
             <p className="text-sm text-gray-600">@{authenticatedUser.username}</p>
             <p className="text-xs text-gray-500">FID: {authenticatedUser.fid}</p>
+            <p className="text-xs text-orange-600">Vote Streak: {streak || 0} days</p>
           </div>
-          <Badge variant="secondary">
-            {balance?.toLocaleString() || 0} $BATTLE
-          </Badge>
+          <div className="text-right">
+            <Badge variant="secondary" className="mb-1">
+              {balance?.toLocaleString() || 0} $BATTLE
+            </Badge>
+          </div>
         </div>
 
         {/* Voting Buttons */}

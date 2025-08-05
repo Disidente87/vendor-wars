@@ -139,11 +139,23 @@ export class VotingService {
           .eq('id', voteId)
       }
 
-      // 8. Update user tokens
+      // 8. Update user tokens in Redis and database
       const newBalance = await tokenManager.addTokens(userFid, tokenCalculation.totalTokens)
+      
+      // Also update database
+      await supabase
+        .from('users')
+        .update({ battle_tokens: newBalance })
+        .eq('fid', userFid)
 
       // 9. Update vote streak
       const newStreak = await streakManager.incrementStreak(userFid)
+      
+      // Also update vote streak in database
+      await supabase
+        .from('users')
+        .update({ vote_streak: newStreak })
+        .eq('fid', userFid)
 
       // 10. Update vendor stats (this will be batched later)
       await this.updateVendorStats(vendorId, voteType === 'verified')
