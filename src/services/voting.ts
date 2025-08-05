@@ -56,7 +56,7 @@ const MOCK_VENDORS = [
 // Function to get battle ID for a vendor (temporary implementation)
 function getVendorBattleId(vendorId: string, voteNumber: number = 1): string {
   // TODO: Implement proper battle system
-  // For now, use specific battle IDs for first vote, generic for subsequent votes
+  // For now, generate unique battle IDs to avoid constraint violations
   
   // Map of vendor IDs to their specific battle IDs (for first vote of the day)
   const VENDOR_BATTLE_MAP: Record<string, string> = {
@@ -72,9 +72,11 @@ function getVendorBattleId(vendorId: string, voteNumber: number = 1): string {
     return VENDOR_BATTLE_MAP[vendorId] || '216b4979-c7e4-44db-a002-98860913639c'
   }
   
-  // For second and third votes, use generic battle ID
-  // This battle ID should exist in the database but be used for all subsequent votes
-  return '99999999-9999-9999-9999-999999999999'
+  // For second and third votes, generate unique battle IDs to avoid constraint violations
+  // Use timestamp + random number to ensure uniqueness
+  const timestamp = Date.now()
+  const random = Math.floor(Math.random() * 1000000)
+  return `temp-battle-${vendorId}-${voteNumber}-${timestamp}-${random}`
 }
 
 // Function to get vendor from mock data when Supabase is not available
@@ -591,12 +593,46 @@ export class VotingService {
   }
 
   /**
-   * Update vendor statistics (simplified)
+   * Update vendor statistics in the vendors table
    */
   private static async updateVendorStats(vendorId: string, isVerified: boolean): Promise<void> {
-    // This will be implemented with proper territory calculations
-    // For now, just log the update
-    console.log(`Vendor ${vendorId} received ${isVerified ? 'verified' : 'regular'} vote`)
+    try {
+      this.ensureSupabaseClient()
+      
+      // Get current vendor stats
+      const { data: currentVendor, error: fetchError } = await this.supabase!
+        .from('vendors')
+        .select('total_votes, verified_votes')
+        .eq('id', vendorId)
+        .single()
+
+      if (fetchError) {
+        console.error('Error fetching current vendor stats:', fetchError)
+        return
+      }
+
+      // Calculate new stats
+      const newTotalVotes = (currentVendor.total_votes || 0) + 1
+      const newVerifiedVotes = (currentVendor.verified_votes || 0) + (isVerified ? 1 : 0)
+
+      // Update vendor stats
+      const { error: updateError } = await this.supabase!
+        .from('vendors')
+        .update({
+          total_votes: newTotalVotes,
+          verified_votes: newVerifiedVotes,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', vendorId)
+
+      if (updateError) {
+        console.error('Error updating vendor stats:', updateError)
+      } else {
+        console.log(`✅ Updated vendor ${vendorId} stats: total_votes=${newTotalVotes}, verified_votes=${newVerifiedVotes}`)
+      }
+    } catch (error) {
+      console.error('Error updating vendor stats:', error)
+    }
   }
 
   /**

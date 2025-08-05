@@ -135,8 +135,11 @@ export default function VendorProfilePage({ params }: { params: Promise<{ id: st
         
         // Refresh vendor data and top voters after successful vote
         if (vendor) {
-          fetchVendor(vendor.id)
-          loadTopVoters()
+          // Wait a moment for the database to update, then refresh vendor data
+          setTimeout(() => {
+            fetchVendor(vendor.id)
+            loadTopVoters()
+          }, 1000)
         }
       } else {
         console.error('❌ Vote failed:', result.error)
