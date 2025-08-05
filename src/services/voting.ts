@@ -236,10 +236,15 @@ export class VotingService {
       .from('votes')
       .select(`
         *,
-        vendors (
+        vendors!inner (
           id,
           name,
-          category
+          category,
+          image_url
+        ),
+        zones!inner (
+          id,
+          name
         )
       `)
       .eq('voter_fid', userFid)

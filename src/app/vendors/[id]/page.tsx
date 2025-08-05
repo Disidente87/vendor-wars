@@ -125,6 +125,12 @@ export default function VendorProfilePage({ params }: { params: Promise<{ id: st
         })
         setShowVoteModal(true)
         refreshBalance() // Refresh token balance
+        
+        // Refresh vendor data and top voters after successful vote
+        if (vendor) {
+          fetchVendor(vendor.id)
+          loadTopVoters()
+        }
       } else {
         setError(result.error || 'Vote failed')
       }

@@ -105,12 +105,26 @@ export const streakManager = {
     return streak as number
   },
 
-  // Increment vote streak
+  // Increment vote streak (only once per day)
   async incrementStreak(userFid: string): Promise<number> {
-    const key = `${REDIS_KEYS.VOTE_STREAKS}:${userFid}`
-    const newStreak = await redis.incr(key)
-    // Expire after 2 days (if user doesn't vote tomorrow, streak breaks)
-    await redis.expire(key, 172800)
+    const today = getCurrentDay()
+    const dailyKey = `${REDIS_KEYS.VOTE_STREAKS}:${userFid}:${today}`
+    const streakKey = `${REDIS_KEYS.VOTE_STREAKS}:${userFid}`
+    
+    // Check if user already voted today
+    const alreadyVotedToday = await redis.exists(dailyKey)
+    
+    if (alreadyVotedToday) {
+      // User already voted today, just return current streak
+      const currentStreak = await redis.get(streakKey) || 0
+      return currentStreak as number
+    }
+    
+    // User hasn't voted today, increment streak and mark today as voted
+    const newStreak = await redis.incr(streakKey)
+    await redis.setex(dailyKey, 86400, '1') // Mark today as voted (24 hours)
+    await redis.expire(streakKey, 172800) // Expire streak after 2 days
+    
     return newStreak
   },
 

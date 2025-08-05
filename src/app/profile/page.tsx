@@ -71,7 +71,7 @@ interface Activity {
 export default function ProfilePage() {
   const router = useRouter()
   const { user: farcasterUser, isAuthenticated, isLoading } = useFarcasterAuth()
-  const { balance } = useTokenBalance()
+  const { balance, refreshBalance } = useTokenBalance()
   const [activeTab, setActiveTab] = useState<'overview' | 'achievements' | 'activity'>('overview')
   const [userStats, setUserStats] = useState<UserStats | null>(null)
 
@@ -133,11 +133,11 @@ export default function ProfilePage() {
       if (!acc[vendorId]) {
         acc[vendorId] = {
           id: vendorId,
-          name: vote.vendor_name || 'Unknown Vendor',
-          imageUrl: vote.vendor_image_url || 'https://images.unsplash.com/photo-1595273670150-bd0c3c392e46?w=400&h=300&fit=crop',
+          name: vote.vendors?.name || 'Unknown Vendor',
+          imageUrl: vote.vendors?.image_url || 'https://images.unsplash.com/photo-1595273670150-bd0c3c392e46?w=400&h=300&fit=crop',
           votesReceived: 0,
           totalVotes: 0,
-          zone: vote.zone_name || 'Unknown Zone'
+          zone: vote.zones?.name || 'Unknown Zone'
         }
       }
       acc[vendorId].votesReceived += 1
@@ -154,6 +154,9 @@ export default function ProfilePage() {
     if (!farcasterUser) return
 
     try {
+      // Refresh token balance first
+      await refreshBalance()
+      
       // Fetch user's voting history and stats
       const response = await fetch(`/api/votes?userFid=${farcasterUser.fid}`)
       const result = await response.json()
@@ -200,7 +203,7 @@ export default function ProfilePage() {
       // Fallback to basic stats
       setUserStats(getFallbackStats())
     }
-  }, [farcasterUser, balance])
+  }, [farcasterUser, balance, refreshBalance])
 
   useEffect(() => {
     if (farcasterUser && isAuthenticated) {
