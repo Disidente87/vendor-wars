@@ -7,6 +7,7 @@ import { ArrowLeft, Trophy, Users, Target, Shield, AlertCircle } from 'lucide-re
 import { VoteResultModal } from '@/components/VoteResultModal'
 import { useFarcasterAuth } from '@/hooks/useFarcasterAuth'
 import { useTokenBalance } from '@/hooks/useTokenBalance'
+import { VendorStatsRefresh } from '@/components/vendor-stats-refresh'
 import type { Vendor } from '@/types'
 import { getVendorIdFromSlug } from '@/lib/route-utils'
 
@@ -37,6 +38,7 @@ export default function VendorProfilePage({ params }: { params: Promise<{ id: st
   const [isVoting, setIsVoting] = useState(false)
   const [topVoters, setTopVoters] = useState<TopVoter[]>([])
   const [loadingTopVoters, setLoadingTopVoters] = useState(false)
+  const [vendorStats, setVendorStats] = useState<any>(null)
 
   const fetchVendor = useCallback(async (id: string) => {
     try {
@@ -564,6 +566,15 @@ export default function VendorProfilePage({ params }: { params: Promise<{ id: st
           vendor={voteResult.vendor}
           battleTokens={voteResult.battleTokens}
           isVerified={voteResult.isVerified}
+        />
+      )}
+
+      {/* Vendor Stats Refresh Component */}
+      {vendor && (
+        <VendorStatsRefresh
+          vendorId={vendor.id}
+          onStatsUpdate={setVendorStats}
+          enabled={!!vendor}
         />
       )}
     </div>

@@ -55,6 +55,17 @@ export async function POST(request: NextRequest) {
 
     console.log('✅ Vote registered successfully:', result)
 
+    // Dispatch custom event for profile refresh (if in browser environment)
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('vote-success', {
+        detail: {
+          voteId: result.voteId,
+          tokensEarned: result.tokensEarned,
+          vendorId: vendorId
+        }
+      }))
+    }
+
     return NextResponse.json({
       success: true,
       data: {

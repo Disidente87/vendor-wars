@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { 
@@ -21,6 +21,7 @@ import {
 } from 'lucide-react'
 import { useFarcasterAuth } from '@/hooks/useFarcasterAuth'
 import { useTokenBalance } from '@/hooks/useTokenBalance'
+import { useProfileRefresh } from '@/hooks/useProfileRefresh'
 
 interface UserStats {
   username: string
@@ -74,6 +75,16 @@ export default function ProfilePage() {
   const { balance, refreshBalance } = useTokenBalance()
   const [activeTab, setActiveTab] = useState<'overview' | 'achievements' | 'activity'>('overview')
   const [userStats, setUserStats] = useState<UserStats | null>(null)
+  const [isLoadingStats, setIsLoadingStats] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const lastFetchTime = useRef<number>(0)
+  const fetchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // Use the profile refresh hook
+  useProfileRefresh({
+    onRefresh: () => fetchUserStats(true),
+    enabled: !!farcasterUser && isAuthenticated
+  })
 
   const getAchievements = (totalVotes: number, verifiedVotes: number, uniqueVendors: number): Achievement[] => {
     return [
@@ -109,49 +120,120 @@ export default function ProfilePage() {
         name: 'Voting Streak',
         description: 'Maintain a 7-day voting streak',
         icon: '🔥',
-        unlocked: false, // Will be calculated from actual streak data
+        unlocked: false, // Will be calculated based on actual streak
         progress: 0,
         maxProgress: 7
+      },
+      {
+        id: 'territory-master',
+        name: 'Territory Master',
+        description: 'Control 3 territories',
+        icon: '🏆',
+        unlocked: false,
+        progress: 0,
+        maxProgress: 3
       }
     ]
   }
 
   const getRecentActivity = (votes: any[]): Activity[] => {
-    return votes.slice(0, 5).map((vote, index) => ({
-      id: `vote-${vote.id || index}`,
-      type: 'vote',
-      title: `Voted for ${vote.vendor_name || 'Unknown Vendor'}`,
-      description: vote.is_verified ? 'Verified vote cast' : 'Regular vote cast',
-      timestamp: vote.created_at || new Date().toISOString(),
-      tokens: vote.is_verified ? 5 : 1
-    }))
+    return votes
+      .slice(0, 10)
+      .map((vote, index) => ({
+        id: `vote-${vote.id || index}`,
+        type: 'vote' as const,
+        title: `Voted for ${vote.vendors?.name || 'Unknown Vendor'}`,
+        description: vote.is_verified ? 'Verified vote with photo' : 'Regular vote',
+        timestamp: vote.created_at || new Date().toISOString(),
+        tokens: vote.token_reward || 10
+      }))
   }
 
   const getTopVendors = (votes: any[]): TopVendor[] => {
-    const vendorVotes = votes.reduce((acc: any, vote: any) => {
+    const vendorCounts: { [key: string]: { votes: number; vendor: any } } = {}
+    
+    votes.forEach(vote => {
       const vendorId = vote.vendor_id
-      if (!acc[vendorId]) {
-        acc[vendorId] = {
-          id: vendorId,
-          name: vote.vendors?.name || 'Unknown Vendor',
-          imageUrl: vote.vendors?.image_url || 'https://images.unsplash.com/photo-1595273670150-bd0c3c392e46?w=400&h=300&fit=crop',
-          votesReceived: 0,
-          totalVotes: 0,
-          zone: vote.zones?.name || 'Unknown Zone'
+      const vendor = vote.vendors
+      if (vendor) {
+        if (vendorCounts[vendorId]) {
+          vendorCounts[vendorId].votes++
+        } else {
+          vendorCounts[vendorId] = { votes: 1, vendor }
         }
       }
-      acc[vendorId].votesReceived += 1
-      acc[vendorId].totalVotes += vote.is_verified ? 5 : 1
-      return acc
-    }, {})
+    })
 
-    return (Object.values(vendorVotes) as TopVendor[])
-      .sort((a: any, b: any) => b.totalVotes - a.totalVotes)
+    return Object.values(vendorCounts)
+      .sort((a, b) => b.votes - a.votes)
       .slice(0, 3)
+      .map(({ votes, vendor }) => ({
+        id: vendor.id,
+        name: vendor.name,
+        imageUrl: vendor.image_url || 'https://via.placeholder.com/100',
+        votesReceived: votes,
+        totalVotes: votes,
+        zone: 'Unknown Zone'
+      }))
   }
 
-  const fetchUserStats = useCallback(async () => {
+  const getFallbackStats = (): UserStats => {
+    if (!farcasterUser) {
+      return {
+        username: 'Unknown',
+        avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=unknown',
+        level: 1,
+        experience: 0,
+        experienceToNext: 100,
+        battleTokens: 0,
+        totalVotes: 0,
+        verifiedVotes: 0,
+        vendorsVotedFor: 0,
+        votingStreak: 0,
+        territoriesControlled: 0,
+        rank: 'Newcomer',
+        achievements: [],
+        recentActivity: [],
+        topVendors: []
+      }
+    }
+
+    return {
+      username: farcasterUser.username,
+      avatar: farcasterUser.pfpUrl,
+      level: 1,
+      experience: 0,
+      experienceToNext: 100,
+      battleTokens: balance || 0,
+      totalVotes: 0,
+      verifiedVotes: 0,
+      vendorsVotedFor: 0,
+      votingStreak: 0,
+      territoriesControlled: 0,
+      rank: 'Newcomer',
+      achievements: [],
+      recentActivity: [],
+      topVendors: []
+    }
+  }
+
+  const fetchUserStats = useCallback(async (forceRefresh = false) => {
     if (!farcasterUser) return
+
+    // Prevent multiple simultaneous fetches
+    const now = Date.now()
+    if (!forceRefresh && now - lastFetchTime.current < 5000) {
+      return // Don't fetch if last fetch was less than 5 seconds ago
+    }
+
+    // Clear any existing timeout
+    if (fetchTimeoutRef.current) {
+      clearTimeout(fetchTimeoutRef.current)
+    }
+
+    setIsLoadingStats(true)
+    setError(null)
+    lastFetchTime.current = now
 
     try {
       // Refresh token balance first
@@ -198,66 +280,38 @@ export default function ProfilePage() {
         }
 
         setUserStats(stats)
+        setError(null)
       } else {
         console.error('Failed to fetch vote history:', result.error)
-        // Fallback to basic stats
-        setUserStats(getFallbackStats())
+        setError('Failed to load vote history')
+        // Don't set fallback stats immediately, let user retry
       }
     } catch (error) {
       console.error('Error fetching user stats:', error)
-      // Fallback to basic stats
-      setUserStats(getFallbackStats())
+      setError('Network error while loading profile')
+      // Don't set fallback stats immediately, let user retry
+    } finally {
+      setIsLoadingStats(false)
     }
   }, [farcasterUser, balance, refreshBalance])
 
+  // Initial fetch when component mounts
   useEffect(() => {
-    if (farcasterUser && isAuthenticated) {
-      // Fetch real user stats from the database
-      fetchUserStats()
+    if (farcasterUser && isAuthenticated && !userStats) {
+      fetchUserStats(true)
     }
-  }, [farcasterUser, isAuthenticated, fetchUserStats])
+  }, [farcasterUser, isAuthenticated, userStats, fetchUserStats])
 
-  const getFallbackStats = (): UserStats => {
-    if (!farcasterUser) {
-      return {
-        username: 'Unknown',
-        avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=unknown',
-        level: 1,
-        experience: 0,
-        experienceToNext: 100,
-        battleTokens: 0,
-        totalVotes: 0,
-        verifiedVotes: 0,
-        vendorsVotedFor: 0,
-        votingStreak: 0,
-        territoriesControlled: 0,
-        rank: 'Newcomer',
-        achievements: [],
-        recentActivity: [],
-        topVendors: []
-      }
+  // Initial fetch when component mounts
+  useEffect(() => {
+    if (farcasterUser && isAuthenticated && !userStats) {
+      fetchUserStats(true)
     }
+  }, [farcasterUser, isAuthenticated, userStats, fetchUserStats])
 
-    return {
-      username: farcasterUser.username,
-      avatar: farcasterUser.pfpUrl,
-      level: 1,
-      experience: 0,
-      experienceToNext: 100,
-      battleTokens: balance || 0,
-      totalVotes: 0,
-      verifiedVotes: 0,
-      vendorsVotedFor: 0,
-      votingStreak: 0,
-      territoriesControlled: 0,
-      rank: 'Newcomer',
-      achievements: [],
-      recentActivity: [],
-      topVendors: []
-    }
+  const handleRetry = () => {
+    fetchUserStats(true)
   }
-
-
 
   const getRankColor = (rank: string) => {
     switch (rank) {
@@ -301,17 +355,35 @@ export default function ProfilePage() {
     </div>
   }
 
-  if (!userStats) {
+  if (error && !userStats) {
     return <div className="min-h-screen bg-gradient-to-br from-[#fff8f0] to-[#f4f1eb] flex items-center justify-center">
       <div className="bg-white/80 backdrop-blur-sm rounded-xl p-6 shadow-lg border border-[#ff6b35]/20 text-center">
         <h2 className="text-xl font-bold text-[#2d1810] mb-2">Error Loading Profile</h2>
-        <p className="text-[#6b5d52] text-sm mb-4">Could not load your profile data. Please try again later.</p>
-        <Button
-          onClick={() => router.push('/')}
-          className="bg-[#ff6b35] hover:bg-[#e5562e] text-white font-medium py-3 rounded-xl shadow-lg"
-        >
-          Back to Home
-        </Button>
+        <p className="text-[#6b5d52] text-sm mb-4">{error}</p>
+        <div className="flex space-x-3">
+          <Button
+            onClick={handleRetry}
+            className="bg-[#ff6b35] hover:bg-[#e5562e] text-white font-medium py-3 rounded-xl shadow-lg"
+            disabled={isLoadingStats}
+          >
+            {isLoadingStats ? 'Loading...' : 'Retry'}
+          </Button>
+          <Button
+            onClick={() => router.push('/')}
+            className="bg-gray-500 hover:bg-gray-600 text-white font-medium py-3 rounded-xl shadow-lg"
+          >
+            Back to Home
+          </Button>
+        </div>
+      </div>
+    </div>
+  }
+
+  if (!userStats) {
+    return <div className="min-h-screen bg-gradient-to-br from-[#fff8f0] to-[#f4f1eb] flex items-center justify-center">
+      <div className="bg-white/80 backdrop-blur-sm rounded-xl p-6 shadow-lg border border-[#ff6b35]/20 text-center">
+        <h2 className="text-xl font-bold text-[#2d1810] mb-2">Loading Profile...</h2>
+        <p className="text-[#6b5d52] text-sm mb-4">Please wait while we load your data.</p>
       </div>
     </div>
   }
@@ -633,4 +705,4 @@ export default function ProfilePage() {
 
     </div>
   )
-} 
+}

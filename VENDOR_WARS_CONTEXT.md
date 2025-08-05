@@ -346,6 +346,93 @@ Todas las pruebas pasaron exitosamente:
 
 ---
 
+## 🆕 **Correcciones Adicionales Implementadas (Diciembre 2024)**
+
+### **Problemas Identificados en Testing Manual:**
+
+1. **Contador de votos no se actualiza en perfil de usuario**
+2. **Votos no se suman en perfil de vendors**
+3. **Parpadeo de pantalla por inactividad en perfil**
+4. **Error "Error loading profile" con redirección a Home**
+
+### **Soluciones Implementadas:**
+
+#### **1. Sistema de Actualización Automática de Perfil**
+- **Hook `useProfileRefresh`**: Maneja actualización automática cuando se detecta un voto
+- **Eventos personalizados**: `vote-cast` y `vote-success` para comunicación entre componentes
+- **Prevención de múltiples fetches**: Control de tiempo entre actualizaciones (2-5 segundos)
+- **Actualización en foco**: Refresca datos cuando la pestaña se vuelve visible
+
+#### **2. Componente de Actualización de Estadísticas de Vendedores**
+- **`VendorStatsRefresh`**: Componente que actualiza automáticamente las estadísticas de vendedores
+- **Escucha eventos de voto**: Se actualiza cuando se vota por el vendedor específico
+- **Prevención de spam**: Control de tiempo entre actualizaciones (3 segundos)
+
+#### **3. Mejoras en Manejo de Estados**
+- **Estados de carga mejorados**: `isLoadingStats` para feedback visual
+- **Manejo de errores robusto**: Estados de error separados con opción de retry
+- **Prevención de re-renders infinitos**: Uso de `useRef` para control de tiempo
+- **Fallback inteligente**: No se activa inmediatamente, permite retry
+
+#### **4. Correcciones en Página de Perfil**
+- **Cálculo correcto de XP**: `totalXP = totalVotes * 10`
+- **Actualización de contadores**: Se actualiza automáticamente después de votar
+- **Manejo de errores mejorado**: Botón de retry y mensajes específicos
+- **Prevención de parpadeo**: Control de dependencias en `useCallback`
+
+#### **5. Eventos de Comunicación**
+- **Dispatching de eventos**: El endpoint de votos dispara eventos cuando hay éxito
+- **Escucha de eventos**: Componentes escuchan eventos para actualizarse
+- **Comunicación cross-component**: Permite actualización automática sin prop drilling
+
+### **Archivos Modificados:**
+
+#### **Nuevos Archivos:**
+- `src/hooks/useProfileRefresh.ts` - Hook para actualización automática
+- `src/components/vendor-stats-refresh.tsx` - Componente de actualización de stats
+- `scripts/test-ui-fixes.ts` - Script de prueba para validar correcciones
+
+#### **Archivos Actualizados:**
+- `src/app/profile/page.tsx` - Mejoras en manejo de estados y actualización
+- `src/app/vendors/[id]/page.tsx` - Integración de actualización automática
+- `src/app/api/votes/route.ts` - Disparo de eventos de éxito
+
+### **Resultados de Pruebas:**
+```
+✅ Vote registration works with fallback
+✅ Vote history updates correctly  
+✅ Vendor stats update properly
+✅ Multiple vendor voting works
+✅ Token calculation is accurate
+✅ No "Vendor not found" errors
+✅ Counters increment properly
+✅ Fallback system works when services unavailable
+```
+
+### **Beneficios de las Nuevas Correcciones:**
+
+1. **Experiencia de Usuario Mejorada**:
+   - Contadores se actualizan automáticamente
+   - No más parpadeo por inactividad
+   - Feedback visual inmediato después de votar
+
+2. **Robustez del Sistema**:
+   - Manejo de errores más inteligente
+   - Prevención de múltiples requests
+   - Fallback que permite retry
+
+3. **Desarrollo Más Fácil**:
+   - Eventos para comunicación entre componentes
+   - Hooks reutilizables para actualización
+   - Logging mejorado para debugging
+
+4. **Performance Optimizada**:
+   - Control de tiempo entre actualizaciones
+   - Prevención de re-renders innecesarios
+   - Actualización solo cuando es necesario
+
+---
+
 ## 🎯 Información del Proyecto
 
 ### **Stack Tecnológico**
