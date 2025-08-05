@@ -2,8 +2,19 @@ import { supabase } from '@/lib/supabase'
 import { rateLimiter, tokenManager, streakManager, fraudDetection } from '@/lib/redis'
 import { v4 as uuidv4 } from 'uuid'
 
-// Default battle ID for votes without specific battles
-const DEFAULT_BATTLE_ID = '216b4979-c7e4-44db-a002-98860913639c'
+// Map of vendor IDs to their battle IDs (created by the script)
+const VENDOR_BATTLE_MAP: Record<string, string> = {
+  '772cdbda-2cbb-4c67-a73a-3656bf02a4c1': '034ce452-3409-4fa2-86ae-40f4293b0c60', // Pupusas María
+  '111f3776-b7c4-4ee0-80e1-5ca89e8ea9d0': '14e8042f-46a5-4174-837b-be35f01486e6', // Tacos El Rey
+  '525c09b3-dc92-409b-a11d-896bcf4d15b2': '31538f18-f74a-4783-b1b6-d26dfdaa920b', // Café Aroma
+  '85f2a3a9-b9a7-4213-92bb-0b902d3ab4d1': '4f87c3c6-0d38-4e84-afc1-60b52b363bab', // Pizza Napoli
+  'bf47b04b-cdd8-4dd3-bfac-5a379ce07f28': '006703c7-379c-41ee-95f2-d2a56d44f332'  // Sushi Express
+}
+
+// Function to get battle ID for a vendor
+function getVendorBattleId(vendorId: string): string {
+  return VENDOR_BATTLE_MAP[vendorId] || '216b4979-c7e4-44db-a002-98860913639c' // fallback to existing battle
+}
 
 export interface VoteData {
   userFid: string
@@ -77,12 +88,15 @@ export class VotingService {
       // 5. Create vote record in database
       const voteId = uuidv4()
       
+      // Get battle ID for this vendor
+      const battleId = getVendorBattleId(vendorId)
+      
       // Always include battle_id since it's NOT NULL
       const voteRecord: any = {
         id: voteId,
         voter_fid: userFid,
         vendor_id: vendorId,
-        battle_id: DEFAULT_BATTLE_ID,
+        battle_id: battleId,
         is_verified: voteType === 'verified',
         token_reward: tokenCalculation.totalTokens,
         multiplier: 1,
