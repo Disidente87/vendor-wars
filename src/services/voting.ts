@@ -56,11 +56,21 @@ const MOCK_VENDORS = [
 // Function to get battle ID for a vendor (temporary implementation)
 function getVendorBattleId(vendorId: string): string {
   // TODO: Implement proper battle system
-  // For now, create a unique battle ID based on vendor ID to allow multiple votes
+  // For now, use existing battle IDs from the battles table
   // This allows multiple votes per vendor while maintaining database integrity
-  // Generate a deterministic UUID based on vendor ID to ensure consistency
-  const hash = crypto.createHash('md5').update(`temp-battle-${vendorId}`).digest('hex')
-  return `${hash.slice(0, 8)}-${hash.slice(8, 12)}-${hash.slice(12, 16)}-${hash.slice(16, 20)}-${hash.slice(20, 32)}`
+  // Map vendors to existing battle IDs to avoid foreign key constraint violations
+  
+  // Map of vendor IDs to existing battle IDs from the database
+  const VENDOR_BATTLE_MAP: Record<string, string> = {
+    '772cdbda-2cbb-4c67-a73a-3656bf02a4c1': '034ce452-3409-4fa2-86ae-40f4293b0c60', // Pupusas María
+    '111f3776-b7c4-4ee0-80e1-5ca89e8ea9d0': '14e8042f-46a5-4174-837b-be35f01486e6', // Tacos El Rey
+    '525c09b3-dc92-409b-a11d-896bcf4d15b2': '31538f18-f74a-4783-b1b6-d26dfdaa920b', // Café Aroma
+    '85f2a3a9-b9a7-4213-92bb-0b902d3ab4d1': '4f87c3c6-0d38-4e84-afc1-60b52b363bab', // Pizza Napoli
+    'bf47b04b-cdd8-4dd3-bfac-5a379ce07f28': '006703c7-379c-41ee-95f2-d2a56d44f332'  // Sushi Express
+  }
+  
+  // Return the mapped battle ID or a default one
+  return VENDOR_BATTLE_MAP[vendorId] || '216b4979-c7e4-44db-a002-98860913639c'
 }
 
 // Function to get vendor from mock data when Supabase is not available
@@ -267,9 +277,39 @@ export class VotingService {
         console.warn('⚠️ Could not check daily vote count, proceeding with insertion')
       }
 
-      // 6. Create vote record in database (only if Supabase is available)
+      // 6. Check if user already voted for this battle (to prevent constraint violation)
+      const battleId = getVendorBattleId(vendorId)
+      
+      try {
+        const { data: existingVote, error: checkError } = await this.supabase!
+          .from('votes')
+          .select('id, created_at, token_reward')
+          .eq('voter_fid', userFid)
+          .eq('battle_id', battleId)
+          .single()
+
+        if (existingVote) {
+          console.log('⚠️ User already voted for this battle:', existingVote.id)
+          return {
+            success: false,
+            tokensEarned: 0,
+            newBalance: 0,
+            streakBonus: 0,
+            territoryBonus: 0,
+            error: 'You have already voted for this vendor in this battle. Each vendor can only be voted once per battle.'
+          }
+        }
+      } catch (error) {
+        // If error is PGRST116 (no rows found), that's expected - user hasn't voted for this battle
+        if (error && typeof error === 'object' && 'code' in error && error.code === 'PGRST116') {
+          console.log('✅ User has not voted for this battle yet')
+        } else {
+          console.warn('⚠️ Could not check existing vote, proceeding with insertion')
+        }
+      }
+
+      // 7. Create vote record in database (only if Supabase is available)
       const voteId = uuidv4()
-      const battleId = getVendorBattleId(vendorId) // Now generates unique battle ID per vote
       
       // Always include battle_id since it's NOT NULL
       const voteRecord: any = {
