@@ -54,13 +54,11 @@ const MOCK_VENDORS = [
 // This will be replaced with proper battle logic in future updates
 
 // Function to get battle ID for a vendor (temporary implementation)
-function getVendorBattleId(vendorId: string): string {
+function getVendorBattleId(vendorId: string, voteNumber: number = 1): string {
   // TODO: Implement proper battle system
-  // For now, use existing battle IDs from the battles table
-  // This allows multiple votes per vendor while maintaining database integrity
-  // Map vendors to existing battle IDs to avoid foreign key constraint violations
+  // For now, use specific battle IDs for first vote, generic for subsequent votes
   
-  // Map of vendor IDs to existing battle IDs from the database
+  // Map of vendor IDs to their specific battle IDs (for first vote of the day)
   const VENDOR_BATTLE_MAP: Record<string, string> = {
     '772cdbda-2cbb-4c67-a73a-3656bf02a4c1': '034ce452-3409-4fa2-86ae-40f4293b0c60', // Pupusas María
     '111f3776-b7c4-4ee0-80e1-5ca89e8ea9d0': '14e8042f-46a5-4174-837b-be35f01486e6', // Tacos El Rey
@@ -69,8 +67,14 @@ function getVendorBattleId(vendorId: string): string {
     'bf47b04b-cdd8-4dd3-bfac-5a379ce07f28': '006703c7-379c-41ee-95f2-d2a56d44f332'  // Sushi Express
   }
   
-  // Return the mapped battle ID or a default one
-  return VENDOR_BATTLE_MAP[vendorId] || '216b4979-c7e4-44db-a002-98860913639c'
+  // For first vote of the day, use vendor-specific battle ID
+  if (voteNumber === 1) {
+    return VENDOR_BATTLE_MAP[vendorId] || '216b4979-c7e4-44db-a002-98860913639c'
+  }
+  
+  // For second and third votes, use generic battle ID
+  // This battle ID should exist in the database but be used for all subsequent votes
+  return '99999999-9999-9999-9999-999999999999'
 }
 
 // Function to get vendor from mock data when Supabase is not available
@@ -242,12 +246,13 @@ export class VotingService {
       //   }
       // }
 
-      // 5. Check daily vote limit for this vendor (max 3 votes per vendor per day according to PRD)
+      // 5. Check daily vote limit for this vendor and determine vote number
       const today = new Date()
       today.setHours(0, 0, 0, 0)
       const tomorrow = new Date(today)
       tomorrow.setDate(tomorrow.getDate() + 1)
 
+      let todayVotesCount = 0
       try {
         const { data: todayVotes, error: checkError } = await this.supabase!
           .from('votes')
@@ -257,7 +262,9 @@ export class VotingService {
           .gte('created_at', today.toISOString())
           .lt('created_at', tomorrow.toISOString())
 
-        if (todayVotes && todayVotes.length >= 3) {
+        todayVotesCount = todayVotes ? todayVotes.length : 0
+
+        if (todayVotesCount >= 3) {
           console.log('⚠️ User has already voted 3 times for this vendor today')
           return {
             success: false,
@@ -277,39 +284,10 @@ export class VotingService {
         console.warn('⚠️ Could not check daily vote count, proceeding with insertion')
       }
 
-      // 6. Check if user already voted for this battle (to prevent constraint violation)
-      const battleId = getVendorBattleId(vendorId)
-      
-      try {
-        const { data: existingVote, error: checkError } = await this.supabase!
-          .from('votes')
-          .select('id, created_at, token_reward')
-          .eq('voter_fid', userFid)
-          .eq('battle_id', battleId)
-          .single()
-
-        if (existingVote) {
-          console.log('⚠️ User already voted for this battle:', existingVote.id)
-          return {
-            success: false,
-            tokensEarned: 0,
-            newBalance: 0,
-            streakBonus: 0,
-            territoryBonus: 0,
-            error: 'You have already voted for this vendor in this battle. Each vendor can only be voted once per battle.'
-          }
-        }
-      } catch (error) {
-        // If error is PGRST116 (no rows found), that's expected - user hasn't voted for this battle
-        if (error && typeof error === 'object' && 'code' in error && error.code === 'PGRST116') {
-          console.log('✅ User has not voted for this battle yet')
-        } else {
-          console.warn('⚠️ Could not check existing vote, proceeding with insertion')
-        }
-      }
-
-      // 7. Create vote record in database (only if Supabase is available)
+      // 6. Create vote record in database (only if Supabase is available)
       const voteId = uuidv4()
+      const voteNumber = todayVotesCount + 1 // This will be the vote number for today
+      const battleId = getVendorBattleId(vendorId, voteNumber) // Use appropriate battle ID based on vote number
       
       // Always include battle_id since it's NOT NULL
       const voteRecord: any = {
