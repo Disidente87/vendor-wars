@@ -61,7 +61,8 @@
     "create:user-battles": "npx tsx scripts/create-user-battles.ts",
     "test:user-battle-system": "npx tsx scripts/test-user-battle-system.ts",
     "test:encoded-battle-system": "npx tsx scripts/test-encoded-battle-system.ts",
-    "create:encoded-battles": "npx tsx scripts/create-encoded-battles.ts"
+    "create:encoded-battles": "npx tsx scripts/create-encoded-battles.ts",
+    "sync:tokens": "npx tsx scripts/sync-tokens-redis-db.ts"
   },
   "dependencies": {
     "@coinbase/onchainkit": "^0.38.18",

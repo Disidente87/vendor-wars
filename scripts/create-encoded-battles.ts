@@ -1,4 +1,8 @@
 import { createClient } from '@supabase/supabase-js'
+import * as dotenv from 'dotenv'
+
+// Load environment variables from .env.local
+dotenv.config({ path: '.env.local' })
 
 // Load environment variables
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -48,13 +52,13 @@ async function createEncodedBattles() {
     '22222'   // Another test user
   ]
 
-  // Test vendors
+  // Test vendors with zone IDs
   const testVendors = [
-    { id: '772cdbda-2cbb-4c67-a73a-3656bf02a4c1', name: 'Pupusas María' },
-    { id: '111f3776-b7c4-4ee0-80e1-5ca89e8ea9d0', name: 'Tacos El Rey' },
-    { id: '525c09b3-dc92-409b-a11d-896bcf4d15b2', name: 'Café Aroma' },
-    { id: '85f2a3a9-b9a7-4213-92bb-0b902d3ab4d1', name: 'Pizza Napoli' },
-    { id: 'bf47b04b-cdd8-4dd3-bfac-5a379ce07f28', name: 'Sushi Express' }
+    { id: '772cdbda-2cbb-4c67-a73a-3656bf02a4c1', name: 'Pupusas María', zone_id: '49298ccd-5b91-4a41-839d-98c3b2cc504b', category: 'pupusas' },
+    { id: '111f3776-b7c4-4ee0-80e1-5ca89e8ea9d0', name: 'Tacos El Rey', zone_id: '61bace3e-ae39-4bb5-997b-1737122e8849', category: 'tacos' },
+    { id: '525c09b3-dc92-409b-a11d-896bcf4d15b2', name: 'Café Aroma', zone_id: '100b486d-5859-4ab1-9112-2d4bbabcba46', category: 'bebidas' },
+    { id: '85f2a3a9-b9a7-4213-92bb-0b902d3ab4d1', name: 'Pizza Napoli', zone_id: '49298ccd-5b91-4a41-839d-98c3b2cc504b', category: 'otros' },
+    { id: 'bf47b04b-cdd8-4dd3-bfac-5a379ce07f28', name: 'Sushi Express', zone_id: '61bace3e-ae39-4bb5-997b-1737122e8849', category: 'otros' }
   ]
 
   const battlesToCreate = []
@@ -64,11 +68,20 @@ async function createEncodedBattles() {
     for (const vendor of testVendors) {
       for (let voteNumber = 1; voteNumber <= 3; voteNumber++) {
         const battleId = getEncodedBattleId(vendor.id, userFid, voteNumber)
+        const now = new Date()
+        const startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0).toISOString()
+        const endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59).toISOString()
+        
         battlesToCreate.push({
           id: battleId,
-          name: `Battle: ${vendor.name} - User ${userFid} - Vote ${voteNumber}`,
-          description: `Encoded battle for ${vendor.name}, user ${userFid}, vote number ${voteNumber} on ${new Date().toISOString().split('T')[0]}`,
+          challenger_id: vendor.id, // Use vendor ID as challenger
+          opponent_id: vendor.id, // Use same vendor ID as opponent for now
+          category: vendor.category, // Use vendor's category
+          zone_id: vendor.zone_id, // Use vendor's zone ID
           status: 'active',
+          start_date: startDate,
+          end_date: endDate,
+          description: `Vote battle for ${vendor.name} - User ${userFid} - Vote ${voteNumber}`,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         })
@@ -79,7 +92,7 @@ async function createEncodedBattles() {
   console.log(`📋 Creating ${battlesToCreate.length} encoded battle IDs...`)
   console.log('Sample battle IDs:')
   battlesToCreate.slice(0, 5).forEach(battle => {
-    console.log(`  - ${battle.id}: ${battle.name}`)
+    console.log(`  - ${battle.id}`)
   })
   console.log()
 
@@ -88,7 +101,7 @@ async function createEncodedBattles() {
     const { data, error } = await supabase
       .from('battles')
       .insert(battlesToCreate)
-      .select('id, name')
+      .select('id')
 
     if (error) {
       if (error.code === '23505') { // Unique constraint violation
@@ -129,7 +142,7 @@ async function createEncodedBattles() {
     console.log('\n🔍 Verifying encoded battle IDs exist...')
     const { data: allBattles, error: fetchError } = await supabase
       .from('battles')
-      .select('id, name')
+      .select('id')
       .order('id')
 
     if (fetchError) {
@@ -140,7 +153,7 @@ async function createEncodedBattles() {
       // Show some examples
       console.log('\n📋 Sample encoded battles in database:')
       allBattles?.slice(0, 10).forEach(battle => {
-        console.log(`  - ${battle.id}: ${battle.name}`)
+        console.log(`  - ${battle.id}`)
       })
     }
 
