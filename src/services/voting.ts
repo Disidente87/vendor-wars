@@ -289,13 +289,15 @@ export class VotingService {
       // 6. Create vote record in database (only if Supabase is available)
       const voteId = uuidv4()
       
-      // Determine battle ID based on whether this is the first vote attempt or subsequent votes
+      // Determine battle ID based on the actual vote number for today
       // For the first vote of the day, use vendor-specific battle ID
-      // For subsequent votes (2nd, 3rd), use generic battle ID to avoid constraint violations
-      const isFirstVoteAttempt = todayVotesCount === 0
-      const battleId = isFirstVoteAttempt 
+      // For subsequent votes (2nd, 3rd), generate unique battle IDs
+      const voteNumber = todayVotesCount + 1 // This will be the vote number for this vote
+      const battleId = voteNumber === 1 
         ? getVendorBattleId(vendorId, 1) // First vote: vendor-specific battle ID
-        : getVendorBattleId(vendorId, 2) // Subsequent votes: generic battle ID
+        : getVendorBattleId(vendorId, voteNumber) // Subsequent votes: unique battle ID
+      
+      console.log(`🗳️ Vote #${voteNumber} for vendor ${vendorId}, using battle ID: ${battleId}`)
       
       // Always include battle_id since it's NOT NULL
       const voteRecord: any = {

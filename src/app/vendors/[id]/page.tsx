@@ -133,14 +133,8 @@ export default function VendorProfilePage({ params }: { params: Promise<{ id: st
         setShowVoteModal(true)
         refreshBalance() // Refresh token balance
         
-        // Refresh vendor data and top voters after successful vote
-        if (vendor) {
-          // Wait a moment for the database to update, then refresh vendor data
-          setTimeout(() => {
-            fetchVendor(vendor.id)
-            loadTopVoters()
-          }, 1000)
-        }
+        // Don't refresh vendor data immediately to avoid modal re-render
+        // The stats will be updated when the user closes the modal
       } else {
         console.error('❌ Vote failed:', result.error)
         setError(result.error || 'Vote failed')
@@ -156,6 +150,14 @@ export default function VendorProfilePage({ params }: { params: Promise<{ id: st
   const handleCloseVoteModal = () => {
     setShowVoteModal(false)
     setVoteResult(null)
+    
+    // Actualizar con delay para evitar re-render del modal
+    setTimeout(() => {
+      if (vendor) {
+        fetchVendor(vendor.id)
+        loadTopVoters()
+      }
+    }, 100)
   }
 
   // Generate dynamic top voters based on vendor data

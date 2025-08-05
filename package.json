@@ -54,7 +54,8 @@
     "cleanup:test-votes": "npx tsx scripts/cleanup-test-votes.ts",
     "create:temp-battles": "npx tsx scripts/create-temp-battles.ts",
     "test:multiple-voting-fixed": "npx tsx scripts/test-multiple-voting-fixed.ts",
-    "cleanup:temp-battles": "npx tsx scripts/cleanup-temp-battles.ts"
+    "cleanup:temp-battles": "npx tsx scripts/cleanup-temp-battles.ts",
+    "test:vote-registration": "npx tsx scripts/test-vote-registration.ts"
   },
   "dependencies": {
     "@coinbase/onchainkit": "^0.38.18",
