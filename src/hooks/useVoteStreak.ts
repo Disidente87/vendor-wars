@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from 'react'
-import { useQuickAuth } from './useQuickAuth'
+import { useFarcasterAuth } from './useFarcasterAuth'
 
 export function useVoteStreak() {
-  const { authenticatedUser } = useQuickAuth()
+  const { user: authenticatedUser } = useFarcasterAuth()
   const [streak, setStreak] = useState<number | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)

@@ -49,8 +49,14 @@ async function createGenericBattle() {
 
   const genericBattle = {
     id: genericBattleId,
+    challenger_id: '772cdbda-2cbb-4c67-a73a-3656bf02a4c1', // Pupusas María
+    opponent_id: '111f3776-b7c4-4ee0-80e1-5ca89e8ea9d0', // Tacos El Rey
+    category: 'pupusas',
     zone_id: '49298ccd-5b91-4a41-839d-98c3b2cc504b', // Default zone
     status: 'active',
+    description: 'Generic battle for subsequent votes (2nd and 3rd votes per vendor per day)',
+    start_date: new Date().toISOString(),
+    end_date: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24 hours from now
     created_at: new Date().toISOString()
   }
 
