@@ -321,12 +321,29 @@ export class VotingService {
 
         if (voteError) {
           console.error('Error creating vote in Supabase:', voteError)
-          // Continue with mock data - don't fail the vote
+          // Fail the vote if we can't insert it into the database
+          return {
+            success: false,
+            tokensEarned: 0,
+            newBalance: 0,
+            streakBonus: 0,
+            territoryBonus: 0,
+            error: 'Failed to register vote in database. Please try again.'
+          }
         } else {
           console.log('✅ Vote recorded in Supabase')
         }
       } catch (error) {
-        console.warn('⚠️ Supabase not available for vote recording, continuing with mock data')
+        console.error('❌ Supabase not available for vote recording')
+        // Fail the vote if Supabase is not available
+        return {
+          success: false,
+          tokensEarned: 0,
+          newBalance: 0,
+          streakBonus: 0,
+          territoryBonus: 0,
+          error: 'Database not available. Please try again later.'
+        }
       }
 
       // 7. Create attestation if verified vote (only if Supabase is available)
