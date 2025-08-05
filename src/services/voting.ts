@@ -146,8 +146,22 @@ export class VotingService {
    */
   private static ensureSupabaseClient() {
     if (!this.supabase) {
+      console.log('🔧 Initializing Supabase client...')
       this.supabase = getSupabaseClient()
+      console.log('✅ Supabase client initialized')
+    } else {
+      console.log('✅ Supabase client already initialized')
     }
+  }
+
+  /**
+   * Reset Supabase client (useful for debugging connection issues)
+   */
+  private static resetSupabaseClient() {
+    console.log('🔄 Resetting Supabase client...')
+    this.supabase = null
+    this.ensureSupabaseClient()
+    console.log('✅ Supabase client reset complete')
   }
 
   /**
@@ -171,6 +185,13 @@ export class VotingService {
   static async registerVote(voteData: VoteData): Promise<VoteResult> {
     try {
       const { userFid, vendorId, voteType, photoUrl, gpsLocation, verificationConfidence } = voteData
+      
+      console.log('🗳️ Starting vote registration for:', {
+        userFid,
+        vendorId,
+        voteType,
+        hasPhoto: !!photoUrl
+      })
 
       // 1. Validate vendor exists first - try Supabase, fallback to mock data
       let vendor = null
@@ -186,16 +207,45 @@ export class VotingService {
 
         vendor = data
         vendorError = error
+        
+        if (vendor) {
+          console.log('✅ Found vendor in Supabase:', vendor.name)
+        } else if (error) {
+          console.log('⚠️ Supabase error:', error.message)
+        }
       } catch (error) {
-        console.warn('⚠️ Supabase not available, using mock data')
-        vendorError = error
+        console.warn('⚠️ Supabase connection failed, trying to reset client...')
+        // Try to reset the client and try again
+        try {
+          this.resetSupabaseClient()
+          const { data, error: retryError } = await this.supabase!
+            .from('vendors')
+            .select('id, name')
+            .eq('id', vendorId)
+            .single()
+
+          vendor = data
+          vendorError = retryError
+          
+          if (vendor) {
+            console.log('✅ Found vendor in Supabase after reset:', vendor.name)
+          } else if (retryError) {
+            console.log('⚠️ Supabase still failing after reset:', retryError.message)
+          }
+        } catch (retryError) {
+          console.warn('⚠️ Supabase still not available after reset, using mock data')
+          vendorError = retryError
+        }
       }
 
-      // If Supabase failed, try mock data
+      // If Supabase failed or vendor not found, try mock data
       if (vendorError || !vendor) {
+        console.log('🔍 Trying to find vendor in mock data:', vendorId)
         vendor = getMockVendor(vendorId)
+        
         if (!vendor) {
-          console.error('Vendor not found in Supabase or mock data:', vendorId)
+          console.error('❌ Vendor not found in Supabase or mock data:', vendorId)
+          console.log('Available mock vendors:', MOCK_VENDORS.map(v => v.id))
           return {
             success: false,
             tokensEarned: 0,
