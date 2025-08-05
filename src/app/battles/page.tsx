@@ -3,13 +3,7 @@
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { useRouter } from 'next/navigation'
-import { 
-  ArrowLeft, 
-  MapPin, 
-  Store, 
-  User, 
-  Users
-} from 'lucide-react'
+import { ArrowLeft } from 'lucide-react'
 
 interface LiveBattle {
   id: string

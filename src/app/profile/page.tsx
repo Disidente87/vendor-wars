@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { 
@@ -75,14 +75,82 @@ export default function ProfilePage() {
   const [activeTab, setActiveTab] = useState<'overview' | 'achievements' | 'activity'>('overview')
   const [userStats, setUserStats] = useState<UserStats | null>(null)
 
-  useEffect(() => {
-    if (farcasterUser && isAuthenticated) {
-      // Fetch real user stats from the database
-      fetchUserStats()
-    }
-  }, [farcasterUser, isAuthenticated])
+  const getAchievements = (totalVotes: number, verifiedVotes: number, uniqueVendors: number): Achievement[] => {
+    return [
+      {
+        id: 'first-vote',
+        name: 'First Vote',
+        description: 'Cast your first vote',
+        icon: '🎯',
+        unlocked: totalVotes >= 1,
+        progress: Math.min(totalVotes, 1),
+        maxProgress: 1
+      },
+      {
+        id: 'verified-voter',
+        name: 'Verified Voter',
+        description: 'Cast 10 verified votes',
+        icon: '✅',
+        unlocked: verifiedVotes >= 10,
+        progress: Math.min(verifiedVotes, 10),
+        maxProgress: 10
+      },
+      {
+        id: 'vendor-explorer',
+        name: 'Vendor Explorer',
+        description: 'Vote for 5 different vendors',
+        icon: '🗺️',
+        unlocked: uniqueVendors >= 5,
+        progress: Math.min(uniqueVendors, 5),
+        maxProgress: 5
+      },
+      {
+        id: 'voting-streak',
+        name: 'Voting Streak',
+        description: 'Maintain a 7-day voting streak',
+        icon: '🔥',
+        unlocked: false, // Will be calculated from actual streak data
+        progress: 0,
+        maxProgress: 7
+      }
+    ]
+  }
 
-  const fetchUserStats = async () => {
+  const getRecentActivity = (votes: any[]): Activity[] => {
+    return votes.slice(0, 5).map((vote, index) => ({
+      id: `vote-${vote.id || index}`,
+      type: 'vote',
+      title: `Voted for ${vote.vendor_name || 'Unknown Vendor'}`,
+      description: vote.is_verified ? 'Verified vote cast' : 'Regular vote cast',
+      timestamp: vote.created_at || new Date().toISOString(),
+      tokens: vote.is_verified ? 5 : 1
+    }))
+  }
+
+  const getTopVendors = (votes: any[]): TopVendor[] => {
+    const vendorVotes = votes.reduce((acc: any, vote: any) => {
+      const vendorId = vote.vendor_id
+      if (!acc[vendorId]) {
+        acc[vendorId] = {
+          id: vendorId,
+          name: vote.vendor_name || 'Unknown Vendor',
+          imageUrl: vote.vendor_image_url || 'https://images.unsplash.com/photo-1595273670150-bd0c3c392e46?w=400&h=300&fit=crop',
+          votesReceived: 0,
+          totalVotes: 0,
+          zone: vote.zone_name || 'Unknown Zone'
+        }
+      }
+      acc[vendorId].votesReceived += 1
+      acc[vendorId].totalVotes += vote.is_verified ? 5 : 1
+      return acc
+    }, {})
+
+    return (Object.values(vendorVotes) as TopVendor[])
+      .sort((a: any, b: any) => b.totalVotes - a.totalVotes)
+      .slice(0, 3)
+  }
+
+  const fetchUserStats = useCallback(async () => {
     if (!farcasterUser) return
 
     try {
@@ -132,7 +200,14 @@ export default function ProfilePage() {
       // Fallback to basic stats
       setUserStats(getFallbackStats())
     }
-  }
+  }, [farcasterUser, balance])
+
+  useEffect(() => {
+    if (farcasterUser && isAuthenticated) {
+      // Fetch real user stats from the database
+      fetchUserStats()
+    }
+  }, [farcasterUser, isAuthenticated, fetchUserStats])
 
   const getFallbackStats = (): UserStats => {
     if (!farcasterUser) {
@@ -174,80 +249,7 @@ export default function ProfilePage() {
     }
   }
 
-  const getAchievements = (totalVotes: number, verifiedVotes: number, uniqueVendors: number): Achievement[] => {
-    return [
-      {
-        id: '1',
-        name: 'First Vote',
-        description: 'Cast your first vote for a vendor',
-        icon: '🎯',
-        unlocked: totalVotes >= 1,
-        progress: Math.min(totalVotes, 1),
-        maxProgress: 1
-      },
-      {
-        id: '2',
-        name: 'Verified Voter',
-        description: 'Cast 5 verified votes',
-        icon: '✅',
-        unlocked: verifiedVotes >= 5,
-        progress: verifiedVotes,
-        maxProgress: 5
-      },
-      {
-        id: '3',
-        name: 'Vendor Explorer',
-        description: 'Vote for 10 different vendors',
-        icon: '🗺️',
-        unlocked: uniqueVendors >= 10,
-        progress: uniqueVendors,
-        maxProgress: 10
-      },
-      {
-        id: '4',
-        name: 'Territory Master',
-        description: 'Cast 50 total votes',
-        icon: '🏆',
-        unlocked: totalVotes >= 50,
-        progress: totalVotes,
-        maxProgress: 50
-      }
-    ]
-  }
 
-  const getRecentActivity = (votes: any[]): Activity[] => {
-    return votes.slice(0, 5).map((vote, index) => ({
-      id: `vote-${index}`,
-      type: 'vote',
-      title: `Voted for ${vote.vendor_name || 'Vendor'}`,
-      description: vote.is_verified ? 'Verified vote' : 'Regular vote',
-      timestamp: vote.created_at,
-      tokens: vote.token_reward
-    }))
-  }
-
-  const getTopVendors = (votes: any[]): TopVendor[] => {
-    const vendorVotes: { [key: string]: any[] } = {}
-    
-    votes.forEach(vote => {
-      if (!vendorVotes[vote.vendor_id]) {
-        vendorVotes[vote.vendor_id] = []
-      }
-      vendorVotes[vote.vendor_id].push(vote)
-    })
-
-    return Object.entries(vendorVotes)
-      .map(([vendorId, vendorVotes]) => ({
-        id: vendorId,
-        name: vendorVotes[0].vendor_name || 'Unknown Vendor',
-        imageUrl: 'https://images.unsplash.com/photo-1595273670150-bd0c3c392e46?w=400&h=300&fit=crop',
-        votesReceived: vendorVotes.length,
-        totalVotes: vendorVotes.length,
-        zone: 'Unknown Zone'
-      }))
-      .sort((a, b) => b.votesReceived - a.votesReceived)
-      .slice(0, 3)
-  }
 
   const getRankColor = (rank: string) => {
     switch (rank) {

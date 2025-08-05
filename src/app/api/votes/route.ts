@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { VotingService } from '@/services/voting'
 import { tokenManager } from '@/lib/redis'
 
+const _tokenManager = tokenManager
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()

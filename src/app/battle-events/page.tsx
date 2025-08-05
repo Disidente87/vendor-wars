@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { useAuthSimulation } from '@/hooks/useAuthSimulation'
@@ -19,7 +19,7 @@ import {
 
 export default function BattleEventsPage() {
   const router = useRouter()
-  const { isAuthenticated, user, isLoading } = useAuthSimulation()
+  const { isAuthenticated, user: _user, isLoading } = useAuthSimulation()
 
   // Show loading while checking auth
   if (isLoading || !isAuthenticated) {

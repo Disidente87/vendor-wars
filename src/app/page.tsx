@@ -11,7 +11,7 @@ export default function HomePage() {
   const router = useRouter()
   const { isSDKLoaded, context } = useMiniApp()
   const [isConnecting, setIsConnecting] = useState(false)
-  const [showTutorial, setShowTutorial] = useState(false)
+  const [_showTutorial, setShowTutorial] = useState(false)
   
   // Use real Farcaster authentication
   const { isAuthenticated, user, isLoading, signIn, error } = useFarcasterAuth()

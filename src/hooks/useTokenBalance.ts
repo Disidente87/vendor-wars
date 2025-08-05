@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useQuickAuth } from './useQuickAuth'
 
 export function useTokenBalance() {
@@ -7,7 +7,7 @@ export function useTokenBalance() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const fetchBalance = async () => {
+  const fetchBalance = useCallback(async () => {
     if (!authenticatedUser) {
       setBalance(null)
       return
@@ -31,7 +31,7 @@ export function useTokenBalance() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [authenticatedUser])
 
   const refreshBalance = () => {
     fetchBalance()
@@ -39,7 +39,7 @@ export function useTokenBalance() {
 
   useEffect(() => {
     fetchBalance()
-  }, [authenticatedUser?.fid])
+  }, [authenticatedUser?.fid, fetchBalance])
 
   return {
     balance,

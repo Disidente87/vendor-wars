@@ -35,7 +35,7 @@ interface LeaderboardEntry {
 
 export default function LeaderboardPage() {
   const router = useRouter()
-  const { isAuthenticated, user, isLoading } = useAuthSimulation()
+  const { isAuthenticated, user: _user, isLoading } = useAuthSimulation()
   
   const [timeFilter, setTimeFilter] = useState<'daily' | 'weekly' | 'monthly' | 'all'>('weekly')
   const [activeTab, setActiveTab] = useState<'vendors' | 'users' | 'zones'>('vendors')

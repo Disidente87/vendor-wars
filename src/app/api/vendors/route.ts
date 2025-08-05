@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { VendorService } from '@/services/vendors'
 
+const _VendorService = VendorService
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
@@ -39,7 +41,6 @@ export async function GET(request: NextRequest) {
     console.log('📊 Direct Supabase response:', { vendorsCount: vendors?.length, count })
 
     // Map vendors using the same function
-    const { VendorService } = await import('@/services/vendors')
     const mappedVendors = vendors.map((vendor: any) => {
       return {
         id: vendor.id,

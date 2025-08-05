@@ -6,23 +6,7 @@ import { Button } from '@/components/ui/button'
 import { useMiniApp } from '@neynar/react'
 import { useAuthSimulation } from '@/hooks/useAuthSimulation'
 import { UserHeader } from '@/components/UserHeader'
-import { 
-  MapPin, 
-  Search, 
-  Plus, 
-  Minus, 
-  Navigation, 
-  Map, 
-  Users, 
-  User, 
-  List,
-  Crown,
-  Flame,
-  Trophy,
-  Coins,
-  Bell,
-  Swords
-} from 'lucide-react'
+import { Search, Plus, Minus, List, Crown, Flame, Trophy, Coins, Bell, Swords } from 'lucide-react'
 
 interface Zone {
   id: string
@@ -42,10 +26,10 @@ export default function MapPage() {
   const router = useRouter()
   const { isSDKLoaded, context } = useMiniApp()
   const [searchQuery, setSearchQuery] = useState('')
-  const [selectedZone, setSelectedZone] = useState<string | null>(null)
+  const [_selectedZone, setSelectedZone] = useState<string | null>(null)
   
   // Use simulation for development
-  const { isAuthenticated, user, isLoading } = useAuthSimulation()
+  const { isAuthenticated, user: _user, isLoading } = useAuthSimulation()
 
   // Check authentication status
   useEffect(() => {

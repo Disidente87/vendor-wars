@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { ArrowLeft, CheckCircle, AlertCircle, Upload, Camera } from 'lucide-react'
 import { useDevAuth } from '@/hooks/useDevAuth'
@@ -32,18 +32,7 @@ export default function VendorVerificationPage() {
 
   const vendorId = params.id as string
 
-  useEffect(() => {
-    if (!isAuthenticated && !authLoading) {
-      router.push('/')
-      return
-    }
-
-    if (isAuthenticated) {
-      fetchVendor()
-    }
-  }, [isAuthenticated, authLoading, router, vendorId])
-
-  const fetchVendor = async () => {
+  const fetchVendor = useCallback(async () => {
     try {
       const response = await fetch(`/api/vendors/${vendorId}`)
       const result = await response.json()
@@ -67,7 +56,18 @@ export default function VendorVerificationPage() {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [vendorId, authenticatedUser?.fid])
+
+  useEffect(() => {
+    if (!isAuthenticated && !authLoading) {
+      router.push('/')
+      return
+    }
+
+    if (isAuthenticated) {
+      fetchVendor()
+    }
+  }, [isAuthenticated, authLoading, router, vendorId, fetchVendor])
 
   const handleInputChange = (field: keyof VerificationFormData, value: string) => {
     setFormData(prev => ({

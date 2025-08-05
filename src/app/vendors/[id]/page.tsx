@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, Trophy, Users, Target, Shield, AlertCircle } from 'lucide-react'
@@ -38,15 +38,7 @@ export default function VendorProfilePage({ params }: { params: Promise<{ id: st
   const [topVoters, setTopVoters] = useState<TopVoter[]>([])
   const [loadingTopVoters, setLoadingTopVoters] = useState(false)
 
-  useEffect(() => {
-    const loadVendor = async () => {
-      const resolvedParams = await params
-      fetchVendor(resolvedParams.id)
-    }
-    loadVendor()
-  }, [params])
-
-  const fetchVendor = async (id: string) => {
+  const fetchVendor = useCallback(async (id: string) => {
     try {
       setLoading(true)
       setError(null)
@@ -68,7 +60,37 @@ export default function VendorProfilePage({ params }: { params: Promise<{ id: st
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
+
+  const loadTopVoters = useCallback(async () => {
+    if (!vendor) return
+    
+    setLoadingTopVoters(true)
+    try {
+      const voters = await getTopVoters(vendor)
+      setTopVoters(voters)
+    } catch (error) {
+      console.error('Error loading top voters:', error)
+    } finally {
+      setLoadingTopVoters(false)
+    }
+  }, [vendor])
+
+  // Load vendor data
+  useEffect(() => {
+    const loadVendor = async () => {
+      const resolvedParams = await params
+      fetchVendor(resolvedParams.id)
+    }
+    loadVendor()
+  }, [params, fetchVendor])
+
+  // Load top voters when vendor is loaded
+  useEffect(() => {
+    if (vendor) {
+      loadTopVoters()
+    }
+  }, [vendor, loadTopVoters])
 
   const handleVote = async (isVerified: boolean = false) => {
     if (!vendor || !authenticatedUser) return
@@ -214,27 +236,6 @@ export default function VendorProfilePage({ params }: { params: Promise<{ id: st
         </div>
       </div>
     )
-  }
-
-  // Load top voters when vendor is loaded
-  useEffect(() => {
-    if (vendor) {
-      loadTopVoters()
-    }
-  }, [vendor])
-
-  const loadTopVoters = async () => {
-    if (!vendor) return
-    
-    setLoadingTopVoters(true)
-    try {
-      const voters = await getTopVoters(vendor)
-      setTopVoters(voters)
-    } catch (error) {
-      console.error('Error loading top voters:', error)
-    } finally {
-      setLoadingTopVoters(false)
-    }
   }
 
   return (

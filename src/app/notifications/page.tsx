@@ -165,7 +165,7 @@ export default function NotificationsPage() {
     }
   }
 
-  const getNotificationIcon = (type: string) => {
+  const _getNotificationIcon = (type: string) => {
     switch (type) {
       case 'vote': return <Target className="w-5 h-5" />
       case 'territory': return <Map className="w-5 h-5" />
