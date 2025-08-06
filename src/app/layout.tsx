@@ -4,6 +4,7 @@ import "./globals.css"
 import { Navigation } from "@/components/navigation"
 import { BottomNavigation } from "@/components/BottomNavigation"
 import { MiniAppWrapper } from "@/components/MiniAppWrapper"
+import { AuthDebugger } from "@/components/AuthDebugger"
 
 const plusJakartaSans = Plus_Jakarta_Sans({
   variable: "--font-plus-jakarta-sans",
@@ -86,6 +87,9 @@ export default function RootLayout({
         }}
       >
         <MiniAppWrapper>
+          {/* Auth Debugger - Only show in development */}
+          {process.env.NODE_ENV === 'development' && <AuthDebugger />}
+          
           {/* Desktop Navigation - Hidden on mobile */}
           <div className="hidden md:block">
             <Navigation />

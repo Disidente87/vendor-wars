@@ -20,6 +20,17 @@ export function useFarcasterAuth(): UseFarcasterAuthReturn {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  // Debug logging for state changes
+  console.log('🔍 useFarcasterAuth state:', {
+    isSDKLoaded,
+    hasContext: !!context,
+    contextUser: context?.user,
+    isAuthenticated,
+    hasUser: !!user,
+    isLoading,
+    error
+  })
+
   // Function to check and reset streak if needed
   const checkAndResetStreak = async (userFid: number) => {
     try {
@@ -43,35 +54,49 @@ export function useFarcasterAuth(): UseFarcasterAuthReturn {
   }
 
   useEffect(() => {
+    console.log('🔄 useEffect triggered:', { isSDKLoaded, hasContext: !!context })
+    
     const initializeAuth = async () => {
+      console.log('🚀 Starting initializeAuth...')
+      
       if (!isSDKLoaded || !context) {
+        console.log('❌ SDK not loaded or no context, setting loading to false')
         setIsLoading(false)
         return
       }
 
-      try {
-        // First, try to restore authentication state from localStorage
-        const storedUser = localStorage.getItem('farcaster-auth-user')
-        if (storedUser) {
-          try {
-            const parsedUser = JSON.parse(storedUser)
-            console.log('Found stored user in localStorage:', parsedUser.fid)
+      console.log('✅ SDK loaded and context available')
+
+              try {
+          console.log('🔍 Checking localStorage for stored user...')
+          // First, try to restore authentication state from localStorage
+          const storedUser = localStorage.getItem('farcaster-auth-user')
+          console.log('📦 Stored user from localStorage:', storedUser ? 'Found' : 'Not found')
+          
+          if (storedUser) {
+            try {
+              const parsedUser = JSON.parse(storedUser)
+              console.log('✅ Parsed stored user from localStorage:', parsedUser.fid)
             
             // Verify the stored user still exists in database
+            console.log('🔍 Verifying stored user in database...')
             const response = await fetch(`/api/auth/farcaster?fid=${parsedUser.fid}`)
             const result = await response.json()
+            console.log('📡 Database verification result:', result)
             
             if (result.success) {
-              console.log('Stored user verified in database, restoring session...')
+              console.log('✅ Stored user verified in database, restoring session...')
               const updatedStreak = await checkAndResetStreak(parsedUser.fid)
               const updatedUser = {
                 ...result.data,
                 voteStreak: updatedStreak !== null ? updatedStreak : result.data.voteStreak
               }
               
+              console.log('🎉 Session restored successfully!')
               setUser(updatedUser)
               setIsAuthenticated(true)
               setIsLoading(false)
+              console.log('✅ Authentication state updated:', { isAuthenticated: true, hasUser: true })
               return
             } else {
               console.log('Stored user not found in database, clearing localStorage')
@@ -83,21 +108,25 @@ export function useFarcasterAuth(): UseFarcasterAuthReturn {
           }
         }
 
+        console.log('🔍 No stored user found, checking Mini App context...')
         // Check if user is already authenticated
         const { sdk } = await import('@farcaster/miniapp-sdk')
         
         // Get the current user from the Mini App context
         const currentUser = context.user
+        console.log('👤 Current user from context:', currentUser)
         
         if (currentUser && currentUser.fid) {
-          console.log('Found user in Mini App context:', currentUser.fid)
+          console.log('✅ Found user in Mini App context:', currentUser.fid)
           
           // Fetch user details from our API
+          console.log('🔍 Checking if user exists in database...')
           const response = await fetch(`/api/auth/farcaster?fid=${currentUser.fid}`)
           const result = await response.json()
+          console.log('📡 Database check result:', result)
           
           if (result.success) {
-            console.log('User found in database, authenticating...')
+            console.log('✅ User found in database, authenticating...')
             // Check and reset streak if needed
             const updatedStreak = await checkAndResetStreak(currentUser.fid)
             
@@ -107,23 +136,25 @@ export function useFarcasterAuth(): UseFarcasterAuthReturn {
               voteStreak: updatedStreak !== null ? updatedStreak : result.data.voteStreak
             }
             
+            console.log('🎉 Existing user authenticated successfully!')
             setUser(updatedUser)
             setIsAuthenticated(true)
           } else {
-            console.log('User not found in database, will create on sign in')
+            console.log('❌ User not found in database, will create on sign in')
             // Don't create user automatically - wait for sign in
             setUser(null)
             setIsAuthenticated(false)
           }
         } else {
-          console.log('No user in Mini App context')
+          console.log('❌ No user in Mini App context')
           setUser(null)
           setIsAuthenticated(false)
         }
       } catch (err) {
-        console.error('Error initializing Farcaster auth:', err)
+        console.error('❌ Error initializing Farcaster auth:', err)
         setError('Failed to initialize authentication')
       } finally {
+        console.log('🏁 Initialization complete, setting loading to false')
         setIsLoading(false)
       }
     }

@@ -27,7 +27,10 @@
     "cleanup:package-json": "npx tsx scripts/cleanup-package-json.ts",
     "check:users-schema": "npx tsx scripts/check-users-schema.ts",
     "test:auth": "npx tsx scripts/test-auth-flow.ts",
-    "test:persistence": "npx tsx scripts/test-auth-persistence.ts"
+    "test:persistence": "npx tsx scripts/test-auth-persistence.ts",
+    "debug:auth": "npx tsx scripts/debug-auth-state.ts",
+    "check:localstorage": "npx tsx scripts/check-localstorage.ts",
+    "create:checker": "npx tsx scripts/simple-localstorage-check.ts"
   },
   "dependencies": {
     "@coinbase/onchainkit": "^0.38.18",
