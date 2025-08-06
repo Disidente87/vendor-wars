@@ -62,7 +62,14 @@
     "test:user-battle-system": "npx tsx scripts/test-user-battle-system.ts",
     "test:encoded-battle-system": "npx tsx scripts/test-encoded-battle-system.ts",
     "create:encoded-battles": "npx tsx scripts/create-encoded-battles.ts",
-    "sync:tokens": "npx tsx scripts/sync-tokens-redis-db.ts"
+    "sync:tokens": "npx tsx scripts/sync-tokens-redis-db.ts",
+    "reset:tokens": "npx tsx scripts/reset-tokens-db.ts",
+    "clear:redis": "npx tsx scripts/clear-redis-cache.ts",
+    "cleanup:profiles": "npx tsx scripts/cleanup-profiles.ts",
+    "check:profiles": "npx tsx scripts/check-profiles.ts",
+    "cleanup:battles": "npx tsx scripts/cleanup-battles.ts",
+    "create:default-battle": "npx tsx scripts/create-default-battle.ts",
+    "test:new-voting": "npx tsx scripts/test-new-voting-system.ts"
   },
   "dependencies": {
     "@coinbase/onchainkit": "^0.38.18",

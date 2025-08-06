@@ -164,14 +164,14 @@ export default function VendorProfilePage({ params }: { params: Promise<{ id: st
   const getTopVoters = async (vendor: Vendor): Promise<TopVoter[]> => {
     try {
       // Fetch real top voters from the database
-      const response = await fetch(`/api/votes?vendorId=${vendor.id}&limit=3`)
+      const response = await fetch(`/api/votes?vendorId=${vendor.id}`)
       const result = await response.json()
       
-      if (result.success && result.data) {
+      if (result.success && result.data && result.data.votes) {
         // Group votes by user and calculate totals
         const userVotes: { [key: string]: any[] } = {}
         
-        result.data.forEach((vote: any) => {
+        result.data.votes.forEach((vote: any) => {
           if (!userVotes[vote.voter_fid]) {
             userVotes[vote.voter_fid] = []
           }
@@ -180,15 +180,18 @@ export default function VendorProfilePage({ params }: { params: Promise<{ id: st
 
         // Convert to TopVoter format
         const topVoters = Object.entries(userVotes)
-          .map(([fid, votes]) => ({
-            id: fid,
-            username: votes[0].voter_username || `user_${fid}`,
-            displayName: votes[0].voter_display_name || `User ${fid}`,
-            avatar: votes[0].voter_pfp_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${fid}`,
-            votesGiven: votes.length,
-            totalVotes: votes.length,
-            isVerified: votes.some((vote: any) => vote.is_verified)
-          }))
+          .map(([fid, votes]) => {
+            const user = votes[0].users
+            return {
+              id: fid,
+              username: user?.username || `user_${fid}`,
+              displayName: user?.display_name || `User ${fid}`,
+              avatar: user?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${fid}`,
+              votesGiven: votes.length,
+              totalVotes: votes.length,
+              isVerified: votes.some((vote: any) => vote.is_verified)
+            }
+          })
           .sort((a, b) => b.votesGiven - a.votesGiven)
           .slice(0, 3)
 

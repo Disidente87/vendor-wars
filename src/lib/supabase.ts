@@ -206,100 +206,46 @@ export type Database = {
           updated_at?: string
         }
       }
-      battles: {
-        Row: {
-          id: string
-          challenger_id: string
-          opponent_id: string
-          category: 'pupusas' | 'tacos' | 'tamales' | 'quesadillas' | 'tortas' | 'bebidas' | 'postres' | 'otros'
-          zone: string
-          status: 'pending' | 'active' | 'completed' | 'cancelled'
-          start_date: string
-          end_date: string | null
-          winner_id: string | null
-          total_votes: number
-          verified_votes: number
-          description: string
-          territory_impact: boolean
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          challenger_id: string
-          opponent_id: string
-          category: 'pupusas' | 'tacos' | 'tamales' | 'quesadillas' | 'tortas' | 'bebidas' | 'postres' | 'otros'
-          zone: string
-          status?: 'pending' | 'active' | 'completed' | 'cancelled'
-          start_date: string
-          end_date?: string | null
-          winner_id?: string | null
-          total_votes?: number
-          verified_votes?: number
-          description: string
-          territory_impact?: boolean
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          challenger_id?: string
-          opponent_id?: string
-          category?: 'pupusas' | 'tacos' | 'tamales' | 'quesadillas' | 'tortas' | 'bebidas' | 'postres' | 'otros'
-          zone?: string
-          status?: 'pending' | 'active' | 'completed' | 'cancelled'
-          start_date?: string
-          end_date?: string | null
-          winner_id?: string | null
-          total_votes?: number
-          verified_votes?: number
-          description?: string
-          territory_impact?: boolean
-          created_at?: string
-          updated_at?: string
-        }
-      }
+
       votes: {
         Row: {
           id: string
           voter_fid: number
-          battle_id: string
           vendor_id: string
           is_verified: boolean
           token_reward: number
           multiplier: number
+          vote_date: string
           created_at: string
           reason?: string
-          attestation_id?: string
         }
         Insert: {
           id?: string
           voter_fid: number
-          battle_id: string
           vendor_id: string
           is_verified?: boolean
           token_reward?: number
           multiplier?: number
+          vote_date?: string
           created_at?: string
           reason?: string
-          attestation_id?: string
         }
         Update: {
           id?: string
           voter_fid?: number
-          battle_id?: string
           vendor_id?: string
           is_verified?: boolean
           token_reward?: number
           multiplier?: number
+          vote_date?: string
           created_at?: string
           reason?: string
-          attestation_id?: string
         }
       }
       attestations: {
         Row: {
           id: string
+          vote_id: string
           user_fid: number
           vendor_id: string
           photo_hash: string
@@ -313,6 +259,7 @@ export type Database = {
         }
         Insert: {
           id?: string
+          vote_id: string
           user_fid: number
           vendor_id: string
           photo_hash: string
@@ -326,6 +273,7 @@ export type Database = {
         }
         Update: {
           id?: string
+          vote_id?: string
           user_fid?: number
           vendor_id?: string
           photo_hash?: string

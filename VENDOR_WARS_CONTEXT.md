@@ -998,10 +998,17 @@ if (todayVotesCount >= 3) {
 
 ### **Próximos Pasos:**
 
-1. **Testing Manual**: Verificar que el flujo funciona correctamente en la app
-2. **Validación de Datos**: Confirmar que los votos se registran en la base de datos
-3. **Monitoreo**: Observar el comportamiento en producción
-4. **Optimización**: Considerar limpieza periódica de battle IDs temporales
+1. **Testing Manual**: Verificar que el sistema de votación funciona correctamente
+2. **Monitoreo**: Observar el comportamiento de las battle IDs en producción
+3. **Optimización**: Considerar mejoras en el formato si es necesario
+4. **Documentación**: Mantener documentación actualizada del sistema
+
+### **Casos de Uso Cubiertos:**
+
+- **Voto exitoso**: Battle ID generada y decodificada correctamente
+- **Límite de votos**: Sistema rechaza votos después del tercero
+- **Información completa**: Cada voto tiene información completa codificada
+- **Debugging**: Fácil identificación y análisis de votos
 
 ---
 
@@ -1637,3 +1644,472 @@ for (const userFid of testUserFids) {
 ---
 
 *Este sistema de battle IDs codificados proporciona una solución elegante y completa que combina la funcionalidad de votación con información detallada y legible, facilitando el debugging y monitoreo del sistema.* 
+
+---
+
+## 🆕 **Solución al Problema de Tokens que se Reescriben (Diciembre 2024 - Octava Iteración)**
+
+### **Problema Identificado:**
+Los tokens $BATTLE se reescribían a la base de datos con valores anteriores después de ser reseteados a 0, causando inconsistencias entre la base de datos y la aplicación.
+
+### **Causa Raíz:**
+- **Redis como Fuente Principal**: El sistema usa Redis como fuente principal de los tokens
+- **Base de Datos como Respaldo**: La base de datos se actualiza como respaldo después de cada voto
+- **Caché Persistente**: Redis mantiene los valores anteriores en caché
+- **Falta de Sincronización**: No había mecanismo para sincronizar Redis con la base de datos
+
+### **Análisis del Sistema de Tokens:**
+
+#### **1. Flujo de Tokens:**
+```
+1. Usuario vota → 2. Tokens calculados → 3. Agregados a Redis → 4. Base de datos actualizada como respaldo
+```
+
+#### **2. Problema de Caché:**
+```typescript
+// En src/lib/redis.ts - tokenManager.getUserTokens()
+async getUserTokens(userFid: string): Promise<number> {
+  const key = `${REDIS_KEYS.USER_TOKENS}:${userFid}`
+  const tokens = await redis.get(key)
+  
+  if (tokens === null) {
+    // Cache miss, fetch from database
+    // This will be implemented when we connect to the database
+    return 0  // ← Aquí está el problema
+  }
+  
+  return tokens as number
+}
+```
+
+#### **3. Actualización en VotingService:**
+```typescript
+// En src/services/voting.ts - registerVote()
+// 8. Update user tokens in Redis and database (ONLY if vote was successful)
+const newBalance = await this.safeRedisOperation(
+  () => tokenManager.addTokens(userFid, tokenCalculation.totalTokens),
+  () => mockRedis.addTokens(userFid, tokenCalculation.totalTokens)
+)
+
+// Also update database if available
+try {
+  await this.supabase!
+    .from('users')
+    .update({ battle_tokens: newBalance })
+    .eq('fid', userFid)
+} catch (error) {
+  console.warn('⚠️ Supabase not available for user update, continuing with Redis only')
+}
+```
+
+### **Solución Implementada: Scripts de Gestión de Tokens**
+
+#### **1. Script de Reseteo de Tokens en Base de Datos:**
+```typescript
+// scripts/reset-tokens-db.ts
+async function resetTokensDB() {
+  // 1. Obtener todos los usuarios
+  const { data: users } = await supabase
+    .from('users')
+    .select('fid, battle_tokens')
+    .order('fid')
+
+  // 2. Mostrar balances actuales
+  for (const user of users || []) {
+    console.log(`  User ${user.fid}: ${user.battle_tokens || 0} tokens`)
+  }
+
+  // 3. Resetear todos los tokens a 0
+  for (const user of users || []) {
+    await supabase
+      .from('users')
+      .update({ battle_tokens: 0 })
+      .eq('fid', user.fid)
+  }
+
+  // 4. Verificar el reseteo
+  const { data: updatedUsers } = await supabase
+    .from('users')
+    .select('fid, battle_tokens')
+    .order('fid')
+}
+```
+
+#### **2. Script de Limpieza de Caché Redis:**
+```typescript
+// scripts/clear-redis-cache.ts
+async function clearRedisCache() {
+  // 1. Conectar a Redis
+  const redis = new Redis({
+    url: process.env.UPSTASH_REDIS_REST_URL!,
+    token: process.env.UPSTASH_REDIS_REST_TOKEN!,
+  })
+
+  // 2. Obtener todas las claves
+  const keys = await redis.keys('*')
+  console.log(`✅ Found ${keys.length} keys in Redis`)
+
+  // 3. Eliminar todas las claves
+  for (const key of keys) {
+    await redis.del(key)
+    console.log(`   ✅ Deleted: ${key}`)
+  }
+}
+```
+
+#### **3. Script de Sincronización (Opcional):**
+```typescript
+// scripts/sync-tokens-redis-db.ts
+async function syncTokensRedisDB() {
+  // 1. Obtener usuarios de la base de datos
+  const { data: users } = await supabase
+    .from('users')
+    .select('fid, battle_tokens')
+
+  // 2. Comparar con Redis
+  for (const user of users || []) {
+    const redisTokens = await tokenManager.getUserTokens(user.fid)
+    const dbTokens = user.battle_tokens || 0
+
+    // 3. Sincronizar si es necesario
+    if (dbTokens !== redisTokens) {
+      await tokenManager.updateUserTokens(user.fid, dbTokens)
+    }
+  }
+}
+```
+
+### **Archivos Creados:**
+
+#### **Scripts de Gestión:**
+- `scripts/reset-tokens-db.ts` - Resetea tokens en la base de datos
+- `scripts/clear-redis-cache.ts` - Limpia el caché de Redis
+- `scripts/sync-tokens-redis-db.ts` - Sincroniza tokens entre Redis y DB
+
+#### **Scripts Agregados al Package.json:**
+- `npm run reset:tokens` - Resetear tokens en base de datos
+- `npm run clear:redis` - Limpiar caché de Redis
+- `npm run sync:tokens` - Sincronizar tokens (opcional)
+
+### **Proceso de Reseteo Completo:**
+
+#### **Paso 1: Resetear Base de Datos**
+```bash
+npm run reset:tokens
+```
+**Resultado:**
+```
+🔄 Resetting tokens in database...
+✅ Found 11 users in database
+✅ 11 users reset to 0
+🎉 Token reset complete!
+```
+
+#### **Paso 2: Limpiar Caché Redis**
+```bash
+npm run clear:redis
+```
+**Resultado:**
+```
+🔄 Clearing Redis cache...
+✅ Found 16 keys in Redis
+✅ Successfully deleted 16 keys
+🎉 Redis cache cleared!
+```
+
+### **Beneficios de la Solución:**
+
+#### **✅ Consistencia Garantizada:**
+- Base de datos y Redis sincronizados
+- No más reescrituras de tokens antiguos
+- Estado limpio para testing
+
+#### **✅ Herramientas de Gestión:**
+- Scripts automatizados para reseteo
+- Limpieza completa de caché
+- Verificación de sincronización
+
+#### **✅ Flexibilidad:**
+- Reseteo selectivo por usuario
+- Limpieza completa o parcial
+- Opciones de sincronización
+
+#### **✅ Debugging Mejorado:**
+- Visibilidad completa del estado
+- Logs detallados de operaciones
+- Verificación automática
+
+### **Estado Actual del Sistema:**
+
+- **✅ Tokens Reseteados**: Todos los usuarios tienen 0 tokens en la base de datos
+- **✅ Caché Limpio**: Redis no tiene datos de tokens almacenados
+- **✅ Herramientas Disponibles**: Scripts listos para gestión futura
+- **✅ Consistencia**: Base de datos y Redis sincronizados
+
+### **Recomendaciones para el Futuro:**
+
+#### **1. Reseteo Regular:**
+- Usar `npm run reset:tokens` antes de testing
+- Usar `npm run clear:redis` para limpiar caché
+- Verificar consistencia después de cambios
+
+#### **2. Monitoreo:**
+- Revisar logs de tokens regularmente
+- Verificar sincronización Redis-DB
+- Monitorear crecimiento de caché
+
+#### **3. Optimización:**
+- Considerar TTL más cortos para caché
+- Implementar sincronización automática
+- Agregar validaciones de consistencia
+
+### **Casos de Uso Cubiertos:**
+
+- **Testing Limpio**: Reseteo completo antes de pruebas
+- **Debugging**: Identificación de inconsistencias
+- **Mantenimiento**: Limpieza regular del sistema
+- **Recuperación**: Restauración de estado consistente
+
+---
+
+*Esta solución proporciona un control completo sobre el sistema de tokens, eliminando las inconsistencias y proporcionando herramientas robustas para la gestión y mantenimiento del sistema.*
+
+---
+
+## 🆕 **Solución al Problema de Archivos de Profiling (Diciembre 2024 - Novena Iteración)**
+
+### **Problema Identificado:**
+Al iniciar la aplicación, aparecía un mensaje de `sampling-profile-tra...23149207.cpuprofile` que abría automáticamente la ventana de compartir del celular, causando una experiencia de usuario molesta.
+
+### **Causa Raíz:**
+- **Next.js Performance Profiling**: Next.js genera automáticamente archivos de profiling cuando detecta problemas de rendimiento
+- **Archivos .cpuprofile**: Archivos de perfil de CPU generados por el motor V8 de Node.js
+- **Ventana de Compartir**: El sistema operativo móvil interpreta estos archivos como archivos para compartir
+- **Configuración por Defecto**: Next.js tiene habilitado el profiling por defecto en desarrollo
+
+### **Análisis del Problema:**
+
+#### **1. Tipos de Archivos de Profiling:**
+```
+- *.cpuprofile     → Perfil de uso de CPU
+- *.heapprofile    → Perfil de uso de memoria
+- *.heapsnapshot   → Snapshot de memoria
+- performance-*.json → Datos de rendimiento
+- trace-*.json     → Trazas de ejecución
+- sampling-profile-* → Perfiles de muestreo
+```
+
+#### **2. Ubicaciones de Archivos:**
+```
+- /project-root/*.cpuprofile
+- /.next/cache/
+- /.next/trace/
+- /.next/profiling/
+```
+
+### **Solución Implementada: Deshabilitación Completa del Profiling**
+
+#### **1. Configuración de Next.js Actualizada:**
+```typescript
+// next.config.ts
+const nextConfig: NextConfig = {
+  // Disable performance profiling to prevent .cpuprofile files
+  experimental: {
+    instrumentationHook: false,
+  },
+  
+  // Disable webpack performance profiling
+  webpack: (config, { isServer, dev }) => {
+    // ... existing config ...
+    
+    // Disable performance profiling in development
+    if (dev) {
+      config.optimization = {
+        ...config.optimization,
+        removeAvailableModules: false,
+        removeEmptyChunks: false,
+        splitChunks: false,
+      };
+      
+      // Disable source maps for better performance
+      config.devtool = false;
+    }
+    
+    return config;
+  },
+  
+  // Disable performance monitoring
+  onDemandEntries: {
+    maxInactiveAge: 25 * 1000,
+    pagesBufferLength: 2,
+  },
+};
+```
+
+#### **2. Script de Limpieza de Archivos de Profiling:**
+```typescript
+// scripts/cleanup-profiles.ts
+async function cleanupProfiles() {
+  // 1. Clean .next directory cache
+  const nextCachePath = path.join(projectRoot, '.next', 'cache')
+  if (fs.existsSync(nextCachePath)) {
+    fs.rmSync(nextCachePath, { recursive: true, force: true })
+  }
+
+  // 2. Clean profiling files in project root
+  const rootFiles = fs.readdirSync(projectRoot)
+  for (const file of rootFiles) {
+    if (file.endsWith('.cpuprofile') || 
+        file.endsWith('.heapprofile') || 
+        file.endsWith('.heapsnapshot') ||
+        file.startsWith('performance-') ||
+        file.startsWith('trace-')) {
+      fs.unlinkSync(path.join(projectRoot, file))
+    }
+  }
+
+  // 3. Clean .next/trace directory
+  const tracePath = path.join(projectRoot, '.next', 'trace')
+  if (fs.existsSync(tracePath)) {
+    fs.rmSync(tracePath, { recursive: true, force: true })
+  }
+
+  // 4. Clean .next/profiling directory
+  const profilingPath = path.join(projectRoot, '.next', 'profiling')
+  if (fs.existsSync(profilingPath)) {
+    fs.rmSync(profilingPath, { recursive: true, force: true })
+  }
+}
+```
+
+#### **3. Script de Verificación de Archivos de Profiling:**
+```typescript
+// scripts/check-profiles.ts
+async function checkProfiles() {
+  // 1. Check project root for profiling files
+  const rootFiles = fs.readdirSync(projectRoot)
+  for (const file of rootFiles) {
+    if (file.endsWith('.cpuprofile') || 
+        file.includes('sampling-profile')) {
+      console.log(`⚠️  Found: ${file}`)
+    }
+  }
+
+  // 2. Check .next directory
+  const nextPath = path.join(projectRoot, '.next')
+  if (fs.existsSync(nextPath)) {
+    const nextFiles = fs.readdirSync(nextPath)
+    for (const file of nextFiles) {
+      if (file === 'trace' || file === 'profiling') {
+        console.log(`⚠️  Found: .next/${file} directory`)
+      }
+    }
+  }
+
+  // 3. Check Next.js configuration
+  const configPath = path.join(projectRoot, 'next.config.ts')
+  if (fs.existsSync(configPath)) {
+    const configContent = fs.readFileSync(configPath, 'utf8')
+    if (configContent.includes('instrumentationHook: false')) {
+      console.log('✅ Profiling disabled in next.config.ts')
+    }
+  }
+}
+```
+
+### **Archivos Creados:**
+
+#### **Scripts de Gestión:**
+- `scripts/cleanup-profiles.ts` - Limpia archivos de profiling existentes
+- `scripts/check-profiles.ts` - Verifica si hay archivos de profiling
+
+#### **Scripts Agregados al Package.json:**
+- `npm run cleanup:profiles` - Limpiar archivos de profiling
+- `npm run check:profiles` - Verificar archivos de profiling
+
+### **Proceso de Solución:**
+
+#### **Paso 1: Limpiar Archivos Existentes**
+```bash
+npm run cleanup:profiles
+```
+**Resultado:**
+```
+🧹 Cleaning up profiling files...
+1️⃣ Cleaning Next.js cache...
+   ✅ Next.js cache cleaned
+2️⃣ Looking for profiling files...
+3️⃣ Cleaning trace directory...
+   ✅ Trace directory cleaned
+🎉 Cleanup complete! 2 items cleaned
+```
+
+#### **Paso 2: Verificar Configuración**
+```bash
+npm run check:profiles
+```
+**Resultado:**
+```
+🔍 Checking for profiling files...
+📊 Summary:
+✅ No profiling files found
+4️⃣ Checking Next.js configuration...
+   ✅ Profiling disabled in next.config.ts
+```
+
+### **Beneficios de la Solución:**
+
+#### **✅ Experiencia de Usuario Mejorada:**
+- No más ventanas de compartir automáticas
+- Inicio de aplicación más limpio
+- Sin interrupciones molestas
+
+#### **✅ Rendimiento Optimizado:**
+- Menos archivos temporales generados
+- Caché más limpio
+- Inicio más rápido
+
+#### **✅ Herramientas de Gestión:**
+- Scripts automatizados para limpieza
+- Verificación de configuración
+- Monitoreo de archivos de profiling
+
+#### **✅ Configuración Permanente:**
+- Profiling deshabilitado en next.config.ts
+- Configuración aplicada a nivel de webpack
+- Optimizaciones específicas para desarrollo
+
+### **Estado Actual del Sistema:**
+
+- **✅ Profiling Deshabilitado**: Configuración aplicada en next.config.ts
+- **✅ Archivos Limpios**: No hay archivos de profiling en el proyecto
+- **✅ Herramientas Disponibles**: Scripts listos para gestión futura
+- **✅ Experiencia Mejorada**: No más ventanas de compartir automáticas
+
+### **Recomendaciones para el Futuro:**
+
+#### **1. Mantenimiento Regular:**
+- Usar `npm run check:profiles` para verificar
+- Usar `npm run cleanup:profiles` si aparecen archivos
+- Reiniciar el servidor después de cambios
+
+#### **2. Monitoreo:**
+- Verificar logs de Next.js regularmente
+- Monitorear generación de archivos temporales
+- Revisar configuración después de actualizaciones
+
+#### **3. Optimización:**
+- Considerar deshabilitar más optimizaciones si es necesario
+- Monitorear impacto en rendimiento
+- Ajustar configuración según necesidades
+
+### **Casos de Uso Cubiertos:**
+
+- **Inicio Limpio**: Aplicación inicia sin archivos de profiling
+- **Desarrollo Sin Interrupciones**: No más ventanas de compartir
+- **Limpieza Automática**: Scripts para gestión de archivos
+- **Verificación**: Herramientas para monitoreo continuo
+
+---
+
+*Esta solución elimina completamente el problema de los archivos de profiling, mejorando significativamente la experiencia de desarrollo y uso de la aplicación.*

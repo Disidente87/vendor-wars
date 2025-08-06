@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import * as dotenv from 'dotenv'
-import { redis } from '@/lib/redis'
+import { tokenManager } from '@/lib/redis'
 
 // Load environment variables from .env.local
 dotenv.config({ path: '.env.local' })
@@ -34,22 +34,20 @@ async function syncTokensRedisDB() {
     const syncResults = []
 
     for (const user of users || []) {
-      const redisKey = `user:tokens:${user.fid}`
-      const redisTokens = await redis.get(redisKey)
+      const redisTokens = await tokenManager.getUserTokens(user.fid)
       const dbTokens = user.battle_tokens || 0
-      const redisTokensNum = redisTokens ? parseInt(redisTokens.toString()) : 0
 
       syncResults.push({
         userFid: user.fid,
         dbTokens,
-        redisTokens: redisTokensNum,
-        needsSync: dbTokens !== redisTokensNum
+        redisTokens,
+        needsSync: dbTokens !== redisTokens
       })
 
       console.log(`  User ${user.fid}:`)
       console.log(`    DB tokens: ${dbTokens}`)
-      console.log(`    Redis tokens: ${redisTokensNum}`)
-      console.log(`    Needs sync: ${dbTokens !== redisTokensNum ? 'YES' : 'NO'}`)
+      console.log(`    Redis tokens: ${redisTokens}`)
+      console.log(`    Needs sync: ${dbTokens !== redisTokens ? 'YES' : 'NO'}`)
     }
     console.log()
 
@@ -67,9 +65,7 @@ async function syncTokensRedisDB() {
     let syncedCount = 0
     for (const result of syncResults) {
       if (result.needsSync) {
-        const redisKey = `user:tokens:${result.userFid}`
-        await redis.set(redisKey, result.dbTokens)
-        await redis.expire(redisKey, 3600) // 1 hour cache
+        await tokenManager.updateUserTokens(result.userFid, result.dbTokens)
         syncedCount++
         console.log(`  ✅ Synced user ${result.userFid}: Redis = ${result.dbTokens}`)
       }

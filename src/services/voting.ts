@@ -50,64 +50,7 @@ const MOCK_VENDORS = [
   }
 ]
 
-// TODO: Battle system coming soon - for now creating unique battle IDs per vendor
-// This will be replaced with proper battle logic in future updates
-
-// Function to get battle ID with encoded information (UUID format)
-function getEncodedBattleId(vendorId: string, userFid: string, voteNumber: number = 1): string {
-  // Format: {vendor8}-{year}-{MMDD}-{vote1}{user6}
-  // Example: 111f3776-2024-1215-0001-000000465823
-  
-  // Extract first 8 characters from vendor ID
-  const vendor8 = vendorId.substring(0, 8)
-  
-  // Get current date components
-  const today = new Date()
-  const year = today.getFullYear().toString()
-  const month = (today.getMonth() + 1).toString().padStart(2, '0')
-  const day = today.getDate().toString().padStart(2, '0')
-  const mmdd = month + day
-  
-  // Vote number padded to 4 characters (0001, 0002, 0003)
-  const vote4 = voteNumber.toString().padStart(4, '0')
-  
-  // User FID padded to 12 characters
-  const user12 = userFid.padStart(12, '0')
-  
-  return `${vendor8}-${year}-${mmdd}-${vote4}-${user12}`
-}
-
-// Function to decode battle ID information
-function decodeBattleId(battleId: string): {
-  vendorId: string,
-  userFid: string,
-  date: string,
-  voteNumber: number,
-  fullBattleId: string
-} | null {
-  try {
-    const parts = battleId.split('-')
-    if (parts.length !== 5) return null
-    
-    const [vendor8, year, mmdd, vote4, user12] = parts
-    
-    // Extract information
-    const vendorId = vendor8 // Vendor prefix (first 8 chars)
-    const userFid = user12.replace(/^0+/, '') // Remove leading zeros from user FID
-    const date = year + mmdd // Combine year and MMDD
-    const voteNumber = parseInt(vote4)
-    
-    return {
-      vendorId,
-      userFid,
-      date,
-      voteNumber,
-      fullBattleId: battleId
-    }
-  } catch (error) {
-    return null
-  }
-}
+// Simplified voting system - no battle IDs needed
 
 // Function to get vendor from mock data when Supabase is not available
 function getMockVendor(vendorId: string) {
@@ -329,20 +272,16 @@ export class VotingService {
       // }
 
       // 5. Check daily vote limit for this vendor and determine vote number
-      const today = new Date()
-      today.setHours(0, 0, 0, 0)
-      const tomorrow = new Date(today)
-      tomorrow.setDate(tomorrow.getDate() + 1)
+      const today = new Date().toISOString().split('T')[0] // YYYY-MM-DD format
 
       let todayVotesCount = 0
       try {
         const { data: todayVotes, error: checkError } = await this.supabase!
           .from('votes')
-          .select('id, created_at, token_reward')
+          .select('id, vote_date, token_reward')
           .eq('voter_fid', userFid)
           .eq('vendor_id', vendorId)
-          .gte('created_at', today.toISOString())
-          .lt('created_at', tomorrow.toISOString())
+          .eq('vote_date', today)
 
         todayVotesCount = todayVotes ? todayVotes.length : 0
 
@@ -367,40 +306,29 @@ export class VotingService {
       }
 
       // 6. Create vote record in database (only if Supabase is available)
-      const voteId = uuidv4()
       
-      // Determine battle ID with encoded information
-      // Each vote gets a unique battle ID that encodes vendor, user, date, and vote number
-      const voteNumber = todayVotesCount + 1 // This will be the vote number for this vote
-      const battleId = getEncodedBattleId(vendorId, userFid, voteNumber)
+      console.log(`🗳️ Vote #${todayVotesCount + 1} for user ${userFid}, vendor ${vendorId}`)
       
-      console.log(`🗳️ Vote #${voteNumber} for user ${userFid}, vendor ${vendorId}, using battle ID: ${battleId}`)
-      
-      // Decode and log the battle ID information for debugging
-      const decodedInfo = decodeBattleId(battleId)
-      if (decodedInfo) {
-        console.log(`📊 Battle ID decoded: Vendor=${decodedInfo.vendorId}, User=${decodedInfo.userFid}, Date=${decodedInfo.date}, Vote=${decodedInfo.voteNumber}`)
-      }
-      
-      // Always include battle_id since it's NOT NULL
+      // Create vote record without ID - let Supabase generate it automatically
       const voteRecord: any = {
-        id: voteId,
         voter_fid: userFid,
         vendor_id: vendorId,
-        battle_id: battleId,
+        vote_date: new Date().toISOString().split('T')[0], // YYYY-MM-DD format
         is_verified: voteType === 'verified',
         token_reward: tokenCalculation.totalTokens,
         multiplier: 1,
         reason: `${voteType === 'verified' ? 'Verified' : 'Regular'} vote for vendor`,
-        attestation_id: null, // Will be set if verified vote
         created_at: new Date().toISOString()
       }
 
-      // Try to insert vote in Supabase, but don't fail if unavailable
+      // Try to insert vote in Supabase and get the generated ID
+      let actualVoteId: string | undefined
       try {
-        const { error: voteError } = await this.supabase!
+        const { data: insertedVote, error: voteError } = await this.supabase!
           .from('votes')
           .insert(voteRecord)
+          .select('id')
+          .single()
 
         if (voteError) {
           console.error('Error creating vote in Supabase:', voteError)
@@ -414,7 +342,8 @@ export class VotingService {
             error: 'Failed to register vote in database. Please try again.'
           }
         } else {
-          console.log('✅ Vote recorded in Supabase')
+          actualVoteId = insertedVote?.id
+          console.log('✅ Vote recorded in Supabase with ID:', actualVoteId)
         }
       } catch (error) {
         console.error('❌ Supabase not available for vote recording')
@@ -432,14 +361,13 @@ export class VotingService {
       // 7. Create attestation if verified vote (only if Supabase is available)
       let attestationId: string | null = null
       if (voteType === 'verified' && photoUrl) {
-        attestationId = uuidv4()
         try {
-          await this.supabase!
+          const { data: attestationData, error: attestationError } = await this.supabase!
             .from('attestations')
             .insert({
-              id: attestationId,
               user_fid: userFid,
               vendor_id: vendorId,
+              vote_id: actualVoteId,
               photo_hash: await this.generatePhotoHash(photoUrl),
               photo_url: photoUrl,
               gps_location: gpsLocation ? `(${gpsLocation.lat},${gpsLocation.lng})` : null,
@@ -453,12 +381,15 @@ export class VotingService {
               },
               created_at: new Date().toISOString()
             })
+            .select('id')
+            .single()
 
-          // Update vote with attestation ID
-          await this.supabase!
-            .from('votes')
-            .update({ attestation_id: attestationId })
-            .eq('id', voteId)
+          if (attestationError) {
+            console.error('Error creating attestation:', attestationError)
+          } else {
+            attestationId = attestationData?.id
+            console.log('✅ Attestation created with ID:', attestationId)
+          }
         } catch (error) {
           console.warn('⚠️ Supabase not available for attestation, continuing with mock data')
         }
@@ -501,7 +432,7 @@ export class VotingService {
 
       return {
         success: true,
-        voteId,
+        voteId: actualVoteId,
         tokensEarned: tokenCalculation.totalTokens,
         newBalance,
         streakBonus: tokenCalculation.streakBonus,
@@ -574,7 +505,7 @@ export class VotingService {
         .from('votes')
         .select(`
           *,
-          vendors!inner (
+          vendors (
             id,
             name,
             category,
@@ -605,8 +536,17 @@ export class VotingService {
       this.ensureSupabaseClient()
       const { data, error } = await this.supabase!
         .from('votes')
-        .select('*')
+        .select(`
+          *,
+          users (
+            fid,
+            username,
+            display_name,
+            avatar_url
+          )
+        `)
         .eq('vendor_id', vendorId)
+        .order('created_at', { ascending: false })
 
       if (error) {
         console.error('Error fetching vendor stats:', error)
@@ -621,7 +561,8 @@ export class VotingService {
         totalVotes,
         verifiedVotes,
         totalTokens,
-        verificationRate: totalVotes > 0 ? (verifiedVotes / totalVotes) * 100 : 0
+        verificationRate: totalVotes > 0 ? (verifiedVotes / totalVotes) * 100 : 0,
+        votes: data || [] // Include the actual votes with user data
       }
     } catch (error) {
       console.warn('⚠️ Supabase not available for vendor stats, returning mock data')
@@ -632,7 +573,8 @@ export class VotingService {
           totalVotes: Math.floor(Math.random() * 100) + 50,
           verifiedVotes: Math.floor(Math.random() * 50) + 20,
           totalTokens: Math.floor(Math.random() * 1000) + 500,
-          verificationRate: Math.floor(Math.random() * 30) + 40
+          verificationRate: Math.floor(Math.random() * 30) + 40,
+          votes: []
         }
       }
       return null
@@ -652,8 +594,7 @@ export class VotingService {
         .select('id')
         .eq('voter_fid', userFid)
         .eq('vendor_id', vendorId)
-        .gte('created_at', `${today}T00:00:00`)
-        .lt('created_at', `${today}T23:59:59`)
+        .eq('vote_date', today)
         .limit(1)
 
       if (error) {
