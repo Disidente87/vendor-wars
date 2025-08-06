@@ -34,18 +34,9 @@ export type Database = {
           fid: number
           username: string
           display_name: string
-          pfp_url: string
-          bio: string
-          follower_count: number
-          following_count: number
-          verified_addresses: string[]
+          avatar_url: { url: string }
           battle_tokens: number
-          credibility_score: number
-          verified_purchases: number
-          credibility_tier: 'bronze' | 'silver' | 'gold' | 'platinum'
           vote_streak: number
-          weekly_vote_count: number
-          weekly_territory_bonus: number
           created_at: string
           updated_at: string
         }
@@ -53,18 +44,9 @@ export type Database = {
           fid: number
           username: string
           display_name: string
-          pfp_url: string
-          bio: string
-          follower_count: number
-          following_count: number
-          verified_addresses?: string[]
+          avatar_url?: { url: string }
           battle_tokens?: number
-          credibility_score?: number
-          verified_purchases?: number
-          credibility_tier?: 'bronze' | 'silver' | 'gold' | 'platinum'
           vote_streak?: number
-          weekly_vote_count?: number
-          weekly_territory_bonus?: number
           created_at?: string
           updated_at?: string
         }
@@ -72,18 +54,9 @@ export type Database = {
           fid?: number
           username?: string
           display_name?: string
-          pfp_url?: string
-          bio?: string
-          follower_count?: number
-          following_count?: number
-          verified_addresses?: string[]
+          avatar_url?: { url: string }
           battle_tokens?: number
-          credibility_score?: number
-          verified_purchases?: number
-          credibility_tier?: 'bronze' | 'silver' | 'gold' | 'platinum'
           vote_streak?: number
-          weekly_vote_count?: number
-          weekly_territory_bonus?: number
           created_at?: string
           updated_at?: string
         }
@@ -94,21 +67,8 @@ export type Database = {
           name: string
           description: string
           image_url: string
-          category: 'pupusas' | 'tacos' | 'tamales' | 'quesadillas' | 'tortas' | 'bebidas' | 'postres' | 'otros'
-          zone: string
-          coordinates: [number, number]
-          owner_fid: number
-          is_verified: boolean
-          total_battles: number
-          wins: number
-          losses: number
-          win_rate: number
-          total_revenue: number
-          average_rating: number
-          review_count: number
-          territory_defenses: number
-          territory_conquests: number
-          current_zone_rank: number
+          category: string
+          zone_id: string
           total_votes: number
           verified_votes: number
           created_at: string
@@ -119,21 +79,8 @@ export type Database = {
           name: string
           description: string
           image_url: string
-          category: 'pupusas' | 'tacos' | 'tamales' | 'quesadillas' | 'tortas' | 'bebidas' | 'postres' | 'otros'
-          zone: string
-          coordinates: [number, number]
-          owner_fid: number
-          is_verified?: boolean
-          total_battles?: number
-          wins?: number
-          losses?: number
-          win_rate?: number
-          total_revenue?: number
-          average_rating?: number
-          review_count?: number
-          territory_defenses?: number
-          territory_conquests?: number
-          current_zone_rank?: number
+          category: string
+          zone_id: string
           total_votes?: number
           verified_votes?: number
           created_at?: string
@@ -144,21 +91,8 @@ export type Database = {
           name?: string
           description?: string
           image_url?: string
-          category?: 'pupusas' | 'tacos' | 'tamales' | 'quesadillas' | 'tortas' | 'bebidas' | 'postres' | 'otros'
-          zone?: string
-          coordinates?: [number, number]
-          owner_fid?: number
-          is_verified?: boolean
-          total_battles?: number
-          wins?: number
-          losses?: number
-          win_rate?: number
-          total_revenue?: number
-          average_rating?: number
-          review_count?: number
-          territory_defenses?: number
-          territory_conquests?: number
-          current_zone_rank?: number
+          category?: string
+          zone_id?: string
           total_votes?: number
           verified_votes?: number
           created_at?: string

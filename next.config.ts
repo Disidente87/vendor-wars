@@ -3,12 +3,7 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   /* config options here */
   
-  // Disable performance profiling to prevent .cpuprofile files
-  experimental: {
-    // instrumentationHook is no longer needed in Next.js 15
-  },
-  
-  // Disable webpack performance profiling
+  // Disable webpack performance profiling completely
   webpack: (config, { isServer, dev }) => {
     // Exclude figma folder from webpack compilation
     config.watchOptions = {
@@ -22,7 +17,7 @@ const nextConfig: NextConfig = {
       loader: 'ignore-loader'
     });
     
-    // Disable performance profiling in development
+    // Completely disable performance profiling in development
     if (dev) {
       config.optimization = {
         ...config.optimization,
@@ -31,8 +26,15 @@ const nextConfig: NextConfig = {
         splitChunks: false,
       };
       
-      // Disable source maps for better performance
+      // Disable source maps and profiling
       config.devtool = false;
+      
+      // Disable performance monitoring
+      config.performance = {
+        hints: false,
+        maxEntrypointSize: 512000,
+        maxAssetSize: 512000,
+      };
     }
     
     return config;
@@ -44,6 +46,16 @@ const nextConfig: NextConfig = {
     maxInactiveAge: 25 * 1000,
     // number of pages that should be kept simultaneously without being disposed
     pagesBufferLength: 2,
+  },
+  
+  // Disable all profiling and monitoring
+  poweredByHeader: false,
+  generateEtags: false,
+  
+  // Disable experimental features that might cause profiling
+  experimental: {
+    // instrumentationHook is no longer needed in Next.js 15
+    optimizePackageImports: [],
   },
 };
 

@@ -69,7 +69,12 @@
     "check:profiles": "npx tsx scripts/check-profiles.ts",
     "cleanup:battles": "npx tsx scripts/cleanup-battles.ts",
     "create:default-battle": "npx tsx scripts/create-default-battle.ts",
-    "test:new-voting": "npx tsx scripts/test-new-voting-system.ts"
+    "test:new-voting": "npx tsx scripts/test-new-voting-system.ts",
+    "test:voting-no-redis": "npx tsx scripts/test-voting-without-redis.ts",
+    "cleanup:test-votes-simple": "npx tsx scripts/cleanup-test-votes-simple.ts",
+    "check:users-schema": "npx tsx scripts/check-users-schema.ts",
+    "check:vendors-schema": "npx tsx scripts/check-vendors-schema.ts",
+    "test:voting-admin": "npx tsx scripts/test-voting-admin.ts"
   },
   "dependencies": {
     "@coinbase/onchainkit": "^0.38.18",

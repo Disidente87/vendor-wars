@@ -297,6 +297,8 @@ export class VotingService {
           }
         }
         
+
+        
         if (checkError) {
           console.error('Error checking daily vote count:', checkError)
           // Continue with vote insertion if we can't check
@@ -311,14 +313,13 @@ export class VotingService {
       
       // Create vote record without ID - let Supabase generate it automatically
       const voteRecord: any = {
-        voter_fid: userFid,
+        voter_fid: parseInt(userFid), // Ensure it's a number
         vendor_id: vendorId,
         vote_date: new Date().toISOString().split('T')[0], // YYYY-MM-DD format
         is_verified: voteType === 'verified',
         token_reward: tokenCalculation.totalTokens,
         multiplier: 1,
-        reason: `${voteType === 'verified' ? 'Verified' : 'Regular'} vote for vendor`,
-        created_at: new Date().toISOString()
+        reason: `${voteType === 'verified' ? 'Verified' : 'Regular'} vote for vendor`
       }
 
       // Try to insert vote in Supabase and get the generated ID
@@ -332,14 +333,39 @@ export class VotingService {
 
         if (voteError) {
           console.error('Error creating vote in Supabase:', voteError)
-          // Fail the vote if we can't insert it into the database
+          
+          // Check if it's a unique constraint violation
+          if (voteError.message && voteError.message.includes('duplicate key')) {
+            return {
+              success: false,
+              tokensEarned: 0,
+              newBalance: 0,
+              streakBonus: 0,
+              territoryBonus: 0,
+              error: 'You have already voted for this vendor today. You can vote up to 3 times per vendor per day.'
+            }
+          }
+          
+          // Check if it's a foreign key violation
+          if (voteError.message && voteError.message.includes('foreign key')) {
+            return {
+              success: false,
+              tokensEarned: 0,
+              newBalance: 0,
+              streakBonus: 0,
+              territoryBonus: 0,
+              error: 'Vendor not found or invalid user. Please try again.'
+            }
+          }
+          
+          // Generic database error
           return {
             success: false,
             tokensEarned: 0,
             newBalance: 0,
             streakBonus: 0,
             territoryBonus: 0,
-            error: 'Failed to register vote in database. Please try again.'
+            error: 'Database error occurred. Please try again.'
           }
         } else {
           actualVoteId = insertedVote?.id
@@ -365,7 +391,7 @@ export class VotingService {
           const { data: attestationData, error: attestationError } = await this.supabase!
             .from('attestations')
             .insert({
-              user_fid: userFid,
+              user_fid: parseInt(userFid), // Ensure it's a number
               vendor_id: vendorId,
               vote_id: actualVoteId,
               photo_hash: await this.generatePhotoHash(photoUrl),
@@ -378,8 +404,7 @@ export class VotingService {
                 device: 'web',
                 timestamp: new Date().toISOString(),
                 location_accuracy: 'medium'
-              },
-              created_at: new Date().toISOString()
+              }
             })
             .select('id')
             .single()
@@ -406,7 +431,7 @@ export class VotingService {
         await this.supabase!
           .from('users')
           .update({ battle_tokens: newBalance })
-          .eq('fid', userFid)
+          .eq('fid', parseInt(userFid))
       } catch (error) {
         console.warn('⚠️ Supabase not available for user update, continuing with Redis only')
       }
@@ -422,7 +447,7 @@ export class VotingService {
         await this.supabase!
           .from('users')
           .update({ vote_streak: newStreak })
-          .eq('fid', userFid)
+          .eq('fid', parseInt(userFid))
       } catch (error) {
         console.warn('⚠️ Supabase not available for streak update, continuing with Redis only')
       }
@@ -651,6 +676,21 @@ export class VotingService {
 
       if (fetchError) {
         console.error('Error fetching current vendor stats:', fetchError)
+        // Try to update with default values if we can't fetch current stats
+        const { error: updateError } = await this.supabase!
+          .from('vendors')
+          .update({
+            total_votes: 1,
+            verified_votes: isVerified ? 1 : 0,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', vendorId)
+
+        if (updateError) {
+          console.error('Error updating vendor stats with defaults:', updateError)
+        } else {
+          console.log(`✅ Updated vendor ${vendorId} stats with defaults: total_votes=1, verified_votes=${isVerified ? 1 : 0}`)
+        }
         return
       }
 
