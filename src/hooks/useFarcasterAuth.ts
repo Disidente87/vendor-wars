@@ -57,11 +57,14 @@ export function useFarcasterAuth(): UseFarcasterAuthReturn {
         const currentUser = context.user
         
         if (currentUser && currentUser.fid) {
+          console.log('Found user in Mini App context:', currentUser.fid)
+          
           // Fetch user details from our API
           const response = await fetch(`/api/auth/farcaster?fid=${currentUser.fid}`)
           const result = await response.json()
           
           if (result.success) {
+            console.log('User found in database, authenticating...')
             // Check and reset streak if needed
             const updatedStreak = await checkAndResetStreak(currentUser.fid)
             
@@ -74,9 +77,15 @@ export function useFarcasterAuth(): UseFarcasterAuthReturn {
             setUser(updatedUser)
             setIsAuthenticated(true)
           } else {
-            // Create new user if not found
-            await createNewUser(currentUser)
+            console.log('User not found in database, will create on sign in')
+            // Don't create user automatically - wait for sign in
+            setUser(null)
+            setIsAuthenticated(false)
           }
+        } else {
+          console.log('No user in Mini App context')
+          setUser(null)
+          setIsAuthenticated(false)
         }
       } catch (err) {
         console.error('Error initializing Farcaster auth:', err)
@@ -91,6 +100,8 @@ export function useFarcasterAuth(): UseFarcasterAuthReturn {
 
   const createNewUser = async (farcasterUser: any) => {
     try {
+      console.log('Creating new user with FID:', farcasterUser.fid)
+      
       const newUser: User = {
         fid: farcasterUser.fid,
         username: farcasterUser.username || `user_${farcasterUser.fid}`,
@@ -109,6 +120,13 @@ export function useFarcasterAuth(): UseFarcasterAuthReturn {
         weeklyTerritoryBonus: 0,
       }
 
+      console.log('Sending user data to API:', {
+        fid: newUser.fid,
+        username: newUser.username,
+        displayName: newUser.displayName,
+        pfpUrl: newUser.pfpUrl,
+      })
+
       // Save user to database
       const response = await fetch('/api/users', {
         method: 'POST',
@@ -120,27 +138,26 @@ export function useFarcasterAuth(): UseFarcasterAuthReturn {
           username: newUser.username,
           displayName: newUser.displayName,
           pfpUrl: newUser.pfpUrl,
-          followerCount: newUser.followerCount,
-          followingCount: newUser.followingCount,
-          bio: newUser.bio,
-          verifiedAddresses: newUser.verifiedAddresses,
         }),
       })
 
       const result = await response.json()
+      console.log('API response:', result)
       
       if (result.success) {
+        console.log('User created successfully in database')
         // Update user with database data
         const dbUser = result.data
         const updatedUser: User = {
           ...newUser,
           battleTokens: dbUser.battle_tokens || 0,
-          credibilityScore: dbUser.credibility_score || 50,
-          verifiedPurchases: dbUser.verified_purchases || 0,
-          credibilityTier: dbUser.credibility_tier || 'bronze',
           voteStreak: dbUser.vote_streak || 0,
-          weeklyVoteCount: dbUser.weekly_vote_count || 0,
-          weeklyTerritoryBonus: dbUser.weekly_territory_bonus || 0,
+          // Set default values for fields not in simplified schema
+          credibilityScore: 50,
+          verifiedPurchases: 0,
+          credibilityTier: 'bronze',
+          weeklyVoteCount: 0,
+          weeklyTerritoryBonus: 0,
         }
 
         // Store user in localStorage for persistence
@@ -150,14 +167,10 @@ export function useFarcasterAuth(): UseFarcasterAuthReturn {
         setIsAuthenticated(true)
         setError(null)
         
-        console.log('User created/updated in database:', updatedUser)
+        console.log('User created and authenticated:', updatedUser)
       } else {
         console.error('Failed to save user to database:', result.error)
-        // Still set user locally even if database save fails
-        localStorage.setItem('farcaster-auth-user', JSON.stringify(newUser))
-        setUser(newUser)
-        setIsAuthenticated(true)
-        setError(null)
+        setError(`Failed to create user: ${result.error}`)
       }
     } catch (err) {
       console.error('Error creating new user:', err)
@@ -175,17 +188,42 @@ export function useFarcasterAuth(): UseFarcasterAuthReturn {
     setError(null)
 
     try {
+      console.log('Starting sign in process...')
       const { sdk } = await import('@farcaster/miniapp-sdk')
       
       // Trigger authentication flow
       await sdk.actions.ready()
+      console.log('SDK ready, getting user from context...')
       
       // Get user from context
       const currentUser = context.user
       
       if (currentUser && currentUser.fid) {
-        await createNewUser(currentUser)
+        console.log('User found in context:', currentUser.fid)
+        
+        // Check if user exists in database first
+        const response = await fetch(`/api/auth/farcaster?fid=${currentUser.fid}`)
+        const result = await response.json()
+        
+        if (result.success) {
+          console.log('User exists in database, authenticating...')
+          // User exists - authenticate
+          const updatedStreak = await checkAndResetStreak(currentUser.fid)
+          const updatedUser = {
+            ...result.data,
+            voteStreak: updatedStreak !== null ? updatedStreak : result.data.voteStreak
+          }
+          
+          setUser(updatedUser)
+          setIsAuthenticated(true)
+          console.log('Authentication successful')
+        } else {
+          console.log('User not found in database, creating new user...')
+          // User not found - create new user
+          await createNewUser(currentUser)
+        }
       } else {
+        console.log('No user found in Mini App context')
         setError('No user found in Mini App context')
       }
     } catch (err) {

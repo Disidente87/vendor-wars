@@ -24,7 +24,9 @@
     "seed:simplified": "npx tsx scripts/seed-simplified.ts",
     "test:comprehensive": "npx tsx scripts/test-comprehensive.ts",
     "cleanup:all-tests": "npx tsx scripts/cleanup-all-tests.ts",
-    "cleanup:package-json": "npx tsx scripts/cleanup-package-json.ts"
+    "cleanup:package-json": "npx tsx scripts/cleanup-package-json.ts",
+    "check:users-schema": "npx tsx scripts/check-users-schema.ts",
+    "check:user-exists": "npx tsx scripts/check-user-exists.ts"
   },
   "dependencies": {
     "@coinbase/onchainkit": "^0.38.18",

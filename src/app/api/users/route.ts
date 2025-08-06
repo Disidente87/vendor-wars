@@ -1,16 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
+import { createClient } from '@supabase/supabase-js'
 import { z } from 'zod'
+
+// Use service role key for user creation
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+)
 
 const userSchema = z.object({
   fid: z.number(),
   username: z.string(),
   displayName: z.string(),
   pfpUrl: z.string().url(),
-  followerCount: z.number().optional(),
-  followingCount: z.number().optional(),
-  bio: z.string().optional(),
-  verifiedAddresses: z.array(z.string()).optional(),
 })
 
 export async function POST(request: NextRequest) {
@@ -49,18 +51,9 @@ export async function POST(request: NextRequest) {
         fid: validatedData.fid,
         username: validatedData.username,
         display_name: validatedData.displayName,
-        pfp_url: validatedData.pfpUrl,
-        follower_count: validatedData.followerCount || 0,
-        following_count: validatedData.followingCount || 0,
-        bio: validatedData.bio || 'Vendor Wars enthusiast',
-        verified_addresses: validatedData.verifiedAddresses || [],
+        avatar_url: { url: validatedData.pfpUrl },
         battle_tokens: 0,
-        credibility_score: 50,
-        verified_purchases: 0,
-        credibility_tier: 'bronze',
         vote_streak: 0,
-        weekly_vote_count: 0,
-        weekly_territory_bonus: 0,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       })
