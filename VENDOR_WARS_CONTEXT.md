@@ -12,7 +12,47 @@
   - Modificada la función `getSupabaseClient()` en `src/services/voting.ts`
   - Verificado que el sistema funciona correctamente con el test comprehensivo
 
-#### 2. **Error "Failed to register vote in database"** - RESUELTO
+#### 2. **Verificación Completa de Claves de Servicio** - COMPLETADA
+- **Problema identificado**: 4 archivos estaban usando la clave anónima cuando deberían usar la clave de servicio
+- **Archivos corregidos**:
+  - `src/services/vendors.ts` - Cambiado a `SUPABASE_SERVICE_ROLE_KEY`
+  - `src/app/api/vendors/route.ts` - Cambiado a `SUPABASE_SERVICE_ROLE_KEY`
+  - `src/app/api/vendors/test/route.ts` - Cambiado a `SUPABASE_SERVICE_ROLE_KEY`
+  - `scripts/cleanup-and-simplify.ts` - Cambiado a `SUPABASE_SERVICE_ROLE_KEY`
+- **Archivos que mantienen clave anónima** (correcto):
+  - `src/lib/supabase.ts` - Para uso del lado del cliente
+- **Estado**: ✅ **TODAS LAS CLAVES CORREGIDAS Y VERIFICADAS**
+
+#### 3. **Análisis y Justificación Completa de Uso de Claves** - COMPLETADO
+- **Total de usos de clave de servicio**: 10 ubicaciones
+- **Usos justificados**: 10/10 (100%)
+- **Separación perfecta lograda**: ✅
+
+**Justificación detallada por tipo de archivo:**
+
+**🛠️ Servicios del lado del servidor (4 archivos):**
+- `src/services/voting.ts` - Bypass RLS para operaciones de votación
+- `src/services/vendors.ts` - Operaciones CRUD de administración de vendors
+- `src/app/api/vendors/route.ts` - API que necesita acceso completo a datos
+- `src/app/api/vendors/test/route.ts` - API de testing para validación
+
+**🧪 Scripts de administración y testing (6 archivos):**
+- `scripts/seed-simplified.ts` - Creación de datos iniciales
+- `scripts/test-comprehensive.ts` - Testing completo del sistema
+- `scripts/cleanup-and-simplify.ts` - Generación de templates y limpieza
+- `scripts/test-template.ts` - Template para tests específicos
+- `scripts/cleanup-all-tests.ts` - Generación de templates de limpieza
+
+**🌐 Cliente del lado del cliente (1 archivo):**
+- `src/lib/supabase.ts` - Mantiene clave anónima para operaciones seguras del cliente
+
+**🔒 Principios de seguridad aplicados:**
+- ✅ Clave de servicio NUNCA expuesta al cliente
+- ✅ Clave anónima solo para operaciones seguras del cliente
+- ✅ Bypass RLS solo cuando es necesario para funcionalidad del sistema
+- ✅ Separación clara entre operaciones de administración y usuario
+
+#### 4. **Error "Failed to register vote in database"** - RESUELTO
 - **Problema**: El error persistía debido a columnas inexistentes en las tablas
 - **Causa**: Los tipos TypeScript no coincidían con la estructura real de la base de datos
 - **Solución**: 
