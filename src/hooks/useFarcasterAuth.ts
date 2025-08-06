@@ -50,6 +50,39 @@ export function useFarcasterAuth(): UseFarcasterAuthReturn {
       }
 
       try {
+        // First, try to restore authentication state from localStorage
+        const storedUser = localStorage.getItem('farcaster-auth-user')
+        if (storedUser) {
+          try {
+            const parsedUser = JSON.parse(storedUser)
+            console.log('Found stored user in localStorage:', parsedUser.fid)
+            
+            // Verify the stored user still exists in database
+            const response = await fetch(`/api/auth/farcaster?fid=${parsedUser.fid}`)
+            const result = await response.json()
+            
+            if (result.success) {
+              console.log('Stored user verified in database, restoring session...')
+              const updatedStreak = await checkAndResetStreak(parsedUser.fid)
+              const updatedUser = {
+                ...result.data,
+                voteStreak: updatedStreak !== null ? updatedStreak : result.data.voteStreak
+              }
+              
+              setUser(updatedUser)
+              setIsAuthenticated(true)
+              setIsLoading(false)
+              return
+            } else {
+              console.log('Stored user not found in database, clearing localStorage')
+              localStorage.removeItem('farcaster-auth-user')
+            }
+          } catch (err) {
+            console.error('Error parsing stored user:', err)
+            localStorage.removeItem('farcaster-auth-user')
+          }
+        }
+
         // Check if user is already authenticated
         const { sdk } = await import('@farcaster/miniapp-sdk')
         
@@ -213,6 +246,9 @@ export function useFarcasterAuth(): UseFarcasterAuthReturn {
             ...result.data,
             voteStreak: updatedStreak !== null ? updatedStreak : result.data.voteStreak
           }
+          
+          // Store user in localStorage for persistence
+          localStorage.setItem('farcaster-auth-user', JSON.stringify(updatedUser))
           
           setUser(updatedUser)
           setIsAuthenticated(true)
