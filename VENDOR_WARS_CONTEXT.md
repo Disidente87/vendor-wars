@@ -4,7 +4,15 @@
 
 ### ✅ Problemas Resueltos
 
-#### 1. **Error "Failed to register vote in database"** - RESUELTO
+#### 1. **Error "Vendor not found or invalid user. Please try again."** - RESUELTO
+- **Problema**: El servicio de votación estaba usando la clave anónima de Supabase (`NEXT_PUBLIC_SUPABASE_ANON_KEY`), lo que causaba errores de clave foránea debido a las políticas RLS (Row Level Security).
+- **Causa**: Las políticas RLS bloqueaban las operaciones de inserción de votos cuando se usaba la clave anónima.
+- **Solución**: 
+  - Cambiado el servicio de votación para usar `SUPABASE_SERVICE_ROLE_KEY` en lugar de `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+  - Modificada la función `getSupabaseClient()` en `src/services/voting.ts`
+  - Verificado que el sistema funciona correctamente con el test comprehensivo
+
+#### 2. **Error "Failed to register vote in database"** - RESUELTO
 - **Problema**: El error persistía debido a columnas inexistentes en las tablas
 - **Causa**: Los tipos TypeScript no coincidían con la estructura real de la base de datos
 - **Solución**: 
@@ -16,6 +24,7 @@
 - **Tabla `users`**: Solo tiene `fid`, `username`, `display_name`, `avatar_url`, `battle_tokens`, `vote_streak`, `created_at`, `updated_at`
 - **Tabla `vendors`**: Solo tiene `id`, `name`, `description`, `category`, `zone_id`, `image_url`, `total_votes`, `verified_votes`, `created_at`, `updated_at`
 - **Tabla `votes`**: Tiene `id`, `voter_fid`, `vendor_id`, `vote_date`, `is_verified`, `token_reward`, `multiplier`, `reason`, `created_at`
+- **Tabla `zones`**: Tiene `id`, `name`, `description`, `image_url`, `created_at`
 
 #### 3. **Sistema de Votación Verificado** - FUNCIONANDO
 - ✅ Inserción de votos exitosa
@@ -28,6 +37,11 @@
 - **Problema identificado**: Si fallaba al obtener estadísticas actuales, no actualizaba nada
 - **Solución implementada**: Ahora intenta actualizar con valores por defecto si no puede obtener las estadísticas actuales
 - **Beneficio**: Evita inconsistencias entre votos registrados y estadísticas de vendors
+
+#### 5. **Limpieza y Simplificación de Scripts** - COMPLETADA
+- **Scripts eliminados**: 85 scripts obsoletos relacionados con el sistema de batallas y tests antiguos
+- **Scripts creados**: 2 scripts simplificados y actualizados
+- **Beneficio**: Código más limpio, mantenible y alineado con el esquema actual
 
 ### 🔧 Cambios Técnicos Implementados
 
@@ -88,10 +102,10 @@ if (fetchError) {
 }
 ```
 
-#### 3. **Scripts de Test Corregidos**
-- `scripts/test-voting-admin.ts`: Script completo que usa la clave de servicio para evitar RLS
-- `scripts/check-users-schema.ts`: Verifica la estructura real de la tabla users
-- `scripts/check-vendors-schema.ts`: Verifica la estructura real de la tabla vendors
+#### 3. **Scripts Simplificados y Actualizados**
+- `scripts/seed-simplified.ts`: Script de seed actualizado con el esquema correcto
+- `scripts/test-comprehensive.ts`: Test comprehensivo del sistema completo
+- `scripts/cleanup-and-simplify.ts`: Script de limpieza automática de scripts obsoletos
 
 #### 4. **Sistema de Votación Robusto**
 - Manejo de errores específicos para diferentes tipos de fallos
@@ -112,6 +126,25 @@ npm run test:voting-admin
 - ✅ Prevención de voto duplicado
 - ✅ Voto en fecha diferente permitido
 - ✅ Limpieza de datos de prueba
+
+#### Test Comprehensivo del Sistema
+```bash
+npm run test:comprehensive
+```
+**Resultado**: ✅ Todos los tests pasaron
+- ✅ Conexión a base de datos exitosa
+- ✅ Todas las tablas accesibles
+- ✅ Sistema de votación funcional
+- ✅ Limpieza de datos de prueba
+
+#### Seed Simplificado
+```bash
+npm run seed:simplified
+```
+**Resultado**: ✅ Seed exitoso
+- ✅ Zonas creadas correctamente
+- ✅ Usuarios creados correctamente
+- ✅ Vendors creados correctamente
 
 ### 📋 Estado de Funcionalidades
 
@@ -139,6 +172,12 @@ npm run test:voting-admin
    - Tipos TypeScript actualizados y sincronizados
    - Actualización robusta de estadísticas de vendors
 
+5. **Scripts y Herramientas**
+   - Scripts simplificados y actualizados
+   - Tests automatizados funcionando
+   - Seed de base de datos simplificado
+   - Limpieza automática de scripts obsoletos
+
 #### 🔄 Funcionalidades en Desarrollo
 - Sistema de batallas (simplificado, no crítico para MVP)
 - Verificación avanzada de fotos
@@ -152,7 +191,7 @@ npm run test:voting-admin
    - Confirmar que las estadísticas se actualizan correctamente
 
 2. **Optimizaciones**
-   - Limpiar scripts de test obsoletos
+   - Los scripts obsoletos ya fueron limpiados
    - Optimizar consultas de base de datos
    - Implementar cache más eficiente
 
@@ -169,6 +208,8 @@ npm run test:voting-admin
 - ✅ **Estadísticas actualizadas** en tiempo real con fallback
 - ✅ **Tipos TypeScript sincronizados** con esquema real
 - ✅ **Sistema robusto** que maneja fallos de infraestructura
+- ✅ **85 scripts obsoletos eliminados** para simplificar el código
+- ✅ **Scripts simplificados** creados y funcionando
 
 ### 🎯 Conclusión
 
@@ -181,6 +222,7 @@ El sistema de votación de Vendor Wars está **completamente funcional, robusto 
 5. ✅ Tests automatizados funcionando
 6. ✅ Función updateVendorStats mejorada con fallback
 7. ✅ Manejo robusto de errores de infraestructura
+8. ✅ Scripts limpiados y simplificados
 
 **El proyecto está listo para testing en producción y uso real en Farcaster.**
 
@@ -203,3 +245,23 @@ Aparece **SOLO** cuando:
 Aparece cuando Supabase no está disponible para la inserción de votos.
 
 **El sistema está diseñado para ser robusto y manejar estos casos de error de manera elegante.**
+
+### 📁 Scripts Disponibles
+
+#### Scripts Principales
+- `npm run seed:simplified` - Seed de base de datos con esquema simplificado
+- `npm run test:comprehensive` - Test comprehensivo del sistema
+- `npm run test:voting-admin` - Test del sistema de votación con privilegios admin
+- `npm run cleanup:scripts` - Limpieza automática de scripts obsoletos
+
+#### Scripts de Verificación
+- `npm run check:users-schema` - Verificar estructura de tabla users
+- `npm run check:vendors-schema` - Verificar estructura de tabla vendors
+- `npm run check:rls-policies` - Verificar políticas RLS
+
+#### Scripts de Mantenimiento
+- `npm run cleanup:test-votes-admin` - Limpiar votos de prueba (admin)
+- `npm run cleanup:profiles` - Limpiar archivos de profiling
+- `npm run clear:redis` - Limpiar cache de Redis
+- `npm run reset:tokens` - Resetear tokens en base de datos
+- `npm run sync:tokens` - Sincronizar tokens entre Redis y DB
