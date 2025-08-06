@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { FarcasterService } from '@/services/farcaster'
+import { createClient } from '@supabase/supabase-js'
 import { z } from 'zod'
+import { FarcasterService } from '@/services/farcaster'
+
+// Use service role key for authentication checks
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+)
 
 const authSchema = z.object({
   fid: z.number(),
@@ -67,9 +74,74 @@ export async function GET(request: NextRequest) {
     let user = null
 
     if (fid) {
-      user = await FarcasterService.getUserByFid(parseInt(fid))
+      // Check directly in our database
+      const { data: dbUser, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('fid', parseInt(fid))
+        .single()
+
+      if (error) {
+        console.error('Database error:', error)
+        return NextResponse.json(
+          { success: false, error: 'User not found' },
+          { status: 404 }
+        )
+      }
+
+      if (dbUser) {
+        // Map database user to our User type
+        user = {
+          fid: dbUser.fid,
+          username: dbUser.username,
+          displayName: dbUser.display_name,
+          pfpUrl: dbUser.avatar_url?.url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${dbUser.fid}`,
+          followerCount: 0, // Not stored in simplified schema
+          followingCount: 0, // Not stored in simplified schema
+          bio: 'Vendor Wars enthusiast', // Default value
+          verifiedAddresses: [], // Not stored in simplified schema
+          battleTokens: dbUser.battle_tokens || 0,
+          credibilityScore: 50, // Default value
+          verifiedPurchases: 0, // Default value
+          credibilityTier: 'bronze' as const, // Default value
+          voteStreak: dbUser.vote_streak || 0,
+          weeklyVoteCount: 0, // Default value
+          weeklyTerritoryBonus: 0, // Default value
+        }
+      }
     } else if (username) {
-      user = await FarcasterService.getUserByUsername(username)
+      // Check by username
+      const { data: dbUser, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('username', username)
+        .single()
+
+      if (error || !dbUser) {
+        return NextResponse.json(
+          { success: false, error: 'User not found' },
+          { status: 404 }
+        )
+      }
+
+      // Map database user to our User type
+      user = {
+        fid: dbUser.fid,
+        username: dbUser.username,
+        displayName: dbUser.display_name,
+        pfpUrl: dbUser.avatar_url?.url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${dbUser.fid}`,
+        followerCount: 0,
+        followingCount: 0,
+        bio: 'Vendor Wars enthusiast',
+        verifiedAddresses: [],
+        battleTokens: dbUser.battle_tokens || 0,
+        credibilityScore: 50,
+        verifiedPurchases: 0,
+        credibilityTier: 'bronze' as const,
+        voteStreak: dbUser.vote_streak || 0,
+        weeklyVoteCount: 0,
+        weeklyTerritoryBonus: 0,
+      }
     }
 
     if (!user) {
