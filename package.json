@@ -30,7 +30,10 @@
     "test:persistence": "npx tsx scripts/test-auth-persistence.ts",
     "debug:auth": "npx tsx scripts/debug-auth-state.ts",
     "check:localstorage": "npx tsx scripts/check-localstorage.ts",
-    "create:checker": "npx tsx scripts/simple-localstorage-check.ts"
+    "create:checker": "npx tsx scripts/simple-localstorage-check.ts",
+    "fix:votes": "npx tsx scripts/fix-vote-constraint.ts",
+    "test:votes": "npx tsx scripts/test-multiple-votes.ts",
+    "check:vendors": "npx tsx scripts/check-vendors.ts"
   },
   "dependencies": {
     "@coinbase/onchainkit": "^0.38.18",

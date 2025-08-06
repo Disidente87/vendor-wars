@@ -334,18 +334,6 @@ export class VotingService {
         if (voteError) {
           console.error('Error creating vote in Supabase:', voteError)
           
-          // Check if it's a unique constraint violation
-          if (voteError.message && voteError.message.includes('duplicate key')) {
-            return {
-              success: false,
-              tokensEarned: 0,
-              newBalance: 0,
-              streakBonus: 0,
-              territoryBonus: 0,
-              error: 'You have already voted for this vendor today. You can vote up to 3 times per vendor per day.'
-            }
-          }
-          
           // Check if it's a foreign key violation
           if (voteError.message && voteError.message.includes('foreign key')) {
             return {

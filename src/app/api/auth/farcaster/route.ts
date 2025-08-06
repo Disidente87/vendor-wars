@@ -95,7 +95,7 @@ export async function GET(request: NextRequest) {
           fid: dbUser.fid,
           username: dbUser.username,
           displayName: dbUser.display_name,
-          pfpUrl: dbUser.avatar_url?.url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${dbUser.fid}`,
+          pfpUrl: dbUser.avatar_url?.url || 'https://api.dicebear.com/7.x/avataaars/svg?seed=default',
           followerCount: 0, // Not stored in simplified schema
           followingCount: 0, // Not stored in simplified schema
           bio: 'Vendor Wars enthusiast', // Default value
@@ -124,12 +124,12 @@ export async function GET(request: NextRequest) {
         )
       }
 
-      // Map database user to our User type
-      user = {
-        fid: dbUser.fid,
-        username: dbUser.username,
-        displayName: dbUser.display_name,
-        pfpUrl: dbUser.avatar_url?.url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${dbUser.fid}`,
+              // Map database user to our User type
+        user = {
+          fid: dbUser.fid,
+          username: dbUser.username,
+          displayName: dbUser.display_name,
+          pfpUrl: dbUser.avatar_url?.url || 'https://api.dicebear.com/7.x/avataaars/svg?seed=default',
         followerCount: 0,
         followingCount: 0,
         bio: 'Vendor Wars enthusiast',
