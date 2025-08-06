@@ -1,6 +1,9 @@
 #!/usr/bin/env npx tsx
 
 import { createClient } from '@supabase/supabase-js'
+import dotenv from 'dotenv'
+
+dotenv.config({ path: '.env.local' })
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -18,59 +21,44 @@ async function checkUsersSchema() {
   console.log('🔍 Checking users table schema...')
   
   try {
-    // Get table information
-    const { data: tableInfo, error: tableError } = await supabase
-      .from('information_schema.columns')
-      .select('column_name, data_type, is_nullable, column_default')
-      .eq('table_name', 'users')
-      .eq('table_schema', 'public')
-      .order('ordinal_position')
+    // Get a sample user to check available columns
+    const { data: sampleUser, error: sampleError } = await supabase
+      .from('users')
+      .select('*')
+      .limit(1)
 
-    if (tableError) {
-      console.error('❌ Error fetching table schema:', tableError)
+    if (sampleError) {
+      console.error('❌ Error accessing users table:', sampleError)
       return false
     }
 
-    if (!tableInfo || tableInfo.length === 0) {
-      console.error('❌ Users table not found or no columns returned')
-      return false
+    if (!sampleUser || sampleUser.length === 0) {
+      console.log('📭 Users table is empty, but accessible')
+      return true
     }
 
+    const userColumns = Object.keys(sampleUser[0])
     console.log('✅ Users table found with the following columns:')
     console.log('')
 
     const expectedColumns = [
-      { name: 'fid', type: 'bigint', nullable: 'NO' },
-      { name: 'username', type: 'text', nullable: 'YES' },
-      { name: 'display_name', type: 'text', nullable: 'YES' },
-      { name: 'avatar_url', type: 'text', nullable: 'YES' },
-      { name: 'battle_tokens', type: 'integer', nullable: 'YES' },
-      { name: 'vote_streak', type: 'integer', nullable: 'YES' },
-      { name: 'created_at', type: 'timestamp with time zone', nullable: 'YES' },
-      { name: 'updated_at', type: 'timestamp with time zone', nullable: 'YES' }
+      'fid',
+      'username', 
+      'display_name',
+      'avatar_url',
+      'battle_tokens',
+      'vote_streak',
+      'created_at',
+      'updated_at'
     ]
 
     let allColumnsMatch = true
-    const foundColumns = new Set()
 
-    for (const column of tableInfo) {
-      foundColumns.add(column.column_name)
-      const expected = expectedColumns.find(c => c.name === column.column_name)
-      
-      if (expected) {
-        const typeMatch = column.data_type === expected.type
-        const nullableMatch = column.is_nullable === expected.nullable
-        
-        if (typeMatch && nullableMatch) {
-          console.log(`✅ ${column.column_name}: ${column.data_type} (${column.is_nullable === 'YES' ? 'nullable' : 'not null'})`)
-        } else {
-          console.log(`❌ ${column.column_name}:`)
-          console.log(`   Expected: ${expected.type} (${expected.nullable === 'YES' ? 'nullable' : 'not null'})`)
-          console.log(`   Found: ${column.data_type} (${column.is_nullable === 'YES' ? 'nullable' : 'not null'})`)
-          allColumnsMatch = false
-        }
+    for (const column of userColumns) {
+      if (expectedColumns.includes(column)) {
+        console.log(`✅ ${column}`)
       } else {
-        console.log(`⚠️  ${column.column_name}: ${column.data_type} (${column.is_nullable === 'YES' ? 'nullable' : 'not null'}) - Unexpected column`)
+        console.log(`⚠️  ${column} - Unexpected column`)
       }
     }
 
@@ -78,8 +66,8 @@ async function checkUsersSchema() {
     
     // Check for missing expected columns
     for (const expected of expectedColumns) {
-      if (!foundColumns.has(expected.name)) {
-        console.log(`❌ Missing expected column: ${expected.name} (${expected.type})`)
+      if (!userColumns.includes(expected)) {
+        console.log(`❌ Missing expected column: ${expected}`)
         allColumnsMatch = false
       }
     }

@@ -18,6 +18,7 @@ import {
   ArrowRight,
   Plus
 } from 'lucide-react'
+import { VendorAvatar } from '@/components/VendorAvatar'
 
 interface Vendor {
   id: string
@@ -183,20 +184,11 @@ export default function VendorsPage() {
               >
                 <div className="flex items-center space-x-4">
                   {/* Avatar */}
-                  <div className="relative">
-                    <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-[#ff6b35]">
-                      <img 
-                        src={vendor.imageUrl || 'https://images.unsplash.com/photo-1595273670150-bd0c3c392e46?w=100&h=100&fit=crop&crop=face'} 
-                        alt={vendor.name} 
-                        className="w-full h-full object-cover" 
-                      />
-                    </div>
-                    {vendor.isVerified && (
-                      <div className="absolute -top-1 -right-1 w-6 h-6 bg-[#ffd23f] rounded-full flex items-center justify-center">
-                        <Crown className="w-3 h-3 text-[#2d1810]" />
-                      </div>
-                    )}
-                  </div>
+                  <VendorAvatar 
+                    vendor={vendor}
+                    size="md"
+                    showVerification={true}
+                  />
 
                   {/* Vendor Info */}
                   <div className="flex-1">

@@ -33,7 +33,16 @@
     "create:checker": "npx tsx scripts/simple-localstorage-check.ts",
     "fix:votes": "npx tsx scripts/fix-vote-constraint.ts",
     "test:votes": "npx tsx scripts/test-multiple-votes.ts",
-    "check:vendors": "npx tsx scripts/check-vendors.ts"
+    "check:vendors": "npx tsx scripts/check-vendors.ts",
+    "clear:redis": "npx tsx scripts/clear-redis-cache.ts",
+    "reset:tokens": "npx tsx scripts/clear-redis-cache.ts",
+    "reset:user": "npx tsx scripts/reset-user-tokens.ts",
+    "check:user": "npx tsx scripts/check-user-data.ts",
+    "clear:localstorage": "npx tsx scripts/clear-localstorage.ts",
+    "force:refresh": "npx tsx scripts/force-user-refresh.ts",
+    "check:vendors": "npx tsx scripts/check-vendors-data.ts",
+    "test:vendor-images": "npx tsx scripts/test-vendor-images.ts",
+    "vendor:summary": "npx tsx scripts/vendor-images-summary.ts"
   },
   "dependencies": {
     "@coinbase/onchainkit": "^0.38.18",

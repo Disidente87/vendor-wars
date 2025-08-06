@@ -90,12 +90,27 @@ export async function GET(request: NextRequest) {
       }
 
       if (dbUser) {
+        // Parse avatar_url if it's a JSON string
+        let pfpUrl = 'https://api.dicebear.com/7.x/avataaars/svg?seed=default'
+        if (dbUser.avatar_url) {
+          try {
+            if (typeof dbUser.avatar_url === 'string') {
+              const parsedAvatar = JSON.parse(dbUser.avatar_url)
+              pfpUrl = parsedAvatar.url || pfpUrl
+            } else if (typeof dbUser.avatar_url === 'object' && dbUser.avatar_url.url) {
+              pfpUrl = dbUser.avatar_url.url
+            }
+          } catch (error) {
+            console.warn('Failed to parse avatar_url:', error)
+          }
+        }
+
         // Map database user to our User type
         user = {
           fid: dbUser.fid,
           username: dbUser.username,
           displayName: dbUser.display_name,
-          pfpUrl: dbUser.avatar_url?.url || 'https://api.dicebear.com/7.x/avataaars/svg?seed=default',
+          pfpUrl: pfpUrl,
           followerCount: 0, // Not stored in simplified schema
           followingCount: 0, // Not stored in simplified schema
           bio: 'Vendor Wars enthusiast', // Default value
@@ -124,24 +139,39 @@ export async function GET(request: NextRequest) {
         )
       }
 
-              // Map database user to our User type
+        // Parse avatar_url if it's a JSON string
+        let pfpUrl = 'https://api.dicebear.com/7.x/avataaars/svg?seed=default'
+        if (dbUser.avatar_url) {
+          try {
+            if (typeof dbUser.avatar_url === 'string') {
+              const parsedAvatar = JSON.parse(dbUser.avatar_url)
+              pfpUrl = parsedAvatar.url || pfpUrl
+            } else if (typeof dbUser.avatar_url === 'object' && dbUser.avatar_url.url) {
+              pfpUrl = dbUser.avatar_url.url
+            }
+          } catch (error) {
+            console.warn('Failed to parse avatar_url:', error)
+          }
+        }
+
+        // Map database user to our User type
         user = {
           fid: dbUser.fid,
           username: dbUser.username,
           displayName: dbUser.display_name,
-          pfpUrl: dbUser.avatar_url?.url || 'https://api.dicebear.com/7.x/avataaars/svg?seed=default',
-        followerCount: 0,
-        followingCount: 0,
-        bio: 'Vendor Wars enthusiast',
-        verifiedAddresses: [],
-        battleTokens: dbUser.battle_tokens || 0,
-        credibilityScore: 50,
-        verifiedPurchases: 0,
-        credibilityTier: 'bronze' as const,
-        voteStreak: dbUser.vote_streak || 0,
-        weeklyVoteCount: 0,
-        weeklyTerritoryBonus: 0,
-      }
+          pfpUrl: pfpUrl,
+          followerCount: 0,
+          followingCount: 0,
+          bio: 'Vendor Wars enthusiast',
+          verifiedAddresses: [],
+          battleTokens: dbUser.battle_tokens || 0,
+          credibilityScore: 50,
+          verifiedPurchases: 0,
+          credibilityTier: 'bronze' as const,
+          voteStreak: dbUser.vote_streak || 0,
+          weeklyVoteCount: 0,
+          weeklyTerritoryBonus: 0,
+        }
     }
 
     if (!user) {

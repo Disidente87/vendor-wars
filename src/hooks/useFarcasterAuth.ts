@@ -93,6 +93,10 @@ export function useFarcasterAuth(): UseFarcasterAuthReturn {
               }
               
               console.log('🎉 Session restored successfully!')
+              
+              // Store updated user in localStorage for persistence
+              localStorage.setItem('farcaster-auth-user', JSON.stringify(updatedUser))
+              
               setUser(updatedUser)
               setIsAuthenticated(true)
               setIsLoading(false)
@@ -137,6 +141,10 @@ export function useFarcasterAuth(): UseFarcasterAuthReturn {
             }
             
             console.log('🎉 Existing user authenticated successfully!')
+            
+            // Store updated user in localStorage for persistence
+            localStorage.setItem('farcaster-auth-user', JSON.stringify(updatedUser))
+            
             setUser(updatedUser)
             setIsAuthenticated(true)
           } else {

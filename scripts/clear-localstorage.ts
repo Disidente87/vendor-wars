@@ -1,0 +1,21 @@
+import dotenv from 'dotenv'
+
+dotenv.config({ path: '.env.local' })
+
+console.log('🧹 LocalStorage Cleanup Instructions')
+console.log('')
+console.log('Para limpiar el localStorage del navegador y forzar una nueva autenticación:')
+console.log('')
+console.log('1. Abre las herramientas de desarrollador (F12)')
+console.log('2. Ve a la pestaña "Application" o "Aplicación"')
+console.log('3. En el panel izquierdo, busca "Local Storage"')
+console.log('4. Haz clic en tu dominio (localhost:3000)')
+console.log('5. Busca y elimina la clave "farcaster-auth-user"')
+console.log('6. Recarga la página')
+console.log('')
+console.log('O ejecuta este código en la consola del navegador:')
+console.log('')
+console.log('localStorage.removeItem("farcaster-auth-user")')
+console.log('location.reload()')
+console.log('')
+console.log('Esto forzará una nueva autenticación y debería mostrar la foto correcta de Farcaster.')
