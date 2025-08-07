@@ -42,7 +42,9 @@
     "force:refresh": "npx tsx scripts/force-user-refresh.ts",
     "check:vendors": "npx tsx scripts/check-vendors-data.ts",
     "test:vendor-images": "npx tsx scripts/test-vendor-images.ts",
-    "vendor:summary": "npx tsx scripts/vendor-images-summary.ts"
+    "vendor:summary": "npx tsx scripts/vendor-images-summary.ts",
+    "test:wallet": "npx tsx scripts/test-wallet-connection.ts",
+    "wallet:summary": "npx tsx scripts/wallet-feature-summary.ts"
   },
   "dependencies": {
     "@coinbase/onchainkit": "^0.38.18",

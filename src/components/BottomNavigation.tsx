@@ -1,7 +1,7 @@
 'use client'
 
 import { useRouter, usePathname } from 'next/navigation'
-import { MapPin, Store, User, Trophy } from 'lucide-react'
+import { MapPin, Store, User, Trophy, Wallet } from 'lucide-react'
 
 interface NavigationItem {
   name: string
@@ -19,6 +19,11 @@ const navigationItems: NavigationItem[] = [
     name: 'Vendors',
     path: '/vendors',
     icon: Store
+  },
+  {
+    name: 'Wallet',
+    path: '/wallet',
+    icon: Wallet
   },
   {
     name: 'Profile',

@@ -7,6 +7,7 @@ import { Crown, Flame, MapPin, Users, Zap } from 'lucide-react'
 import { useFarcasterAuth } from '@/hooks/useFarcasterAuth'
 import { VotingTest } from '@/components/VotingTest'
 import { BattleSystemComingSoon } from '@/components/battle-system-coming-soon'
+import { WalletIndicator } from '@/components/WalletIndicator'
 
 export default function HomePage() {
   const router = useRouter()
@@ -178,7 +179,11 @@ export default function HomePage() {
           </div>
 
           <div className="relative z-10 flex flex-col h-full">
-            {/* Header */}
+            {/* Header with Wallet Indicator */}
+            <div className="flex justify-end p-4">
+              <WalletIndicator />
+            </div>
+            
             <div className="flex-1 flex flex-col justify-center items-center px-6 py-8">
               <div className="text-center space-y-6">
                 {/* Logo/Title */}
