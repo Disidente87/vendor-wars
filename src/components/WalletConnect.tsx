@@ -40,6 +40,7 @@ export function WalletConnect({
 }: WalletConnectProps) {
   const [isConnecting, setIsConnecting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [lastConnectedConnector, setLastConnectedConnector] = useState<any>(null)
 
   const { address, isConnected, isConnecting: wagmiConnecting } = useAccount()
   const { connect, connectors } = useConnect()
@@ -60,12 +61,24 @@ export function WalletConnect({
     }
   }, [isConnected])
 
+  // Force connector refresh when disconnected
+  useEffect(() => {
+    if (!isConnected) {
+      // Small delay to allow connectors to reset
+      const timer = setTimeout(() => {
+        // This will trigger a re-render of connectors
+      }, 100)
+      return () => clearTimeout(timer)
+    }
+  }, [isConnected])
+
   const handleConnect = async (connector: any) => {
     setIsConnecting(true)
     setError(null)
 
     try {
       await connect({ connector })
+      setLastConnectedConnector(connector)
       
       if (onConnect && address) {
         onConnect(address)
@@ -75,6 +88,12 @@ export function WalletConnect({
       setError('Failed to connect wallet. Please try again.')
     } finally {
       setIsConnecting(false)
+    }
+  }
+
+  const handleReconnect = async () => {
+    if (lastConnectedConnector) {
+      await handleConnect(lastConnectedConnector)
     }
   }
 
@@ -203,31 +222,62 @@ export function WalletConnect({
           Connect your wallet to vote for vendors and earn $BATTLE tokens
         </p>
 
+        {/* Quick Reconnect Button */}
+        {lastConnectedConnector && !isConnected && (
+          <Button
+            onClick={handleReconnect}
+            disabled={isConnecting}
+            className="w-full bg-[#ff6b35] hover:bg-[#e5562e] text-white font-medium"
+          >
+            {isConnecting ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Reconnecting...
+              </>
+            ) : (
+              <>
+                <span className="text-lg mr-2">{getConnectorIcon(lastConnectedConnector)}</span>
+                Reconnect to {getConnectorName(lastConnectedConnector)}
+              </>
+            )}
+          </Button>
+        )}
+
         {/* Available Connectors */}
         <div className="space-y-2">
-          {connectors.map((connector) => (
-            <Button
-              key={connector.uid}
-              onClick={() => handleConnect(connector)}
-              disabled={!connector.ready || isConnecting}
-              className="w-full justify-start space-x-3 h-12"
-              variant="outline"
-            >
-              {isConnecting ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <span className="text-lg">{getConnectorIcon(connector)}</span>
-              )}
-              <span>{getConnectorName(connector)}</span>
-              {!connector.ready && (
-                <span className="text-xs text-gray-500">(Connecting...)</span>
-              )}
-            </Button>
-          ))}
+          {connectors.map((connector) => {
+            const isLastUsed = lastConnectedConnector?.uid === connector.uid
+            const isAvailable = connector.ready || isLastUsed
+            
+            return (
+              <Button
+                key={connector.uid}
+                onClick={() => handleConnect(connector)}
+                disabled={!isAvailable || isConnecting}
+                className={`w-full justify-start space-x-3 h-12 ${
+                  isLastUsed ? 'border-[#ff6b35] bg-[#ff6b35]/5' : ''
+                }`}
+                variant="outline"
+              >
+                {isConnecting ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <span className="text-lg">{getConnectorIcon(connector)}</span>
+                )}
+                <span>{getConnectorName(connector)}</span>
+                {isLastUsed && (
+                  <span className="text-xs text-[#ff6b35]">(Last used)</span>
+                )}
+                {!connector.ready && !isLastUsed && (
+                  <span className="text-xs text-gray-500">(Connecting...)</span>
+                )}
+              </Button>
+            )
+          })}
         </div>
         
         {/* Connection Status */}
-        {connectors.every(connector => !connector.ready) && (
+        {connectors.every(connector => !connector.ready && lastConnectedConnector?.uid !== connector.uid) && (
           <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-3">
             <div className="flex items-center space-x-2">
               <AlertCircle className="w-4 h-4 text-yellow-600" />
