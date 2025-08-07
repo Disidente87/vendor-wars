@@ -46,6 +46,8 @@
     "test:wallet": "npx tsx scripts/test-wallet-connection.ts",
     "test:wallet-reconnect": "npx tsx scripts/test-wallet-reconnection.ts",
     "test:wallet-improved": "npx tsx scripts/test-wallet-reconnect-improved.ts",
+    "test:wallet-persistence": "npx tsx scripts/test-wallet-persistence.ts",
+    "test:all-wallets": "npx tsx scripts/test-all-wallets.ts",
     "wallet:summary": "npx tsx scripts/wallet-feature-summary.ts"
   },
   "dependencies": {

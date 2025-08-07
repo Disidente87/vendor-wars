@@ -42,6 +42,21 @@ export function WalletConnect({
   const [error, setError] = useState<string | null>(null)
   const [lastConnectedConnector, setLastConnectedConnector] = useState<any>(null)
 
+  // Load last connected connector from localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('last-connected-connector')
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved)
+          setLastConnectedConnector(parsed)
+        } catch (e) {
+          console.warn('Failed to parse saved connector:', e)
+        }
+      }
+    }
+  }, [])
+
   const { address, isConnected, isConnecting: wagmiConnecting } = useAccount()
   const { connect, connectors } = useConnect()
   const { disconnect } = useDisconnect()
@@ -78,7 +93,15 @@ export function WalletConnect({
 
     try {
       await connect({ connector })
-      setLastConnectedConnector(connector)
+      
+      // Save connector info to localStorage
+      const connectorInfo = {
+        uid: connector.uid,
+        name: connector.name,
+        id: connector.id
+      }
+      setLastConnectedConnector(connectorInfo)
+      localStorage.setItem('last-connected-connector', JSON.stringify(connectorInfo))
       
       if (onConnect && address) {
         onConnect(address)
@@ -93,7 +116,13 @@ export function WalletConnect({
 
   const handleReconnect = async () => {
     if (lastConnectedConnector) {
-      await handleConnect(lastConnectedConnector)
+      // Find the actual connector object
+      const connector = connectors.find(c => c.uid === lastConnectedConnector.uid)
+      if (connector) {
+        await handleConnect(connector)
+      } else {
+        setError('Previous wallet not available. Please connect manually.')
+      }
     }
   }
 
@@ -247,13 +276,14 @@ export function WalletConnect({
         <div className="space-y-2">
           {connectors.map((connector) => {
             const isLastUsed = lastConnectedConnector?.uid === connector.uid
+            // Allow connection if connector is ready OR if it was last used
             const isAvailable = connector.ready || isLastUsed
             
             return (
               <Button
                 key={connector.uid}
                 onClick={() => handleConnect(connector)}
-                disabled={!isAvailable || isConnecting}
+                disabled={isConnecting}
                 className={`w-full justify-start space-x-3 h-12 ${
                   isLastUsed ? 'border-[#ff6b35] bg-[#ff6b35]/5' : ''
                 }`}
@@ -314,6 +344,22 @@ export function WalletConnect({
           <p>• MetaMask: Popular browser extension</p>
           <p>• Farcaster Frame: Native Farcaster integration</p>
         </div>
+        
+        {/* Debug: Clear saved connector */}
+        {lastConnectedConnector && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              localStorage.removeItem('last-connected-connector')
+              setLastConnectedConnector(null)
+              setError(null)
+            }}
+            className="text-xs text-gray-400 hover:text-gray-600"
+          >
+            Clear saved wallet
+          </Button>
+        )}
       </div>
     </div>
   )
