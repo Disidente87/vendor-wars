@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { 
   Wallet, 
@@ -52,6 +52,14 @@ export function WalletConnect({
     chainId: base.id,
   })
 
+  // Reset connection state when disconnected
+  useEffect(() => {
+    if (!isConnected) {
+      setIsConnecting(false)
+      setError(null)
+    }
+  }, [isConnected])
+
   const handleConnect = async (connector: any) => {
     setIsConnecting(true)
     setError(null)
@@ -70,10 +78,18 @@ export function WalletConnect({
     }
   }
 
-  const handleDisconnect = () => {
-    disconnect()
-    if (onDisconnect) {
-      onDisconnect()
+  const handleDisconnect = async () => {
+    try {
+      await disconnect()
+      // Reset connection state
+      setIsConnecting(false)
+      setError(null)
+      if (onDisconnect) {
+        onDisconnect()
+      }
+    } catch (err) {
+      console.error('Disconnect error:', err)
+      setError('Failed to disconnect properly')
     }
   }
 
@@ -204,11 +220,23 @@ export function WalletConnect({
               )}
               <span>{getConnectorName(connector)}</span>
               {!connector.ready && (
-                <span className="text-xs text-gray-500">(Unavailable)</span>
+                <span className="text-xs text-gray-500">(Connecting...)</span>
               )}
             </Button>
           ))}
         </div>
+        
+        {/* Connection Status */}
+        {connectors.every(connector => !connector.ready) && (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-3">
+            <div className="flex items-center space-x-2">
+              <AlertCircle className="w-4 h-4 text-yellow-600" />
+              <span className="text-sm text-yellow-700">
+                No wallets available. Please install a wallet extension.
+              </span>
+            </div>
+          </div>
+        )}
 
         {/* Recommended Network */}
         <div className="bg-blue-50 border border-blue-200 rounded-xl p-3">

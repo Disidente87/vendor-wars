@@ -143,16 +143,32 @@ export default function WalletPage() {
                 </div>
               )}
 
-              {/* BATTLE Tokens */}
-              <div className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg">
-                <div className="flex items-center space-x-2">
-                  <Coins className="w-4 h-4 text-yellow-600" />
-                  <span className="text-sm font-medium">$BATTLE</span>
+              {/* BATTLE Tokens - Only show if connected to Base */}
+              {isBaseNetwork && (
+                <div className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg">
+                  <div className="flex items-center space-x-2">
+                    <Coins className="w-4 h-4 text-yellow-600" />
+                    <span className="text-sm font-medium">$BATTLE</span>
+                  </div>
+                  <span className="text-sm font-mono">
+                    {battleTokens || 0} BATTLE
+                  </span>
                 </div>
-                <span className="text-sm font-mono">
-                  {battleTokens || 0} BATTLE
-                </span>
-              </div>
+              )}
+              
+              {/* App Tokens - Show when not on Base */}
+              {!isBaseNetwork && (
+                <div className="flex items-center justify-between p-3 bg-orange-50 rounded-lg">
+                  <div className="flex items-center space-x-2">
+                    <Coins className="w-4 h-4 text-orange-600" />
+                    <span className="text-sm font-medium">App Tokens</span>
+                  </div>
+                  <span className="text-sm font-mono">
+                    {battleTokens || 0} BATTLE
+                  </span>
+                  <span className="text-xs text-orange-600">(Off-chain)</span>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
