@@ -42,7 +42,7 @@ export function WalletConnect({
   const [error, setError] = useState<string | null>(null)
 
   const { address, isConnected, isConnecting: wagmiConnecting } = useAccount()
-  const { connect, connectors, pendingConnector } = useConnect()
+  const { connect, connectors } = useConnect()
   const { disconnect } = useDisconnect()
   const { switchChain } = useSwitchChain()
   const chainId = useChainId()
@@ -197,7 +197,7 @@ export function WalletConnect({
               className="w-full justify-start space-x-3 h-12"
               variant="outline"
             >
-              {isConnecting && pendingConnector?.uid === connector.uid ? (
+              {isConnecting ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
                 <span className="text-lg">{getConnectorIcon(connector)}</span>

@@ -8,7 +8,7 @@ import {
   Wallet, 
   Coins, 
   Send, 
-  Receive, 
+  Download, 
   History, 
   Settings,
   Copy,
@@ -178,7 +178,7 @@ export default function WalletPage() {
                 className="h-12 flex flex-col items-center justify-center space-y-1"
                 disabled
               >
-                <Receive className="w-4 h-4" />
+                <Download className="w-4 h-4" />
                 <span className="text-xs">Receive</span>
               </Button>
               
