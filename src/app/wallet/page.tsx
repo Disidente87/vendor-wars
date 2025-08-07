@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { WalletConnect, useWalletConnection } from '@/components/WalletConnect'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { WalletActions } from '@/components/WalletActions'
 import { 
   Wallet, 
   Coins, 
@@ -179,43 +180,10 @@ export default function WalletPage() {
             <CardTitle className="text-lg">Quick Actions</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 gap-3">
-              <Button
-                variant="outline"
-                className="h-12 flex flex-col items-center justify-center space-y-1"
-                disabled
-              >
-                <Send className="w-4 h-4" />
-                <span className="text-xs">Send</span>
-              </Button>
-              
-              <Button
-                variant="outline"
-                className="h-12 flex flex-col items-center justify-center space-y-1"
-                disabled
-              >
-                <Download className="w-4 h-4" />
-                <span className="text-xs">Receive</span>
-              </Button>
-              
-              <Button
-                variant="outline"
-                className="h-12 flex flex-col items-center justify-center space-y-1"
-                disabled
-              >
-                <History className="w-4 h-4" />
-                <span className="text-xs">History</span>
-              </Button>
-              
-              <Button
-                variant="outline"
-                className="h-12 flex flex-col items-center justify-center space-y-1"
-                disabled
-              >
-                <Settings className="w-4 h-4" />
-                <span className="text-xs">Settings</span>
-              </Button>
-            </div>
+            <WalletActions 
+              address={address}
+              isBaseNetwork={isBaseNetwork}
+            />
           </CardContent>
         </Card>
 
