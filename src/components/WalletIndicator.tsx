@@ -11,7 +11,7 @@ interface WalletIndicatorProps {
 }
 
 export function WalletIndicator({ className, showBalance = false }: WalletIndicatorProps) {
-  const { address, isConnected, balance, isBaseNetwork } = useWalletConnection()
+  const { address, isConnected, balance, isBaseSepoliaNetwork } = useWalletConnection()
   const router = useRouter()
 
   const handleWalletClick = () => {
@@ -48,7 +48,7 @@ export function WalletIndicator({ className, showBalance = false }: WalletIndica
           {parseFloat(balance.formatted).toFixed(3)} {balance.symbol}
         </span>
       )}
-      {!isBaseNetwork && (
+      {!isBaseSepoliaNetwork && (
         <AlertCircle className="w-3 h-3 ml-1 text-yellow-600" />
       )}
     </Button>

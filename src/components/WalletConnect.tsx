@@ -20,7 +20,7 @@ import {
   useSwitchChain,
   useChainId
 } from 'wagmi'
-import { base, mainnet } from 'wagmi/chains'
+import { baseSepolia, mainnet } from 'wagmi/chains'
 import { cn } from '@/lib/utils'
 
 interface WalletConnectProps {
@@ -65,7 +65,7 @@ export function WalletConnect({
 
   const { data: balance } = useBalance({
     address,
-    chainId: base.id,
+    chainId: baseSepolia.id,
   })
 
   // Reset connection state when disconnected
@@ -143,10 +143,10 @@ export function WalletConnect({
 
   const handleSwitchChain = async () => {
     try {
-      await switchChain({ chainId: base.id })
+      await switchChain({ chainId: baseSepolia.id })
     } catch (err) {
       console.error('Chain switch error:', err)
-      setError('Failed to switch to Base network.')
+      setError('Failed to switch to Base Sepolia network.')
     }
   }
 
@@ -196,13 +196,13 @@ export function WalletConnect({
             <div className="flex items-center space-x-2">
               <Shield className="w-4 h-4 text-green-600" />
               <span className="text-sm text-green-700">
-                {chainId === base.id ? 'Base Network' : 'Other Network'}
+                {chainId === baseSepolia.id ? 'Base Sepolia Network' : 'Other Network'}
               </span>
             </div>
 
             {/* Actions */}
             <div className="flex space-x-2">
-              {showChainSwitch && chainId !== base.id && (
+              {showChainSwitch && chainId !== baseSepolia.id && (
                 <Button
                   size="sm"
                   variant="outline"
@@ -367,7 +367,7 @@ export function useWalletConnection() {
   const { address, isConnected, isConnecting } = useAccount()
   const { connect, connectors } = useConnect()
   const { disconnect } = useDisconnect()
-  const { data: balance } = useBalance({ address, chainId: base.id })
+  const { data: balance } = useBalance({ address, chainId: baseSepolia.id })
   const chainId = useChainId()
 
   return {
@@ -376,7 +376,7 @@ export function useWalletConnection() {
     isConnecting,
     balance,
     chainId,
-    isBaseNetwork: chainId === base.id,
+    isBaseSepoliaNetwork: chainId === baseSepolia.id,
     connect,
     disconnect,
     connectors

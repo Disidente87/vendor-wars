@@ -7,10 +7,10 @@ import { useWalletConnection } from '@/components/WalletConnect'
 
 interface WalletActionsProps {
   address?: string
-  isBaseNetwork: boolean
+  isBaseSepoliaNetwork: boolean
 }
 
-export function WalletActions({ address, isBaseNetwork }: WalletActionsProps) {
+export function WalletActions({ address, isBaseSepoliaNetwork }: WalletActionsProps) {
   const [copied, setCopied] = useState(false)
   const [showModal, setShowModal] = useState<string | null>(null)
 
@@ -24,8 +24,8 @@ export function WalletActions({ address, isBaseNetwork }: WalletActionsProps) {
 
   const handleOpenExplorer = () => {
     if (address) {
-      const explorerUrl = isBaseNetwork 
-        ? `https://basescan.org/address/${address}`
+      const explorerUrl = isBaseSepoliaNetwork 
+        ? `https://sepolia.basescan.org/address/${address}`
         : `https://etherscan.io/address/${address}`
       window.open(explorerUrl, '_blank')
     }
@@ -124,7 +124,7 @@ export function WalletActions({ address, isBaseNetwork }: WalletActionsProps) {
               <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                 <span className="text-sm">Network</span>
                 <span className="text-sm font-medium">
-                  {isBaseNetwork ? 'Base' : 'Other'}
+                  {isBaseSepoliaNetwork ? 'Base Sepolia' : 'Other'}
                 </span>
               </div>
               <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">

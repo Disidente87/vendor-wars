@@ -21,7 +21,7 @@ import { useTokenBalance } from '@/hooks/useTokenBalance'
 
 export default function WalletPage() {
   const router = useRouter()
-  const { address, isConnected, balance, chainId, isBaseNetwork } = useWalletConnection()
+  const { address, isConnected, balance, chainId, isBaseSepoliaNetwork } = useWalletConnection()
   const { balance: battleTokens } = useTokenBalance()
   const [copied, setCopied] = useState(false)
 
@@ -35,8 +35,8 @@ export default function WalletPage() {
 
   const openExplorer = () => {
     if (address) {
-      const explorerUrl = isBaseNetwork 
-        ? `https://basescan.org/address/${address}`
+      const explorerUrl = isBaseSepoliaNetwork 
+        ? `https://sepolia.basescan.org/address/${address}`
         : `https://etherscan.io/address/${address}`
       window.open(explorerUrl, '_blank')
     }
@@ -97,7 +97,7 @@ export default function WalletPage() {
               <span>Connected</span>
             </CardTitle>
             <CardDescription>
-              {isBaseNetwork ? 'Base Network' : 'Other Network'}
+              {isBaseSepoliaNetwork ? 'Base Sepolia Network' : 'Other Network'}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -145,7 +145,7 @@ export default function WalletPage() {
               )}
 
               {/* BATTLE Tokens - Only show if connected to Base */}
-              {isBaseNetwork && (
+              {isBaseSepoliaNetwork && (
                 <div className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg">
                   <div className="flex items-center space-x-2">
                     <Coins className="w-4 h-4 text-yellow-600" />
@@ -158,7 +158,7 @@ export default function WalletPage() {
               )}
               
               {/* App Tokens - Show when not on Base */}
-              {!isBaseNetwork && (
+              {!isBaseSepoliaNetwork && (
                 <div className="flex items-center justify-between p-3 bg-orange-50 rounded-lg">
                   <div className="flex items-center space-x-2">
                     <Coins className="w-4 h-4 text-orange-600" />
@@ -182,7 +182,7 @@ export default function WalletPage() {
           <CardContent>
             <WalletActions 
               address={address}
-              isBaseNetwork={isBaseNetwork}
+              isBaseSepoliaNetwork={isBaseSepoliaNetwork}
             />
           </CardContent>
         </Card>
@@ -196,7 +196,7 @@ export default function WalletPage() {
             <div className="flex items-center justify-between">
               <span className="text-sm text-gray-600">Network</span>
               <span className="text-sm font-medium">
-                {isBaseNetwork ? 'Base' : 'Other'}
+                {isBaseSepoliaNetwork ? 'Base Sepolia' : 'Other'}
               </span>
             </div>
             
