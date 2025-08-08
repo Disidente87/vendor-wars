@@ -276,8 +276,8 @@ export function WalletConnect({
         <div className="space-y-2">
           {connectors.map((connector) => {
             const isLastUsed = lastConnectedConnector?.uid === connector.uid
-            // Allow connection if connector is ready OR if it was last used
-            const isAvailable = connector.ready || isLastUsed
+            // In wagmi v2, we'll assume connector is available if it exists
+            const isAvailable = true
             
             return (
               <Button
@@ -298,16 +298,13 @@ export function WalletConnect({
                 {isLastUsed && (
                   <span className="text-xs text-[#ff6b35]">(Last used)</span>
                 )}
-                {!connector.ready && !isLastUsed && (
-                  <span className="text-xs text-gray-500">(Connecting...)</span>
-                )}
               </Button>
             )
           })}
         </div>
         
         {/* Connection Status */}
-        {connectors.every(connector => !connector.ready && lastConnectedConnector?.uid !== connector.uid) && (
+        {connectors.length === 0 && (
           <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-3">
             <div className="flex items-center space-x-2">
               <AlertCircle className="w-4 h-4 text-yellow-600" />

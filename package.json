@@ -49,7 +49,10 @@
     "test:wallet-persistence": "npx tsx scripts/test-wallet-persistence.ts",
     "test:all-wallets": "npx tsx scripts/test-all-wallets.ts",
     "test:wallet-actions": "npx tsx scripts/test-wallet-actions.ts",
-    "wallet:summary": "npx tsx scripts/wallet-feature-summary.ts"
+    "wallet:summary": "npx tsx scripts/wallet-feature-summary.ts",
+    "test:battle-token": "npx tsx scripts/test-battle-token-simple.ts",
+    "setup:token-distribution": "npx tsx scripts/setup-token-distribution.ts",
+    "test:token-distribution": "npx tsx scripts/test-token-distribution.ts"
   },
   "dependencies": {
     "@coinbase/onchainkit": "^0.38.18",

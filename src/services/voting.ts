@@ -3,6 +3,7 @@ import { rateLimiter, tokenManager, streakManager, fraudDetection } from '@/lib/
 import { v4 as uuidv4 } from 'uuid'
 import { VendorCategory } from '@/types'
 import * as crypto from 'crypto'
+import { TokenDistributionService } from './tokenDistribution'
 
 // Function to get Supabase client
 function getSupabaseClient() {
@@ -422,6 +423,31 @@ export class VotingService {
           .eq('fid', parseInt(userFid))
       } catch (error) {
         console.warn('⚠️ Supabase not available for user update, continuing with Redis only')
+      }
+
+      // 8.5. Distribute BATTLE tokens for voting reward
+      if (actualVoteId) {
+        try {
+          console.log(`🎁 Distributing ${tokenCalculation.totalTokens} BATTLE tokens for vote ${actualVoteId}`)
+          const distributionResult = await TokenDistributionService.distributeVotingReward(
+            userFid,
+            tokenCalculation.totalTokens,
+            actualVoteId,
+            vendorId
+          )
+          
+          if (distributionResult.success) {
+            console.log(`✅ BATTLE tokens distributed successfully: ${distributionResult.tokensDistributed} tokens`)
+            if (distributionResult.transactionHash) {
+              console.log(`🔗 Transaction hash: ${distributionResult.transactionHash}`)
+            }
+          } else {
+            console.warn(`⚠️ BATTLE token distribution failed: ${distributionResult.error}`)
+          }
+        } catch (error) {
+          console.error('❌ Error distributing BATTLE tokens:', error)
+          // Don't fail the vote if token distribution fails
+        }
       }
 
       // 9. Update vote streak (ONLY if vote was successful)

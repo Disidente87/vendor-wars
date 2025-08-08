@@ -52,11 +52,10 @@ export const config = createConfig({
     [celo.id]: http(),
   },
   connectors: [
-    farcasterFrame(),
+    // farcasterFrame(), // Temporarily disabled due to version compatibility issues
     coinbaseWallet({
       appName: APP_NAME,
       appLogoUrl: APP_ICON_URL,
-      preference: 'all',
     }),
     metaMask({
       dappMetadata: {
