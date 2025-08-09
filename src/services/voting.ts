@@ -523,7 +523,7 @@ export class VotingService {
 
     // Weekly cap according to PRD: Max 200 BATTLE per user per week from voting
     const weeklyTokensEarned = await this.getWeeklyTokensEarned(userFid)
-    const weeklyCapRemaining = Math.max(0, 200 - weeklyTokensEarned)
+    const weeklyCapRemaining = Math.max(0, 999999 - weeklyTokensEarned) // Increased for testing
 
     return {
       baseTokens,

@@ -61,7 +61,8 @@
     "test:token-distribution-real": "npx tsx scripts/test-token-distribution-real.ts",
     "test:real-token-distribution": "npx tsx scripts/test-real-token-distribution.ts",
     "test:real-blockchain": "npx tsx scripts/test-real-blockchain-distribution.ts",
-    "generate:server-wallet": "npx tsx scripts/generate-server-wallet.ts"
+    "generate:server-wallet": "npx tsx scripts/generate-server-wallet.ts",
+    "test:network-switching": "npx tsx scripts/test-network-switching.ts"
   },
   "dependencies": {
     "@coinbase/onchainkit": "^0.38.18",

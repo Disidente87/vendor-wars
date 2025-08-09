@@ -5,6 +5,7 @@ import { WalletConnect, useWalletConnection } from '@/components/WalletConnect'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { WalletActions } from '@/components/WalletActions'
+import { NetworkAlert } from '@/components/NetworkAlert'
 import { 
   Wallet, 
   Coins, 
@@ -74,7 +75,7 @@ export default function WalletPage() {
     <div className="min-h-screen bg-gradient-to-br from-[#fff8f0] to-[#f4f1eb] p-4">
       <div className="max-w-md mx-auto pt-8">
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center justify-between mb-6">
           <div className="flex items-center space-x-3">
             <Button
               variant="ghost"
@@ -88,6 +89,9 @@ export default function WalletPage() {
           </div>
           <Wallet className="w-6 h-6 text-[#ff6b35]" />
         </div>
+
+        {/* Network Alert */}
+        <NetworkAlert className="mb-6" />
 
         {/* Wallet Info Card */}
         <Card className="mb-6">

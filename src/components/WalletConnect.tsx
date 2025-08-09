@@ -76,6 +76,14 @@ export function WalletConnect({
     }
   }, [isConnected])
 
+  // Auto-switch to Base Sepolia when connected to wrong network
+  useEffect(() => {
+    if (isConnected && chainId !== baseSepolia.id) {
+      console.log(`🔄 Auto-switching from Chain ID ${chainId} to Base Sepolia (${baseSepolia.id})`)
+      handleSwitchChain()
+    }
+  }, [isConnected, chainId])
+
   // Force connector refresh when disconnected
   useEffect(() => {
     if (!isConnected) {
@@ -143,10 +151,13 @@ export function WalletConnect({
 
   const handleSwitchChain = async () => {
     try {
+      console.log('🔄 Switching to Base Sepolia network...')
       await switchChain({ chainId: baseSepolia.id })
+      console.log('✅ Successfully switched to Base Sepolia')
+      setError(null) // Clear any previous errors
     } catch (err) {
       console.error('Chain switch error:', err)
-      setError('Failed to switch to Base Sepolia network.')
+      setError(`Failed to switch to Base Sepolia network. Please switch manually to Chain ID ${baseSepolia.id}.`)
     }
   }
 
@@ -194,10 +205,21 @@ export function WalletConnect({
           {/* Chain Info */}
           <div className="mt-3 flex items-center justify-between">
             <div className="flex items-center space-x-2">
-              <Shield className="w-4 h-4 text-green-600" />
-              <span className="text-sm text-green-700">
-                {chainId === baseSepolia.id ? 'Base Sepolia Network' : 'Other Network'}
-              </span>
+              {chainId === baseSepolia.id ? (
+                <>
+                  <Shield className="w-4 h-4 text-green-600" />
+                  <span className="text-sm text-green-700">
+                    Base Sepolia Network ✅
+                  </span>
+                </>
+              ) : (
+                <>
+                  <Shield className="w-4 h-4 text-red-600" />
+                  <span className="text-sm text-red-700">
+                    Wrong Network (Chain ID: {chainId}) ⚠️
+                  </span>
+                </>
+              )}
             </div>
 
             {/* Actions */}
