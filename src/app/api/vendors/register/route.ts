@@ -77,8 +77,7 @@ export async function POST(request: NextRequest) {
         zone_id: zoneId,
         category,
         image_url: imageUrl || 'https://images.unsplash.com/photo-1595273670150-bd0c3c392e46?w=400&h=300&fit=crop',
-        admin_fid: ownerFid,
-        owner_fid: ownerFid, // For backward compatibility
+        owner_fid: ownerFidValue,
         is_verified: false,
         coordinates: [19.4326, -99.1332], // Default coordinates, can be updated later
         total_battles: 0,

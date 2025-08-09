@@ -62,7 +62,9 @@
     "test:real-blockchain": "npx tsx scripts/test-real-blockchain-distribution.ts",
     "generate:server-wallet": "npx tsx scripts/generate-server-wallet.ts",
     "test:network-switching": "npx tsx scripts/test-network-switching.ts",
-    "setup:vendor-admin": "npx tsx scripts/setup-vendor-admin.ts"
+    "setup:vendor-admin": "npx tsx scripts/setup-vendor-admin.ts",
+    "setup:storage": "npx tsx scripts/setup-supabase-storage.ts",
+    "update:storage-policies": "npx tsx scripts/update-storage-policies.ts"
   },
   "dependencies": {
     "@coinbase/onchainkit": "^0.38.18",
