@@ -184,3 +184,125 @@ html {
 .coin-flip {
   animation: coin-flip 0.6s ease-in-out;
 }
+
+/* Custom CSS for Vendor Wars */
+
+/* Territory Glow Effect */
+.territory-glow {
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.3) 0%, transparent 70%);
+  animation: pulse 2s ease-in-out infinite alternate;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 0.3;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0.7;
+    transform: scale(1.1);
+  }
+}
+
+/* Map Styles */
+.maplibregl-map {
+  border-radius: 0.75rem;
+  overflow: hidden;
+}
+
+.maplibregl-ctrl-group {
+  border-radius: 0.5rem !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
+}
+
+.maplibregl-ctrl-group button {
+  border-radius: 0.5rem !important;
+}
+
+/* Zone Hover Effects */
+.zone-hover {
+  transition: all 0.3s ease;
+}
+
+.zone-hover:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 30px rgba(255, 107, 53, 0.4);
+}
+
+/* User Location Marker */
+.user-location-marker {
+  animation: bounce 1s ease-in-out infinite;
+}
+
+@keyframes bounce {
+  0%, 20%, 50%, 80%, 100% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(-10px);
+  }
+  60% {
+    transform: translateY(-5px);
+  }
+}
+
+/* Battle Zone Animations */
+.battle-zone-active {
+  animation: battlePulse 2s ease-in-out infinite;
+}
+
+@keyframes battlePulse {
+  0% {
+    box-shadow: 0 0 20px rgba(255, 107, 53, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 40px rgba(255, 107, 53, 0.8);
+  }
+  100% {
+    box-shadow: 0 0 20px rgba(255, 107, 53, 0.4);
+  }
+}
+
+/* Map Controls */
+.map-controls {
+  backdrop-filter: blur(8px);
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(255, 107, 53, 0.2);
+}
+
+/* Zone Panel */
+.zone-panel {
+  backdrop-filter: blur(12px);
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(255, 107, 53, 0.2);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+/* Responsive Map */
+@media (max-width: 768px) {
+  .maplibregl-map {
+    border-radius: 0.5rem;
+  }
+  
+  .zone-panel {
+    left: 1rem !important;
+    right: 1rem !important;
+    bottom: 1rem !important;
+  }
+}
+
+/* Loading States */
+.map-loading {
+  background: linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 50%, #f3f4f6 75%);
+  background-size: 200% 100%;
+  animation: loading 1.5s infinite;
+}
+
+@keyframes loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}

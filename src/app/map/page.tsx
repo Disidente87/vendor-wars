@@ -6,7 +6,9 @@ import { Button } from '@/components/ui/button'
 import { useMiniApp } from '@neynar/react'
 import { useAuthSimulation } from '@/hooks/useAuthSimulation'
 import { UserHeader } from '@/components/UserHeader'
-import { Search, Plus, Minus, List, Crown, Flame, Trophy, Coins, Bell, Swords } from 'lucide-react'
+import { Search, List, Crown, Flame, Trophy, Coins, Bell, Swords, MapPin } from 'lucide-react'
+import { InteractiveMap } from '@/components/InteractiveMap'
+import { useGeolocation } from '@/hooks/useGeolocation'
 
 interface Zone {
   id: string
@@ -30,6 +32,9 @@ export default function MapPage() {
   
   // Use simulation for development
   const { isAuthenticated, user: _user, isLoading } = useAuthSimulation()
+  
+  // Get user's real location
+  const { coordinates: userLocation, error: locationError, isLoading: locationLoading } = useGeolocation()
 
   // Check authentication status
   useEffect(() => {
@@ -224,47 +229,48 @@ export default function MapPage() {
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
               </div>
-              <button className="w-10 h-10 bg-[#ff6b35] rounded-xl flex items-center justify-center shadow-lg hover:bg-[#e5562e] transition-colors">
-                <Plus className="w-5 h-5 text-white" />
-              </button>
-              <button className="w-10 h-10 bg-[#ff6b35] rounded-xl flex items-center justify-center shadow-lg hover:bg-[#e5562e] transition-colors">
-                <Minus className="w-5 h-5 text-white" />
-              </button>
+              
+              {/* Location Status Indicator */}
+              <div className="flex items-center space-x-2">
+                {locationLoading ? (
+                  <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
+                  </div>
+                ) : locationError ? (
+                  <div className="w-8 h-8 bg-red-100 rounded-lg flex items-center justify-center cursor-pointer" title={locationError}>
+                    <MapPin className="w-4 h-4 text-red-500" />
+                  </div>
+                ) : userLocation ? (
+                  <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center" title="Location active">
+                    <MapPin className="w-4 h-4 text-green-500" />
+                  </div>
+                ) : (
+                  <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center" title="Location unavailable">
+                    <MapPin className="w-4 h-4 text-gray-500" />
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
-          {/* Battle Zones */}
+          {/* Interactive Map */}
           <div className="relative h-full pt-16">
-            {zones.map((zone) => (
-              <div
-                key={zone.id}
-                onClick={() => handleZoneClick(zone.id)}
-                className={`absolute ${getZoneSize(zone.size)} cursor-pointer transition-all duration-300 hover:scale-110`}
-                style={{
-                  top: zone.position.top,
-                  left: zone.position.left,
-                  backgroundColor: zone.color,
-                  boxShadow: `0 0 20px ${zone.color}40`
-                }}
-              >
-                <div className="w-full h-full rounded-full flex flex-col items-center justify-center text-white relative overflow-hidden">
-                  {/* Battle Intensity Indicator */}
-                  <div 
-                    className="absolute top-1 right-1 w-3 h-3 rounded-full border-2 border-white"
-                    style={{ backgroundColor: getBattleIntensityColor(zone.battleIntensity) }}
-                  ></div>
-                  
-                  {/* Zone Content */}
-                  <div className="text-center">
-                    <p className="text-xs font-bold leading-tight">{zone.name}</p>
-                    <p className="text-xs opacity-90">{zone.control}%</p>
-                  </div>
-                  
-                  {/* Territory Glow Effect */}
-                  <div className="absolute inset-0 rounded-full territory-glow opacity-50"></div>
-                </div>
-              </div>
-            ))}
+            <InteractiveMap
+              zones={zones.map(zone => ({
+                id: zone.id,
+                name: zone.name,
+                color: zone.color,
+                heatLevel: zone.battleIntensity,
+                totalVotes: zone.recentVotes,
+                activeVendors: Math.floor(zone.control / 10)
+              }))}
+              onZoneClick={handleZoneClick}
+              onVoteClick={(zoneId) => {
+                console.log('Voting for zone:', zoneId)
+                // TODO: Implement voting logic
+              }}
+              userLocation={userLocation || [-99.1332, 19.4326]} // Use real location or fallback to CDMX center
+            />
           </div>
         </div>
       </div>
