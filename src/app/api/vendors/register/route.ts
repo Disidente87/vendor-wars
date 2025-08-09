@@ -5,11 +5,10 @@ import { v4 as uuidv4 } from 'uuid'
 interface VendorRegistrationData {
   name: string
   description: string
-  zone: string
+  zoneId: string
   category: string
-  logo: string
-  ownerFid?: string
-  ownerName?: string
+  imageUrl: string
+  ownerFid: number
 }
 
 export async function POST(request: NextRequest) {
@@ -17,17 +16,56 @@ export async function POST(request: NextRequest) {
     const body: VendorRegistrationData = await request.json()
     
     // Validate required fields
-    const { name, description, zone, category, logo, ownerFid, ownerName } = body
+    const { name, description, zoneId, category, imageUrl, ownerFid } = body
     
-    if (!name || !description || !zone || !category || !logo) {
+    if (!name || !description || !zoneId || !category || !ownerFid) {
       return NextResponse.json(
         { success: false, error: 'Missing required fields' },
         { status: 400 }
       )
     }
 
+    // Validate that the zone exists
+    const { data: zone, error: zoneError } = await supabase
+      .from('zones')
+      .select('id')
+      .eq('id', zoneId)
+      .single()
+
+    if (zoneError || !zone) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid zone selected' },
+        { status: 400 }
+      )
+    }
+
+    // Obtener el fid del usuario autenticado desde el header o cookie
+    const ownerFidHeader = request.headers.get('x-farcaster-fid')
+    const ownerFidValue = ownerFidHeader ? parseInt(ownerFidHeader) : ownerFid
+
+    if (!ownerFidValue || isNaN(ownerFidValue)) {
+      return NextResponse.json(
+        { success: false, error: 'No se pudo determinar el usuario. Por favor inicia sesión con Farcaster.' },
+        { status: 400 }
+      )
+    }
+
+    // Validar que el usuario existe
+    const { data: user, error: userError } = await supabase
+      .from('users')
+      .select('fid, display_name')
+      .eq('fid', ownerFidValue)
+      .single()
+
+    if (userError || !user) {
+      return NextResponse.json(
+        { success: false, error: 'Usuario no encontrado. Por favor asegúrate de estar logueado con Farcaster.' },
+        { status: 400 }
+      )
+    }
+
     // Generate vendor ID
-    const vendorId = uuidv4()
+    const vendorId = uuidv4();
     
     // Create vendor record
     const { data: vendor, error: vendorError } = await supabase
@@ -36,19 +74,25 @@ export async function POST(request: NextRequest) {
         id: vendorId,
         name,
         description,
-        zone,
+        zone_id: zoneId,
         category,
-        logo,
-        owner_fid: ownerFid || null,
-        owner_name: ownerName || null,
-        is_verified: false, // Start as unverified
-        created_at: new Date().toISOString(),
-        stats: {
-          totalVotes: 0,
-          verifiedVotes: 0,
-          winRate: 0,
-          totalBattles: 0
-        }
+        image_url: imageUrl || 'https://images.unsplash.com/photo-1595273670150-bd0c3c392e46?w=400&h=300&fit=crop',
+        admin_fid: ownerFid,
+        owner_fid: ownerFid, // For backward compatibility
+        is_verified: false,
+        coordinates: [19.4326, -99.1332], // Default coordinates, can be updated later
+        total_battles: 0,
+        wins: 0,
+        losses: 0,
+        win_rate: 0,
+        total_revenue: 0,
+        average_rating: 0,
+        review_count: 0,
+        territory_defenses: 0,
+        territory_conquests: 0,
+        current_zone_rank: 0,
+        total_votes: 0,
+        verified_votes: 0
       })
       .select()
       .single()
@@ -61,40 +105,17 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // If owner is provided, create user record if it doesn't exist
-    if (ownerFid && ownerName) {
-      const { data: existingUser } = await supabase
-        .from('users')
-        .select('id')
-        .eq('fid', ownerFid)
-        .single()
-
-      if (!existingUser) {
-        await supabase
-          .from('users')
-          .insert({
-            id: uuidv4(),
-            fid: ownerFid,
-            name: ownerName,
-            battle_tokens: 0,
-            credibility_score: 0,
-            verified_purchases: 0,
-            credibility_tier: 'bronze'
-          })
-      }
-    }
-
     return NextResponse.json({
       success: true,
       data: vendor,
-      message: 'Vendor registered successfully. Verification required for full access.'
+      message: 'Vendor registered successfully'
     })
 
   } catch (error) {
-    console.error('Error in vendor registration:', error)
+    console.error('Error registering vendor:', error)
     return NextResponse.json(
-      { success: false, error: 'Internal server error' },
+      { success: false, error: 'Failed to register vendor' },
       { status: 500 }
     )
   }
-} 
+}

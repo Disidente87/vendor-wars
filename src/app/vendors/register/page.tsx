@@ -1,34 +1,71 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, CheckCircle, AlertCircle } from 'lucide-react'
 import { useFarcasterAuth } from '@/hooks/useFarcasterAuth'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import { Label } from '@/components/ui/label'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { ArrowLeft, ArrowRight, Check, Upload, AlertCircle, ImageIcon, X, Loader2 } from 'lucide-react'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { StorageService } from '@/services/storage'
+import { FARCASTER_CONFIG } from '@/config/farcaster'
 
 interface VendorFormData {
   name: string
-  logo: string
-  zone: string
+  imageFile: File | null
+  imageUrl: string
+  zoneId: string
   description: string
   category: string
+}
+
+interface Zone {
+  id: string
+  name: string
+  description: string
 }
 
 export default function VendorRegistrationPage() {
   const router = useRouter()
   const { user: authenticatedUser, isAuthenticated, isLoading } = useFarcasterAuth()
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  
   const [currentStep, setCurrentStep] = useState(1)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isUploadingImage, setIsUploadingImage] = useState(false)
   const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle')
   const [errorMessage, setErrorMessage] = useState('')
+  const [zones, setZones] = useState<Zone[]>([])
   const [formData, setFormData] = useState<VendorFormData>({
     name: '',
-    logo: '',
-    zone: '',
+    imageFile: null,
+    imageUrl: '',
+    zoneId: '',
     description: '',
-    category: 'Category'
+    category: ''
   })
 
   const totalSteps = 5
+
+  // Load zones on component mount
+  useEffect(() => {
+    const loadZones = async () => {
+      try {
+        const response = await fetch('/api/zones')
+        if (response.ok) {
+          const result = await response.json()
+          setZones(result.data || [])
+        }
+      } catch (error) {
+        console.error('Error loading zones:', error)
+      }
+    }
+    loadZones()
+  }, [])
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -42,6 +79,43 @@ export default function VendorRegistrationPage() {
       ...prev,
       [field]: value
     }))
+  }
+
+  const handleImageSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (file) {
+      // Validate file type
+      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp']
+      if (!allowedTypes.includes(file.type)) {
+        setErrorMessage('Invalid file type. Please use JPG, PNG, GIF, or WebP.')
+        return
+      }
+
+      // Validate file size (2MB max)
+      const maxSize = 2 * 1024 * 1024 // 2MB
+      if (file.size > maxSize) {
+        setErrorMessage('File too large. Maximum size is 2MB.')
+        return
+      }
+
+      setFormData(prev => ({
+        ...prev,
+        imageFile: file,
+        imageUrl: URL.createObjectURL(file)
+      }))
+      setErrorMessage('')
+    }
+  }
+
+  const handleRemoveImage = () => {
+    setFormData(prev => ({
+      ...prev,
+      imageFile: null,
+      imageUrl: ''
+    }))
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
   }
 
   const handleNext = async () => {
@@ -64,15 +138,38 @@ export default function VendorRegistrationPage() {
     setErrorMessage('')
 
     try {
+      let imageUrl = ''
+
+      // Upload image if provided
+      if (formData.imageFile) {
+        setIsUploadingImage(true)
+        const tempVendorId = crypto.randomUUID()
+        const uploadResult = await StorageService.uploadVendorAvatar(formData.imageFile, tempVendorId)
+        
+        if (!uploadResult.success) {
+          setErrorMessage(uploadResult.error || 'Failed to upload image')
+          setSubmitStatus('error')
+          setIsUploadingImage(false)
+          return
+        }
+        
+        imageUrl = uploadResult.url!
+        setIsUploadingImage(false)
+      }
+
+      // Submit vendor data
       const response = await fetch('/api/vendors/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          ...formData,
-          ownerFid: authenticatedUser.fid.toString(),
-          ownerName: authenticatedUser.displayName
+          name: formData.name,
+          description: formData.description,
+          zoneId: formData.zoneId,
+          category: formData.category,
+          imageUrl: imageUrl,
+          adminFid: authenticatedUser.fid
         }),
       })
 
@@ -93,6 +190,7 @@ export default function VendorRegistrationPage() {
       setSubmitStatus('error')
     } finally {
       setIsSubmitting(false)
+      setIsUploadingImage(false)
     }
   }
 
@@ -101,13 +199,13 @@ export default function VendorRegistrationPage() {
       case 1:
         return !formData.name.trim()
       case 2:
-        return !formData.logo.trim()
+        return !formData.imageFile
       case 3:
-        return !formData.zone.trim()
+        return !formData.zoneId
       case 4:
         return !formData.description.trim()
       case 5:
-        return formData.category === 'Category'
+        return !formData.category
       default:
         return true
     }
@@ -118,7 +216,7 @@ export default function VendorRegistrationPage() {
       case 1:
         return 'Vendor Name'
       case 2:
-        return 'Vendor Logo'
+        return 'Vendor Photo'
       case 3:
         return 'Zone'
       case 4:
@@ -134,159 +232,313 @@ export default function VendorRegistrationPage() {
     switch (currentStep) {
       case 1:
         return (
-          <div className="flex max-w-[480px] flex-wrap items-end gap-4 px-4 py-3">
-            <label className="flex flex-col min-w-40 flex-1">
-              <input
-                placeholder="Vendor Name"
-                className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-xl text-[#181511] focus:outline-0 focus:ring-0 border-none bg-[#f5f3f0] focus:border-none h-14 placeholder:text-[#8a7860] p-4 text-base font-normal leading-normal"
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="vendorName" className="text-sm font-medium text-[#2d1810]">
+                What&apos;s your vendor name?
+              </Label>
+              <Input
+                id="vendorName"
+                type="text"
+                placeholder="e.g., Tacos El Güero"
                 value={formData.name}
                 onChange={(e) => handleInputChange('name', e.target.value)}
+                className="mt-1"
+                maxLength={100}
               />
-            </label>
+              <p className="text-xs text-[#6b5d52] mt-1">
+                Choose a memorable name for your vendor
+              </p>
+            </div>
           </div>
         )
+
       case 2:
         return (
-          <div className="flex max-w-[480px] flex-wrap items-end gap-4 px-4 py-3">
-            <label className="flex flex-col min-w-40 flex-1">
+          <div className="space-y-4">
+            <div>
+              <Label className="text-sm font-medium text-[#2d1810]">
+                Upload vendor photo
+              </Label>
+              
+              {!formData.imageFile ? (
+                <div 
+                  className="mt-2 border-2 border-dashed border-[#ff6b35] rounded-lg p-8 text-center cursor-pointer hover:bg-orange-50 transition-colors"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <ImageIcon className="w-12 h-12 text-[#ff6b35] mx-auto mb-4" />
+                  <p className="text-sm text-[#2d1810] font-medium mb-1">
+                    Click to upload photo
+                  </p>
+                  <p className="text-xs text-[#6b5d52]">
+                    JPG, PNG or WebP (max 5MB)
+                  </p>
+                </div>
+              ) : (
+                <div className="mt-2 relative">
+                  <div className="relative w-32 h-32 mx-auto">
+                    <img
+                      src={formData.imageUrl}
+                      alt="Vendor preview"
+                      className="w-full h-full object-cover rounded-lg"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleRemoveImage}
+                      className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <p className="text-center text-sm text-[#6b5d52] mt-2">
+                    Click to change photo
+                  </p>
+                  <div 
+                    className="mt-2 w-full h-8 bg-gray-100 rounded cursor-pointer"
+                    onClick={() => fileInputRef.current?.click()}
+                  />
+                </div>
+              )}
+              
               <input
-                placeholder="Vendor Logo"
-                className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-xl text-[#181511] focus:outline-0 focus:ring-0 border-none bg-[#f5f3f0] focus:border-none h-14 placeholder:text-[#8a7860] p-4 text-base font-normal leading-normal"
-                value={formData.logo}
-                onChange={(e) => handleInputChange('logo', e.target.value)}
+                ref={fileInputRef}
+                type="file"
+                accept="image/jpeg,image/jpg,image/png,image/webp"
+                onChange={handleImageSelect}
+                className="hidden"
               />
-            </label>
+            </div>
           </div>
         )
+
       case 3:
         return (
-          <div className="flex max-w-[480px] flex-wrap items-end gap-4 px-4 py-3">
-            <label className="flex flex-col min-w-40 flex-1">
-              <input
-                placeholder="Zone"
-                className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-xl text-[#181511] focus:outline-0 focus:ring-0 border-none bg-[#f5f3f0] focus:border-none h-14 placeholder:text-[#8a7860] p-4 text-base font-normal leading-normal"
-                value={formData.zone}
-                onChange={(e) => handleInputChange('zone', e.target.value)}
-              />
-            </label>
+          <div className="space-y-4">
+            <div>
+              <Label className="text-sm font-medium text-[#2d1810]">
+                Select your zone
+              </Label>
+              <Select value={formData.zoneId} onValueChange={(value) => handleInputChange('zoneId', value)}>
+                <SelectTrigger className="mt-2">
+                  <SelectValue placeholder="Choose a battle zone" />
+                </SelectTrigger>
+                <SelectContent>
+                  {zones.map((zone) => (
+                    <SelectItem key={zone.id} value={zone.id}>
+                      <div>
+                        <div className="font-medium">{zone.name}</div>
+                        <div className="text-xs text-gray-500">{zone.description}</div>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-[#6b5d52] mt-1">
+                Choose the zone where your vendor operates
+              </p>
+            </div>
           </div>
         )
+
       case 4:
         return (
-          <div className="flex max-w-[480px] flex-wrap items-end gap-4 px-4 py-3">
-            <label className="flex flex-col min-w-40 flex-1">
-              <textarea
-                placeholder="Description"
-                className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-xl text-[#181511] focus:outline-0 focus:ring-0 border-none bg-[#f5f3f0] focus:border-none min-h-36 placeholder:text-[#8a7860] p-4 text-base font-normal leading-normal"
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="description" className="text-sm font-medium text-[#2d1810]">
+                Describe your vendor
+              </Label>
+              <Textarea
+                id="description"
+                placeholder="Tell people about your delicious food, specialties, and what makes you unique..."
                 value={formData.description}
                 onChange={(e) => handleInputChange('description', e.target.value)}
+                className="mt-2 min-h-[120px]"
+                maxLength={500}
               />
-            </label>
+              <p className="text-xs text-[#6b5d52] mt-1">
+                {formData.description.length}/500 characters
+              </p>
+            </div>
           </div>
         )
+
       case 5:
         return (
-          <div className="flex max-w-[480px] flex-wrap items-end gap-4 px-4 py-3">
-            <label className="flex flex-col min-w-40 flex-1">
-              <select
-                className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-xl text-[#181511] focus:outline-0 focus:ring-0 border-none bg-[#f5f3f0] focus:border-none h-14 bg-[image:--select-button-svg] placeholder:text-[#8a7860] p-4 text-base font-normal leading-normal"
-                value={formData.category}
-                onChange={(e) => handleInputChange('category', e.target.value)}
-                style={{
-                  '--select-button-svg': `url('data:image/svg+xml,%3csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2724px%27 height=%2724px%27 fill=%27rgb(138,120,96)%27 viewBox=%270 0 256 256%27%3e%3cpath d=%27M181.66,170.34a8,8,0,0,1,0,11.32l-48,48a8,8,0,0,1-11.32,0l-48-48a8,8,0,0,1,11.32-11.32L128,212.69l42.34-42.35A8,8,0,0,1,181.66,170.34Zm-96-84.68L128,43.31l42.34,42.35a8,8,0,0,0,11.32-11.32l-48-48a8,8,0,0,0-11.32,0l-48,48A8,8,0,0,0,85.66,85.66Z%27%3e%3c/path%3e%3c/svg%3e')`
-                } as React.CSSProperties}
-              >
-                <option value="Category">Category</option>
-                <option value="Tacos">Tacos</option>
-                <option value="Tortas">Tortas</option>
-                <option value="Tamales">Tamales</option>
-                <option value="Elotes">Elotes</option>
-                <option value="Churros">Churros</option>
-                <option value="Helados">Helados</option>
-                <option value="Café">Café</option>
-                <option value="Aguas Frescas">Aguas Frescas</option>
-                <option value="Otros">Otros</option>
-              </select>
-            </label>
+          <div className="space-y-4">
+            <div>
+              <Label className="text-sm font-medium text-[#2d1810]">
+                What&apos;s your specialty?
+              </Label>
+              <Select value={formData.category} onValueChange={(value) => handleInputChange('category', value)}>
+                <SelectTrigger className="mt-2">
+                  <SelectValue placeholder="Select food category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {FARCASTER_CONFIG.CATEGORIES.map((category) => (
+                    <SelectItem key={category.id} value={category.id}>
+                      <div className="flex items-center space-x-2">
+                        <span>{category.icon}</span>
+                        <div>
+                          <div className="font-medium">{category.name}</div>
+                          <div className="text-xs text-gray-500">{category.description}</div>
+                        </div>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-[#6b5d52] mt-1">
+                Choose your main food category
+              </p>
+            </div>
           </div>
         )
+
       default:
         return null
     }
   }
 
-  return (
-    <div
-      className="relative flex size-full min-h-screen flex-col bg-white justify-between group/design-root overflow-x-hidden"
-      style={{ 
-        fontFamily: '"Plus Jakarta Sans", "Noto Sans", sans-serif',
-        '--select-button-svg': `url('data:image/svg+xml,%3csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2724px%27 height=%2724px%27 fill=%27rgb(138,120,96)%27 viewBox=%270 0 256 256%27%3e%3cpath d=%27M181.66,170.34a8,8,0,0,1,0,11.32l-48,48a8,8,0,0,1-11.32,0l-48-48a8,8,0,0,1,11.32-11.32L128,212.69l42.34-42.35A8,8,0,0,1,181.66,170.34Zm-96-84.68L128,43.31l42.34,42.35a8,8,0,0,0,11.32-11.32l-48-48a8,8,0,0,0-11.32,0l-48,48A8,8,0,0,0,85.66,85.66Z%27%3e%3c/path%3e%3c/svg%3e')`
-      } as React.CSSProperties}
-    >
-      <div>
-        {/* Header */}
-        <div className="flex items-center bg-white p-4 pb-2 justify-between">
-          <button
-            onClick={() => router.back()}
-            className="text-[#181511] flex size-12 shrink-0 items-center hover:bg-gray-100 rounded-full transition-colors"
-          >
-            <ArrowLeft className="h-6 w-6" />
-          </button>
-          <h2 className="text-[#181511] text-lg font-bold leading-tight tracking-[-0.015em] flex-1 text-center pr-12">
-            {getStepTitle()}
-          </h2>
+  // Show loading state while checking authentication
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-[#fef7f0] flex items-center justify-center">
+        <div className="flex items-center space-x-2">
+          <Loader2 className="w-6 h-6 animate-spin text-[#ff6b35]" />
+          <span>Loading...</span>
         </div>
-
-        {/* Progress Indicators */}
-        <div className="flex w-full flex-row items-center justify-center gap-3 py-5">
-          {Array.from({ length: totalSteps }, (_, index) => (
-            <div
-              key={index}
-              className={`h-2 w-2 rounded-full ${
-                index + 1 <= currentStep ? 'bg-[#181511]' : 'bg-[#e6e1db]'
-              }`}
-            />
-          ))}
-        </div>
-
-        {/* Current Step Form */}
-        {renderCurrentStep()}
-
-        {/* Status Messages */}
-        {submitStatus === 'success' && (
-          <div className="flex items-center gap-2 px-4 py-3 bg-green-50 text-green-700 rounded-lg mx-4">
-            <CheckCircle className="h-5 w-5" />
-            <span>Vendor registered successfully! Redirecting...</span>
-          </div>
-        )}
-
-        {submitStatus === 'error' && (
-          <div className="flex items-center gap-2 px-4 py-3 bg-red-50 text-red-700 rounded-lg mx-4">
-            <AlertCircle className="h-5 w-5" />
-            <span>{errorMessage}</span>
-          </div>
-        )}
       </div>
+    )
+  }
 
-      {/* Bottom Section */}
-      <div>
-        <div className="flex px-4 py-3 justify-end">
-          <button
-            onClick={handleNext}
-            disabled={isNextDisabled() || isSubmitting}
-            className={`flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-full h-10 px-4 text-[#181511] text-sm font-bold leading-normal tracking-[0.015em] transition-colors ${
-              isNextDisabled() || isSubmitting
-                ? 'bg-[#e6e1db] text-[#8a7860] cursor-not-allowed'
-                : 'bg-[#ee8c0b] hover:bg-[#d67d0a]'
-            }`}
+  // Show authentication required message
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-[#fef7f0] flex items-center justify-center">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <CardTitle className="text-[#2d1810]">Authentication Required</CardTitle>
+            <CardDescription>
+              You need to log in with Farcaster to register a vendor
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="text-center">
+            <Button 
+              onClick={() => router.push('/')}
+              className="bg-[#ff6b35] hover:bg-[#e55a2b] text-white"
+            >
+              Go to Login
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  return (
+    <div className="min-h-screen bg-[#fef7f0] py-8">
+      <div className="max-w-2xl mx-auto px-4">
+        {/* Header */}
+        <div className="flex items-center mb-8">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => router.back()}
+            className="text-[#6b5d52] hover:text-[#2d1810]"
           >
-            <span className="truncate">
-              {isSubmitting ? 'Submitting...' : currentStep === totalSteps ? 'Submit' : 'Next'}
-            </span>
-          </button>
+            <ArrowLeft className="w-4 h-4 mr-1" />
+            Back
+          </Button>
         </div>
-        <div className="h-5 bg-white" />
+
+        {/* Progress Bar */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm font-medium text-[#2d1810]">Step {currentStep} of {totalSteps}</span>
+            <span className="text-sm text-[#6b5d52]">{Math.round((currentStep / totalSteps) * 100)}% complete</span>
+          </div>
+          <div className="w-full bg-gray-200 rounded-full h-2">
+            <div 
+              className="bg-[#ff6b35] h-2 rounded-full transition-all duration-300"
+              style={{ width: `${(currentStep / totalSteps) * 100}%` }}
+            />
+          </div>
+        </div>
+
+        {/* Form Card */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-[#2d1810]">{getStepTitle()}</CardTitle>
+            <CardDescription>
+              {currentStep === 1 && "Let's start with your vendor's name"}
+              {currentStep === 2 && "Add a photo to represent your vendor"}
+              {currentStep === 3 && "Choose the zone where you operate"}
+              {currentStep === 4 && "Tell customers about your vendor"}
+              {currentStep === 5 && "What type of food do you sell?"}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {/* Error Messages */}
+            {errorMessage && (
+              <Alert className="mb-6 border-red-200 bg-red-50">
+                <AlertCircle className="w-4 h-4 text-red-600" />
+                <AlertDescription className="text-red-700">
+                  {errorMessage}
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {/* Success Message */}
+            {submitStatus === 'success' && (
+              <Alert className="mb-6 border-green-200 bg-green-50">
+                <Check className="w-4 h-4 text-green-600" />
+                <AlertDescription className="text-green-700">
+                  Vendor registered successfully! Redirecting to your vendor page...
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {/* Step Content */}
+            {renderCurrentStep()}
+
+            {/* Navigation Buttons */}
+            <div className="flex justify-between mt-8">
+              <Button
+                variant="outline"
+                onClick={() => setCurrentStep(Math.max(1, currentStep - 1))}
+                disabled={currentStep === 1}
+                className="border-[#ff6b35] text-[#ff6b35] hover:bg-[#ff6b35] hover:text-white"
+              >
+                <ArrowLeft className="w-4 h-4 mr-1" />
+                Previous
+              </Button>
+
+              <Button
+                onClick={handleNext}
+                disabled={isNextDisabled() || isSubmitting || isUploadingImage}
+                className="bg-[#ff6b35] hover:bg-[#e55a2b] text-white"
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    {isUploadingImage ? 'Uploading...' : 'Registering...'}
+                  </>
+                ) : currentStep === totalSteps ? (
+                  <>
+                    <Check className="w-4 h-4 mr-1" />
+                    Register Vendor
+                  </>
+                ) : (
+                  <>
+                    Next
+                    <ArrowRight className="w-4 h-4 ml-1" />
+                  </>
+                )}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   )
-} 
+}

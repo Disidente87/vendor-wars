@@ -192,8 +192,8 @@ export default function VendorsPage() {
 
                   {/* Vendor Info */}
                   <div className="flex-1">
-                    <div className="flex items-center space-x-2 mb-1">
-                      <h3 className="font-bold text-[#2d1810] text-lg">{vendor.name}</h3>
+                    <div className="mb-1">
+                      <h3 className="font-bold text-[#2d1810] text-lg leading-tight">{vendor.name}</h3>
                       <span className="text-[#6b5d52] text-sm">@{vendor.name.toLowerCase().replace(/\s+/g, '_')}</span>
                     </div>
                     <p className="text-[#6b5d52] text-sm mb-2">{vendor.description?.substring(0, 60)}...</p>
