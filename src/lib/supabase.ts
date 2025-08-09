@@ -2,12 +2,14 @@ import { createClient } from '@supabase/supabase-js'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co'
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder_key'
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
 // Only throw error in production
 if (process.env.NODE_ENV === 'production' && (!supabaseUrl || !supabaseAnonKey)) {
   throw new Error('Missing Supabase environment variables')
 }
 
+// Client for public operations (read-only, limited write)
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     autoRefreshToken: true,
@@ -24,6 +26,19 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     fetch: fetch
   }
 })
+
+// Client for operations that need elevated privileges (bypass RLS)
+export const supabaseAdmin = supabaseServiceKey 
+  ? createClient(supabaseUrl, supabaseServiceKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false
+      },
+      global: {
+        fetch: fetch
+      }
+    })
+  : null
 
 // Tipos para las tablas de Supabase
 export type Database = {

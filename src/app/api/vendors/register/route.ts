@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
+import { supabase, supabaseAdmin } from '@/lib/supabase'
 import { v4 as uuidv4 } from 'uuid'
 
 interface VendorRegistrationData {
@@ -35,7 +35,16 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Validate that the zone exists
+    // Check if admin client is available
+    if (!supabaseAdmin) {
+      console.error('❌ Supabase admin client not available - missing SERVICE_ROLE_KEY')
+      return NextResponse.json(
+        { success: false, error: 'Server configuration error' },
+        { status: 500 }
+      )
+    }
+
+    // Validate that the zone exists (use regular client for read operations)
     const { data: zone, error: zoneError } = await supabase
       .from('zones')
       .select('id')
@@ -60,7 +69,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Validar que el usuario existe
+    // Validar que el usuario existe (use regular client for read operations)
     const { data: user, error: userError } = await supabase
       .from('users')
       .select('fid, display_name')
@@ -77,8 +86,8 @@ export async function POST(request: NextRequest) {
     // Generate vendor ID
     const vendorId = uuidv4();
     
-    // Create vendor record
-    const { data: vendor, error: vendorError } = await supabase
+    // Create vendor record using admin client to bypass RLS
+    const { data: vendor, error: vendorError } = await supabaseAdmin
       .from('vendors')
       .insert({
         id: vendorId,
