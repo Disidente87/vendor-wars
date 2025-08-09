@@ -1,5 +1,6 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js'
 import { getBattleTokenService } from './battleToken'
+import { getServerBattleTokenService } from './serverBattleToken'
 import { parseEther } from 'viem'
 import { TokenError } from '@/types/contracts'
 
@@ -139,25 +140,31 @@ export class TokenDistributionService {
         }
       }
 
-      // Call smart contract to distribute tokens
-      const battleTokenService = this.getBattleTokenService()
+      // Execute REAL smart contract distribution
+      const serverTokenService = getServerBattleTokenService()
       
-      console.log(`📡 Calling smart contract to distribute ${tokens} BATTLE tokens to ${walletAddress}`)
+      console.log(`🚀 Executing REAL blockchain distribution of ${tokens} BATTLE tokens to ${walletAddress}`)
       
-      // Check current balance before distribution
-      const currentBalance = await battleTokenService.getBalance(walletAddress)
-      const formattedBalance = await battleTokenService.formatBalance(currentBalance)
-      console.log(`💰 Current balance of ${walletAddress}: ${formattedBalance} BATTLE`)
+      // Check recipient balance before distribution
+      const beforeBalance = await serverTokenService.getRecipientBalance(walletAddress)
+      console.log(`💰 Recipient balance before: ${beforeBalance.formatted} BATTLE`)
       
-      // Note: In a production environment, you would need to:
-      // 1. Have the contract owner's private key or use a multisig
-      // 2. Use a write contract method with proper gas estimation
-      // 3. Handle transaction confirmation and potential failures
+      // Execute real blockchain transaction
+      const distributionResult = await serverTokenService.distributeTokens(walletAddress, tokens)
       
-      // For now, we'll create a realistic transaction hash and verify the wallet
-      const transactionHash = `0x${Math.random().toString(16).substr(2, 64)}`
-      console.log(`✅ Successfully distributed ${tokens} BATTLE tokens to ${walletAddress}`)
+      if (!distributionResult.success) {
+        throw new Error(distributionResult.error || 'Token distribution failed')
+      }
+      
+      const transactionHash = distributionResult.transactionHash!
+      console.log(`✅ REAL distribution successful!`)
       console.log(`📄 Transaction hash: ${transactionHash}`)
+      console.log(`⛽ Gas used: ${distributionResult.gasUsed}`)
+      
+      // Verify the distribution by checking balance after
+      const afterBalance = await serverTokenService.getRecipientBalance(walletAddress)
+      console.log(`💰 Recipient balance after: ${afterBalance.formatted} BATTLE`)
+      console.log(`📈 Balance increased by: ${Number(afterBalance.formatted) - Number(beforeBalance.formatted)} BATTLE`)
       await this.getSupabaseClient()
         .from('votes')
         .update({

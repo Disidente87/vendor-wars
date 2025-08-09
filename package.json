@@ -59,7 +59,9 @@
     "test:redis-simple": "npx tsx scripts/test-redis-simple.ts",
     "sync:redis-streak": "npx tsx scripts/sync-redis-streak.ts",
     "test:token-distribution-real": "npx tsx scripts/test-token-distribution-real.ts",
-    "test:real-token-distribution": "npx tsx scripts/test-real-token-distribution.ts"
+    "test:real-token-distribution": "npx tsx scripts/test-real-token-distribution.ts",
+    "test:real-blockchain": "npx tsx scripts/test-real-blockchain-distribution.ts",
+    "generate:server-wallet": "npx tsx scripts/generate-server-wallet.ts"
   },
   "dependencies": {
     "@coinbase/onchainkit": "^0.38.18",
