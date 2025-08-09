@@ -14,13 +14,23 @@ interface VendorRegistrationData {
 export async function POST(request: NextRequest) {
   try {
     const body: VendorRegistrationData = await request.json()
+    console.log('📥 Received vendor registration data:', body)
     
     // Validate required fields
     const { name, description, zoneId, category, imageUrl, ownerFid } = body
     
-    if (!name || !description || !zoneId || !category || !ownerFid) {
+    // Check each required field individually for better error messages
+    const missingFields = []
+    if (!name) missingFields.push('name')
+    if (!description) missingFields.push('description')
+    if (!zoneId) missingFields.push('zoneId')
+    if (!category) missingFields.push('category')
+    if (!ownerFid) missingFields.push('ownerFid')
+    
+    if (missingFields.length > 0) {
+      console.log('❌ Missing fields:', missingFields)
       return NextResponse.json(
-        { success: false, error: 'Missing required fields' },
+        { success: false, error: `Missing required fields: ${missingFields.join(', ')}` },
         { status: 400 }
       )
     }
@@ -79,19 +89,8 @@ export async function POST(request: NextRequest) {
         image_url: imageUrl || 'https://images.unsplash.com/photo-1595273670150-bd0c3c392e46?w=400&h=300&fit=crop',
         owner_fid: ownerFidValue,
         is_verified: false,
-        coordinates: [19.4326, -99.1332], // Default coordinates, can be updated later
-        total_battles: 0,
-        wins: 0,
-        losses: 0,
-        win_rate: 0,
-        total_revenue: 0,
-        average_rating: 0,
-        review_count: 0,
-        territory_defenses: 0,
-        territory_conquests: 0,
-        current_zone_rank: 0,
-        total_votes: 0,
-        verified_votes: 0
+        coordinates: `(${19.4326}, ${-99.1332})` // PostgreSQL POINT format
+        // Note: other fields have defaults in DB schema
       })
       .select()
       .single()

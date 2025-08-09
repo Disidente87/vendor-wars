@@ -158,19 +158,23 @@ export default function VendorRegistrationPage() {
       }
 
       // Submit vendor data
+      const requestData = {
+        name: formData.name,
+        description: formData.description,
+        zoneId: formData.zoneId,
+        category: formData.category,
+        imageUrl: imageUrl,
+        ownerFid: authenticatedUser.fid
+      }
+      
+      console.log('🚀 Sending vendor registration data:', requestData)
+      
       const response = await fetch('/api/vendors/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          name: formData.name,
-          description: formData.description,
-          zoneId: formData.zoneId,
-          category: formData.category,
-          imageUrl: imageUrl,
-          adminFid: authenticatedUser.fid
-        }),
+        body: JSON.stringify(requestData),
       })
 
       const result = await response.json()
