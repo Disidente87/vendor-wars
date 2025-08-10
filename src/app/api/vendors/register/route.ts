@@ -134,7 +134,6 @@ export async function POST(request: NextRequest) {
         image_url: imageUrl || 'https://images.unsplash.com/photo-1595273670150-bd0c3c392e46?w=400&h=300&fit=crop',
         owner_fid: ownerFidValue,
         is_verified: false,
-        coordinates: `(${19.4326}, ${-99.1332})` // PostgreSQL POINT format
         // Note: other fields have defaults in DB schema
       })
       .select()

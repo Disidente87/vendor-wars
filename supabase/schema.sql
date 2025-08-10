@@ -43,7 +43,6 @@ CREATE TABLE vendors (
   image_url TEXT NOT NULL,
   category vendor_category NOT NULL,
   zone_id UUID NOT NULL REFERENCES zones(id) ON DELETE CASCADE,
-  coordinates POINT NOT NULL,
   owner_fid BIGINT NOT NULL REFERENCES users(fid) ON DELETE CASCADE,
   is_verified BOOLEAN DEFAULT FALSE,
   total_battles INTEGER DEFAULT 0,
