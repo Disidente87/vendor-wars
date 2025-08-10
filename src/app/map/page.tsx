@@ -58,8 +58,8 @@ export default function MapPage() {
       leaderAvatar: 'https://images.unsplash.com/photo-1595273670150-bd0c3c392e46?w=100&h=100&fit=crop&crop=face',
       control: 85,
       color: '#ff6b35',
-      position: { top: '25%', left: '40%' },
-      size: 'large',
+      position: { top: '40%', left: '35%' },
+      size: 'medium',
       battleIntensity: 3,
       recentVotes: 24
     },
@@ -71,7 +71,7 @@ export default function MapPage() {
       leaderAvatar: 'https://images.unsplash.com/photo-1566554273541-37a9ca77b91f?w=100&h=100&fit=crop&crop=face',
       control: 72,
       color: '#06d6a0',
-      position: { top: '15%', left: '60%' },
+      position: { top: '12%', left: '40%' },
       size: 'medium',
       battleIntensity: 2,
       recentVotes: 18
@@ -84,8 +84,8 @@ export default function MapPage() {
       leaderAvatar: 'https://images.unsplash.com/photo-1594736797933-d0e501ba2fe6?w=100&h=100&fit=crop&crop=face',
       control: 91,
       color: '#ffd23f',
-      position: { top: '60%', left: '30%' },
-      size: 'large',
+      position: { top: '68%', left: '49%' },
+      size: 'medium',
       battleIntensity: 1,
       recentVotes: 31
     },
@@ -97,7 +97,7 @@ export default function MapPage() {
       leaderAvatar: 'https://images.unsplash.com/photo-1547036967-23d11aacaee0?w=100&h=100&fit=crop&crop=face',
       control: 64,
       color: '#e63946',
-      position: { top: '40%', left: '70%' },
+      position: { top: '36%', left: '65%' },
       size: 'medium',
       battleIntensity: 4,
       recentVotes: 15
@@ -110,8 +110,8 @@ export default function MapPage() {
       leaderAvatar: 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=100&h=100&fit=crop&crop=face',
       control: 58,
       color: '#f72585',
-      position: { top: '45%', left: '20%' },
-      size: 'small',
+      position: { top: '45%', left: '11%' },
+      size: 'medium',
       battleIntensity: 5,
       recentVotes: 12
     }

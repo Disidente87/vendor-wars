@@ -12,18 +12,10 @@ CREATE TABLE users (
   fid BIGINT PRIMARY KEY, -- Use FID as primary key for Farcaster
   username VARCHAR(255) NOT NULL UNIQUE,
   display_name VARCHAR(255) NOT NULL,
-  pfp_url TEXT NOT NULL,
-  bio TEXT,
-  follower_count INTEGER DEFAULT 0,
-  following_count INTEGER DEFAULT 0,
-  verified_addresses TEXT[] DEFAULT '{}',
+  avatar_url TEXT NOT NULL,
+  wallet_address TEXT[] DEFAULT '{}',
   battle_tokens INTEGER DEFAULT 0,
-  credibility_score INTEGER DEFAULT 0,
-  verified_purchases INTEGER DEFAULT 0,
-  credibility_tier credibility_tier DEFAULT 'bronze',
   vote_streak INTEGER DEFAULT 0,
-  weekly_vote_count INTEGER DEFAULT 0,
-  weekly_territory_bonus INTEGER DEFAULT 0,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );

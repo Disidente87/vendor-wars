@@ -4,7 +4,7 @@ import { supabase } from '@/lib/supabase'
 // Mock data for development when Supabase is not available
 const MOCK_ZONES: BattleZone[] = [
   {
-    id: '49298ccd-5b91-4a41-839d-98c3b2cc504b',
+    id: '1',
     name: 'Zona Centro',
     description: 'Historic center of CDMX',
     color: '#FF6B6B',
@@ -15,7 +15,7 @@ const MOCK_ZONES: BattleZone[] = [
     activeVendors: 12
   },
   {
-    id: '61bace3e-ae39-4bb5-997b-1737122e8849',
+    id: '2',
     name: 'Zona Norte',
     description: 'Northern neighborhoods',
     color: '#4ECDC4',
@@ -26,7 +26,7 @@ const MOCK_ZONES: BattleZone[] = [
     activeVendors: 8
   },
   {
-    id: '100b486d-5859-4ab1-9112-2d4bbabcba46',
+    id: '3',
     name: 'Zona Sur',
     description: 'Southern districts',
     color: '#45B7D1',
@@ -37,7 +37,7 @@ const MOCK_ZONES: BattleZone[] = [
     activeVendors: 6
   },
   {
-    id: '1ac86da4-0e2f-43fd-9dcb-0ac5a877048d',
+    id: '4',
     name: 'Zona Este',
     description: 'Eastern areas',
     color: '#96CEB4',
@@ -48,7 +48,7 @@ const MOCK_ZONES: BattleZone[] = [
     activeVendors: 5
   },
   {
-    id: 'a3914cda-f3c5-4c90-b7d2-d46d141f4bfc',
+    id: '5',
     name: 'Zona Oeste',
     description: 'Western neighborhoods',
     color: '#FFEAA7',
@@ -199,7 +199,7 @@ export class ZoneService {
 
   // Fallback method to get mock zone data
   private static getMockZone(id: string): BattleZone | null {
-    // Try to find by ID first
+    // Try to find by ID first (UUID)
     let zone = MOCK_ZONES.find(z => z.id === id)
     
     // If not found by ID, try to find by name/slug

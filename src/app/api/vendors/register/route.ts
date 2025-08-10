@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
       // Let's check what delegations are available
       const { data: availableDelegations, error: delegationsError } = await supabase
         .from('zone_delegations')
-        .select('delegation_name, zones!inner(name)')
+        .select('delegation_name, zones(name)')
         .order('delegation_name')
       
       if (delegationsError) {

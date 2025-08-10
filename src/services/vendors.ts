@@ -566,22 +566,12 @@ export class VendorService {
         .from('vendors')
         .select(`
         *,
-        users!vendors_owner_fid_fkey (
+        users (
           fid,
           username,
           display_name,
-          pfp_url,
-          bio,
-          follower_count,
-          following_count,
-          verified_addresses,
-          battle_tokens,
-          credibility_score,
-          verified_purchases,
-          credibility_tier,
-          vote_streak,
-          weekly_vote_count,
-          weekly_territory_bonus
+          avatar_url,
+          vote_streak
         )
       `)
       .eq('zone_id', zoneId)
@@ -593,22 +583,45 @@ export class VendorService {
       }
 
       return vendors.map(vendor => {
+        // Handle case where users relation might be null
+        if (!vendor.users) {
+          console.warn(`⚠️ Vendor ${vendor.id} has no associated user data`)
+          const defaultOwner: User = {
+            fid: 0, // Default FID
+            username: 'unknown',
+            displayName: 'Unknown User',
+            pfpUrl: '',
+            bio: '',
+            followerCount: 0,
+            followingCount: 0,
+            verifiedAddresses: [],
+            battleTokens: 0,
+            credibilityScore: 0,
+            verifiedPurchases: 0,
+            credibilityTier: 'bronze' as const,
+            voteStreak: 0,
+            weeklyVoteCount: 0,
+            weeklyTerritoryBonus: 0,
+          }
+          return mapSupabaseVendorToVendor(vendor, defaultOwner)
+        }
+
         const owner: User = {
           fid: vendor.users.fid,
           username: vendor.users.username,
           displayName: vendor.users.display_name,
-          pfpUrl: vendor.users.pfp_url,
-          bio: vendor.users.bio,
-          followerCount: vendor.users.follower_count,
-          followingCount: vendor.users.following_count,
-          verifiedAddresses: vendor.users.verified_addresses,
-          battleTokens: vendor.users.battle_tokens,
-          credibilityScore: vendor.users.credibility_score,
-          verifiedPurchases: vendor.users.verified_purchases,
-          credibilityTier: vendor.users.credibility_tier,
-          voteStreak: vendor.users.vote_streak,
-          weeklyVoteCount: vendor.users.weekly_vote_count,
-          weeklyTerritoryBonus: vendor.users.weekly_territory_bonus,
+          pfpUrl: vendor.users.avatar_url,
+          bio: '',
+          followerCount: 0, // Default value
+          followingCount: 0, // Default value
+          verifiedAddresses: [],
+          battleTokens: 0, // Default value
+          credibilityScore: 0, // Default value
+          verifiedPurchases: 0,
+          credibilityTier: 'bronze' as const, // Default value
+          voteStreak: vendor.users.vote_streak || 0,
+          weeklyVoteCount: 0,
+          weeklyTerritoryBonus: 0,
         }
         return mapSupabaseVendorToVendor(vendor, owner)
       })
