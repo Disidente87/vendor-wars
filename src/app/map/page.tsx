@@ -5,9 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { useMiniApp } from '@neynar/react'
 import { useAuthSimulation } from '@/hooks/useAuthSimulation'
-import { UserHeader } from '@/components/UserHeader'
-import { Search, List, Crown, Flame, Trophy, Coins, Bell, Swords, MapPin } from 'lucide-react'
-import { useGeolocation } from '@/hooks/useGeolocation'
+import { List, Crown, Flame, Trophy, Bell, Swords } from 'lucide-react'
 import Image from 'next/image'
 
 interface Zone {
@@ -27,14 +25,10 @@ interface Zone {
 export default function MapPage() {
   const router = useRouter()
   const { isSDKLoaded, context } = useMiniApp()
-  const [searchQuery, setSearchQuery] = useState('')
   const [selectedZone, setSelectedZone] = useState<string | null>(null)
   
   // Use simulation for development
   const { isAuthenticated, user: _user, isLoading } = useAuthSimulation()
-  
-  // Get user's real location
-  const { coordinates: userLocation, error: locationError, isLoading: locationLoading } = useGeolocation()
 
   // Check authentication status
   if (isLoading || !isAuthenticated) {
@@ -117,14 +111,6 @@ export default function MapPage() {
     }
   ]
 
-  const userStats = {
-    avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&h=100&fit=crop&crop=face',
-    username: 'FoodWarrior',
-    battleTokens: 247,
-    streak: 5,
-    level: 7
-  }
-
   const handleZoneClick = (zoneId: string) => {
     // Add haptic feedback
     if (typeof window !== 'undefined' && 'navigator' in window && 'vibrate' in navigator) {
@@ -160,39 +146,11 @@ export default function MapPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#fff8f0] to-[#f4f1eb] relative overflow-hidden">
-      {/* User Header */}
-      <UserHeader />
-      
       {/* Battle Map Background */}
       <div className="absolute inset-0 bg-gradient-to-br from-[#ff6b35]/10 via-[#ffd23f]/10 to-[#06d6a0]/10"></div>
       
-      {/* User Stats Header */}
-      <div className="relative z-10 p-4">
-        <div className="flex items-center justify-between bg-white/80 backdrop-blur-sm rounded-xl p-3 shadow-lg border border-[#ff6b35]/20">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-[#ff6b35]">
-              <img src={userStats.avatar} alt={userStats.username} className="w-full h-full object-cover" />
-            </div>
-            <div>
-              <p className="font-semibold text-[#2d1810] text-sm">{userStats.username}</p>
-              <p className="text-[#6b5d52] text-xs">Level {userStats.level}</p>
-            </div>
-          </div>
-          <div className="flex items-center space-x-4">
-            <div className="flex items-center space-x-1">
-              <Coins className="w-4 h-4 text-[#ffd23f]" />
-              <span className="font-bold text-[#2d1810] text-sm">{userStats.battleTokens}</span>
-            </div>
-            <div className="flex items-center space-x-1">
-              <Flame className="w-4 h-4 text-[#ff6b35]" />
-              <span className="font-bold text-[#2d1810] text-sm">{userStats.streak}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
       {/* Battle Events Button */}
-      <div className="relative z-10 px-4 pb-2">
+      <div className="relative z-10 px-4 pt-4 pb-2">
         <Button
           onClick={() => router.push('/battle-events')}
           className="w-full bg-gradient-to-r from-[#ff6b35] to-[#ffd23f] hover:from-[#e5562e] hover:to-[#e6c200] text-white font-bold py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center space-x-2"
@@ -206,44 +164,8 @@ export default function MapPage() {
       {/* CDMX Map with Interactive Zones */}
       <div className="relative z-10 flex-1 p-4">
         <div className="bg-white/60 backdrop-blur-sm rounded-2xl p-4 shadow-xl border border-[#ff6b35]/20 h-full relative">
-          {/* Search Bar */}
-          <div className="absolute top-4 left-4 right-4 z-20">
-            <div className="flex items-center space-x-2">
-              <div className="flex-1 relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[#6b5d52]" />
-                <input
-                  placeholder="Search for a vendor or zone"
-                  className="w-full pl-10 pr-4 py-2 bg-white/80 backdrop-blur-sm rounded-xl border border-[#ff6b35]/20 text-[#2d1810] placeholder-[#6b5d52] focus:outline-none focus:ring-2 focus:ring-[#ff6b35]/50"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-              </div>
-              
-              {/* Location Status Indicator */}
-              <div className="flex items-center space-x-2">
-                {locationLoading ? (
-                  <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
-                  </div>
-                ) : locationError ? (
-                  <div className="w-8 h-8 bg-red-100 rounded-lg flex items-center cursor-pointer" title={locationError}>
-                    <MapPin className="w-4 h-4 text-red-500" />
-                  </div>
-                ) : userLocation ? (
-                  <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center" title="Location active">
-                    <MapPin className="w-4 h-4 text-green-500" />
-                  </div>
-                ) : (
-                  <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center" title="Location unavailable">
-                    <MapPin className="w-4 h-4 text-gray-500" />
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-
           {/* CDMX Map Image with Interactive Zones */}
-          <div className="relative h-full pt-16">
+          <div className="relative h-full">
             <div className="relative w-full h-full flex items-center justify-center">
               {/* CDMX Map Background */}
               <Image
