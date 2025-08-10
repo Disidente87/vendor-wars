@@ -1,12 +1,14 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { useMiniApp } from '@neynar/react'
 import { useAuthSimulation } from '@/hooks/useAuthSimulation'
 import { List, Crown, Flame, Trophy, Bell, Swords } from 'lucide-react'
 import Image from 'next/image'
+import { VendorService } from '@/services/vendors'
+import type { Vendor } from '@/types'
 
 interface Zone {
   id: string
@@ -22,16 +24,47 @@ interface Zone {
   recentVotes: number
 }
 
+interface ZoneWithTopVendor {
+  zoneId: string
+  zoneName: string
+  topVendor: Vendor | null
+  totalVendors: number
+  totalVotes: number
+}
+
 export default function MapPage() {
   const router = useRouter()
   const { isSDKLoaded, context } = useMiniApp()
   const [selectedZone, setSelectedZone] = useState<string | null>(null)
+  const [zonesWithVendors, setZonesWithVendors] = useState<ZoneWithTopVendor[]>([])
+  const [isLoading, setIsLoading] = useState(true)
   
   // Use simulation for development
-  const { isAuthenticated, user: _user, isLoading } = useAuthSimulation()
+  const { isAuthenticated, user: _user, isLoading: authLoading } = useAuthSimulation()
+
+  // Fetch zones with top vendors
+  useEffect(() => {
+    async function fetchZonesWithVendors() {
+      try {
+        setIsLoading(true)
+        const zonesData = await VendorService.getZonesWithTopVendors()
+        setZonesWithVendors(zonesData)
+      } catch (error) {
+        console.error('Error fetching zones with vendors:', error)
+        // Fallback to hardcoded data if there's an error
+        setZonesWithVendors([])
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    if (isAuthenticated && !authLoading) {
+      fetchZonesWithVendors()
+    }
+  }, [isAuthenticated, authLoading])
 
   // Check authentication status
-  if (isLoading || !isAuthenticated) {
+  if (authLoading || !isAuthenticated) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
@@ -42,8 +75,57 @@ export default function MapPage() {
     )
   }
 
-  // Battle zones data with Figma design
-  const zones: Zone[] = [
+  // Map zone IDs to positions and colors
+  const zoneConfig = {
+    '1': { // Centro
+      position: { top: '40%', left: '35%' },
+      color: '#ff6b35',
+      size: 'medium' as const
+    },
+    '2': { // Norte
+      position: { top: '12%', left: '40%' },
+      color: '#06d6a0',
+      size: 'medium' as const
+    },
+    '3': { // Sur
+      position: { top: '68%', left: '49%' },
+      color: '#ffd23f',
+      size: 'medium' as const
+    },
+    '4': { // Este
+      position: { top: '36%', left: '65%' },
+      color: '#e63946',
+      size: 'medium' as const
+    },
+    '5': { // Oeste
+      position: { top: '45%', left: '11%' },
+      color: '#f72585',
+      size: 'medium' as const
+    }
+  }
+
+  // Generate zones from fetched data
+  const zones: Zone[] = zonesWithVendors.map(zoneData => {
+    const config = zoneConfig[zoneData.zoneId as keyof typeof zoneConfig]
+    const topVendor = zoneData.topVendor
+    
+    return {
+      id: zoneData.zoneId,
+      name: zoneData.zoneName,
+      vendor: topVendor ? `@${topVendor.name.replace(/\s+/g, '_')}` : 'Sin vendor',
+      leader: topVendor ? topVendor.name : 'Zona vacía',
+      leaderAvatar: topVendor?.imageUrl || 'https://images.unsplash.com/photo-1565299624946-b28f40a0ca4b?w=100&h=100&fit=crop&crop=face',
+      control: topVendor ? Math.min(85, Math.max(50, Math.floor(zoneData.totalVotes / 10))) : 0,
+      color: config?.color || '#cccccc',
+      position: config?.position || { top: '50%', left: '50%' },
+      size: config?.size || 'medium',
+      battleIntensity: topVendor ? Math.min(5, Math.max(1, Math.floor(zoneData.totalVotes / 5))) : 1,
+      recentVotes: zoneData.totalVotes
+    }
+  })
+
+  // Fallback to hardcoded zones if no data is fetched
+  const fallbackZones: Zone[] = [
     {
       id: 'centro',
       name: 'Zona Centro',
@@ -111,6 +193,9 @@ export default function MapPage() {
     }
   ]
 
+  // Use fetched zones if available, otherwise fallback
+  const displayZones = zones.length > 0 ? zones : fallbackZones
+
   const handleZoneClick = (zoneId: string) => {
     // Add haptic feedback
     if (typeof window !== 'undefined' && 'navigator' in window && 'vibrate' in navigator) {
@@ -157,12 +242,12 @@ export default function MapPage() {
         >
           <Swords className="w-5 h-5" />
           <span>Battle Events</span>
-          <Bell className="w-4 h-4" />
+          <Bell className="w-4 w-4" />
         </Button>
       </div>
 
       {/* CDMX Map with Interactive Zones */}
-      <div className="relative z-10 flex-1 p-4">
+      <div className="relative z-10 px-4 py-4 flex-1">
         <div className="bg-white/60 backdrop-blur-sm rounded-2xl p-4 shadow-xl border border-[#ff6b35]/20 h-full relative">
           {/* CDMX Map Image with Interactive Zones */}
           <div className="relative h-full">
@@ -178,7 +263,7 @@ export default function MapPage() {
               />
               
               {/* Interactive Zone Overlays */}
-              {zones.map((zone) => (
+              {displayZones.map((zone) => (
                 <div
                   key={zone.id}
                   className="absolute cursor-pointer transition-all duration-200 hover:scale-110"
@@ -198,20 +283,44 @@ export default function MapPage() {
                       {zone.name.charAt(0)}
                     </div>
                     
-                    {/* Hover Tooltip */}
-                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-black/80 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-30">
-                      <div className="font-bold">{zone.name}</div>
-                      <div className="text-xs opacity-80">{zone.leader}</div>
-                      <div className="text-xs opacity-80">{zone.control}% control</div>
+                    {/* Top Vendor Avatar */}
+                    <div className="absolute -bottom-2 -right-2 w-8 h-8 rounded-full border-2 border-white shadow-lg overflow-hidden">
+                      <img 
+                        src={zone.leaderAvatar} 
+                        alt={zone.leader}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          // Fallback to default image if vendor image fails to load
+                          const target = e.target as HTMLImageElement
+                          target.src = 'https://images.unsplash.com/photo-1565299624946-b28f40a0ca4b?w=100&h=100&fit=crop&crop=face'
+                        }}
+                      />
+                    </div>
+                    
+                    {/* Battle Intensity Indicator */}
+                    <div className="absolute -top-1 -left-1">
+                      <div 
+                        className="w-4 h-4 rounded-full border-2 border-white shadow-lg flex items-center justify-center"
+                        style={{ backgroundColor: getBattleIntensityColor(zone.battleIntensity) }}
+                      >
+                        <Flame className="w-2.5 h-2.5 text-white" />
+                      </div>
                     </div>
                   </div>
                   
-                  {/* Battle Intensity Indicator */}
-                  <div
-                    className="absolute -top-1 -right-1 w-6 h-6 rounded-full border-2 border-white flex items-center justify-center text-xs font-bold text-white"
-                    style={{ backgroundColor: getBattleIntensityColor(zone.battleIntensity) }}
-                  >
-                    {zone.battleIntensity}
+                  {/* Zone Info Tooltip */}
+                  <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 bg-white/95 backdrop-blur-sm rounded-lg p-3 shadow-xl border border-gray-200 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-20">
+                    <div className="text-center">
+                      <h3 className="font-bold text-[#2d1810] text-sm">{zone.name}</h3>
+                      <p className="text-[#6b5d52] text-xs">{zone.leader}</p>
+                      <div className="flex items-center justify-center space-x-2 mt-1">
+                        <div className="flex items-center space-x-1">
+                          <Flame className="w-3 h-3 text-[#ff6b35]" />
+                          <span className="text-xs text-[#6b5d52]">{zone.recentVotes}</span>
+                        </div>
+                        <Crown className="w-3 h-3 text-[#ffd23f]" />
+                      </div>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -220,20 +329,13 @@ export default function MapPage() {
         </div>
       </div>
 
-      {/* Zone List */}
-      <div className="relative z-10 p-4">
-        <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 shadow-lg border border-[#ff6b35]/20">
-          <h3 className="font-bold text-[#2d1810] mb-3 flex items-center">
-            <Trophy className="w-5 h-5 mr-2 text-[#ffd23f]" />
-            Battle Zones
-          </h3>
+      {/* Zone Legend */}
+      <div className="relative z-10 px-4 py-2">
+        <div className="bg-white/80 backdrop-blur-sm rounded-xl p-3 shadow-lg border border-[#ff6b35]/20">
+          <h3 className="font-bold text-[#2d1810] mb-2 text-sm">Zonas de Batalla</h3>
           <div className="space-y-2">
-            {zones.map((zone) => (
-              <div 
-                key={zone.id} 
-                onClick={() => handleZoneClick(zone.id)}
-                className="flex items-center space-x-3 p-3 rounded-lg hover:bg-[#ff6b35]/10 transition-colors cursor-pointer"
-              >
+            {displayZones.map((zone) => (
+              <div key={zone.id} className="flex items-center space-x-3">
                 <div 
                   className="w-3 h-3 rounded-full"
                   style={{ backgroundColor: zone.color }}

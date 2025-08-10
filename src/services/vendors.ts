@@ -631,5 +631,153 @@ export class VendorService {
     }
   }
 
+  // Get top vendor for each zone
+  static async getTopVendorByZone(zoneId: string): Promise<Vendor | null> {
+    try {
+      const supabase = getSupabaseClient()
+      const { data: vendor, error } = await supabase
+        .from('vendors')
+        .select(`
+          *,
+          users (
+            fid,
+            username,
+            display_name,
+            avatar_url,
+            vote_streak
+          )
+        `)
+        .eq('zone_id', zoneId)
+        .order('total_votes', { ascending: false })
+        .order('current_zone_rank', { ascending: true })
+        .limit(1)
+        .single()
+
+      if (error) {
+        if (error.code === 'PGRST116') {
+          return null // No vendors in this zone
+        }
+        console.error('❌ Supabase error in getTopVendorByZone:', error)
+        throw new Error(`Failed to fetch top vendor for zone: ${error.message}`)
+      }
+
+      if (!vendor) {
+        return null
+      }
+
+      // Handle case where users relation might be null
+      if (!vendor.users) {
+        console.warn(`⚠️ Vendor ${vendor.id} has no associated user data`)
+        const defaultOwner: User = {
+          fid: 0,
+          username: 'unknown',
+          displayName: 'Unknown User',
+          pfpUrl: '',
+          bio: '',
+          followerCount: 0,
+          followingCount: 0,
+          verifiedAddresses: [],
+          battleTokens: 0,
+          credibilityScore: 0,
+          verifiedPurchases: 0,
+          credibilityTier: 'bronze' as const,
+          voteStreak: 0,
+          weeklyVoteCount: 0,
+          weeklyTerritoryBonus: 0,
+        }
+        return mapSupabaseVendorToVendor(vendor, defaultOwner)
+      }
+
+      const owner: User = {
+        fid: vendor.users.fid,
+        username: vendor.users.username,
+        displayName: vendor.users.display_name,
+        pfpUrl: vendor.users.avatar_url,
+        bio: '',
+        followerCount: 0,
+        followingCount: 0,
+        verifiedAddresses: [],
+        battleTokens: 0,
+        credibilityScore: 0,
+        verifiedPurchases: 0,
+        credibilityTier: 'bronze' as const,
+        voteStreak: vendor.users.vote_streak || 0,
+        weeklyVoteCount: 0,
+        weeklyTerritoryBonus: 0,
+      }
+      return mapSupabaseVendorToVendor(vendor, owner)
+    } catch (error) {
+      console.error('❌ Error fetching top vendor for zone from Supabase:', error)
+      throw new Error(`Failed to fetch top vendor for zone: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    }
+  }
+
+  // Get all zones with their top vendors
+  static async getZonesWithTopVendors(): Promise<Array<{
+    zoneId: string
+    zoneName: string
+    topVendor: Vendor | null
+    totalVendors: number
+    totalVotes: number
+  }>> {
+    try {
+      const supabase = getSupabaseClient()
+      
+      // First get all zones
+      const { data: zones, error: zonesError } = await supabase
+        .from('zones')
+        .select('id, name')
+        .order('name')
+
+      if (zonesError) {
+        console.error('❌ Supabase error fetching zones:', zonesError)
+        throw new Error(`Failed to fetch zones: ${zonesError.message}`)
+      }
+
+      // For each zone, get the top vendor and stats
+      const zonesWithVendors = await Promise.all(
+        zones.map(async (zone) => {
+          try {
+            const topVendor = await this.getTopVendorByZone(zone.id)
+            
+            // Get total vendors and votes for this zone
+            const { data: zoneStats, error: statsError } = await supabase
+              .from('vendors')
+              .select('total_votes')
+              .eq('zone_id', zone.id)
+
+            if (statsError) {
+              console.warn(`⚠️ Error fetching stats for zone ${zone.id}:`, statsError)
+            }
+
+            const totalVendors = zoneStats?.length || 0
+            const totalVotes = zoneStats?.reduce((sum, v) => sum + (v.total_votes || 0), 0) || 0
+
+            return {
+              zoneId: zone.id,
+              zoneName: zone.name,
+              topVendor,
+              totalVendors,
+              totalVotes
+            }
+          } catch (error) {
+            console.warn(`⚠️ Error processing zone ${zone.id}:`, error)
+            return {
+              zoneId: zone.id,
+              zoneName: zone.name,
+              topVendor: null,
+              totalVendors: 0,
+              totalVotes: 0
+            }
+          }
+        })
+      )
+
+      return zonesWithVendors
+    } catch (error) {
+      console.error('❌ Error fetching zones with top vendors:', error)
+      throw new Error(`Failed to fetch zones with top vendors: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    }
+  }
 
 } 

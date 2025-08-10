@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { streakManager } from '@/lib/redis'
+import { StreakService } from '@/services/streak'
 import { UserService } from '@/services/users'
 
 export async function POST(request: NextRequest) {
@@ -14,20 +14,19 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Check and reset streak if needed
-    await streakManager.checkAndResetStreakIfNeeded(userFid.toString())
+    // Obtener el streak actualizado de la base de datos
+    const currentStreak = await StreakService.getUserStreak(userFid)
     
-    // Get current streak
-    const currentStreak = await streakManager.getVoteStreak(userFid.toString())
-    
-    // Update user in database with current streak
+    // Actualizar el usuario en la base de datos con el streak calculado
     await UserService.updateUser(parseInt(userFid), { voteStreak: currentStreak })
 
     return NextResponse.json({
       success: true,
       data: {
         streak: currentStreak,
-        message: 'Streak checked and updated'
+        source: 'database',
+        message: 'Streak calculated and updated from database',
+        timestamp: new Date().toISOString()
       }
     })
 

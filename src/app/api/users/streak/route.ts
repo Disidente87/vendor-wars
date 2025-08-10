@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { streakManager } from '@/lib/redis'
-import { supabase } from '@/lib/supabase'
+import { StreakService } from '@/services/streak'
 
 export async function GET(request: NextRequest) {
   try {
@@ -14,36 +13,16 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Try to get from cache first
-    let streak = await streakManager.getVoteStreak(userFid)
-
-    // If not in cache, fetch from database
-    if (streak === 0) {
-      const { data: user, error } = await supabase
-        .from('users')
-        .select('vote_streak')
-        .eq('fid', userFid)
-        .single()
-
-      if (error) {
-        console.error('Error fetching user streak:', error)
-        streak = 0
-      } else {
-        streak = user?.vote_streak || 0
-        // Cache the result
-        await streakManager.incrementStreak(userFid)
-        // Reset to actual value
-        if (streak === 0) {
-          await streakManager.resetStreak(userFid)
-        }
-      }
-    }
+    // Obtener el streak directamente de la base de datos (fuente de verdad)
+    const streak = await StreakService.getUserStreak(userFid)
 
     return NextResponse.json({
       success: true,
       data: {
         userFid,
-        streak
+        streak,
+        source: 'database',
+        timestamp: new Date().toISOString()
       }
     })
 

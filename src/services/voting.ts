@@ -1,9 +1,37 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js'
-import { rateLimiter, tokenManager, streakManager, fraudDetection } from '@/lib/redis'
+import { rateLimiter, tokenManager, streakManager, fraudDetection, REDIS_KEYS } from '@/lib/redis'
+import redis from '@/lib/redis'
 import { v4 as uuidv4 } from 'uuid'
 import { VendorCategory } from '@/types'
 import * as crypto from 'crypto'
 import { TokenDistributionService } from './tokenDistribution'
+
+// Enhanced logging interface
+interface LogContext {
+  userFid: string
+  vendorId: string
+  voteType: 'regular' | 'verified'
+  operation: string
+  timestamp: string
+  duration?: number
+  [key: string]: any // Allow additional properties for flexibility
+}
+
+// Performance metrics
+interface PerformanceMetrics {
+  databaseQueries: number
+  redisOperations: number
+  totalDuration: number
+  cacheHits: number
+  cacheMisses: number
+}
+
+// Input validation schemas
+interface VoteValidationResult {
+  isValid: boolean
+  errors: string[]
+  warnings: string[]
+}
 
 // Function to get Supabase client
 function getSupabaseClient() {
@@ -114,6 +142,112 @@ export interface TokenCalculation {
 
 export class VotingService {
   private static supabase: SupabaseClient | null = null
+  private static performanceMetrics: Map<string, PerformanceMetrics> = new Map()
+
+  /**
+   * Enhanced structured logging
+   */
+  private static log(level: 'info' | 'warn' | 'error' | 'debug', message: string, context: Partial<LogContext> = {}) {
+    const logEntry = {
+      level,
+      message,
+      timestamp: new Date().toISOString(),
+      ...context
+    }
+    
+    // In production, send to structured logging service
+    if (process.env.NODE_ENV === 'production') {
+      console.log(JSON.stringify(logEntry))
+    } else {
+      // Development logging with emojis
+      const emoji = { info: 'ℹ️', warn: '⚠️', error: '❌', debug: '🔍' }
+      console.log(`${emoji[level]} ${message}`, context)
+    }
+  }
+
+  /**
+   * Input validation for vote data
+   */
+  private static validateVoteData(voteData: VoteData): VoteValidationResult {
+    const errors: string[] = []
+    const warnings: string[] = []
+    
+    // Required field validation
+    if (!voteData.userFid || voteData.userFid.trim() === '') {
+      errors.push('User FID is required')
+    }
+    
+    if (!voteData.vendorId || voteData.vendorId.trim() === '') {
+      errors.push('Vendor ID is required')
+    }
+    
+    if (!voteData.voteType || !['regular', 'verified'].includes(voteData.voteType)) {
+      errors.push('Vote type must be either "regular" or "verified"')
+    }
+    
+    // Verified vote validation
+    if (voteData.voteType === 'verified') {
+      if (!voteData.photoUrl) {
+        errors.push('Photo URL is required for verified votes')
+      }
+      
+      if (voteData.verificationConfidence && (voteData.verificationConfidence < 0 || voteData.verificationConfidence > 1)) {
+        errors.push('Verification confidence must be between 0 and 1')
+      }
+    }
+    
+    // GPS validation
+    if (voteData.gpsLocation) {
+      if (voteData.gpsLocation.lat < -90 || voteData.gpsLocation.lat > 90) {
+        errors.push('Invalid latitude value')
+      }
+      if (voteData.gpsLocation.lng < -180 || voteData.gpsLocation.lng > 180) {
+        errors.push('Invalid longitude value')
+      }
+    }
+    
+    // FID format validation (should be numeric)
+    if (voteData.userFid && isNaN(Number(voteData.userFid))) {
+      warnings.push('User FID should be numeric')
+    }
+    
+    return {
+      isValid: errors.length === 0,
+      errors,
+      warnings
+    }
+  }
+
+  /**
+   * Track performance metrics
+   */
+  private static startPerformanceTracking(operationId: string): () => void {
+    const startTime = Date.now()
+    const metrics: PerformanceMetrics = {
+      databaseQueries: 0,
+      redisOperations: 0,
+      totalDuration: 0,
+      cacheHits: 0,
+      cacheMisses: 0
+    }
+    
+    this.performanceMetrics.set(operationId, metrics)
+    
+    return () => {
+      const endTime = Date.now()
+      metrics.totalDuration = endTime - startTime
+      
+      // Log performance metrics
+      this.log('debug', 'Performance metrics', {
+        operation: operationId,
+        duration: metrics.totalDuration,
+        ...metrics
+      })
+      
+      // Clean up old metrics
+      this.performanceMetrics.delete(operationId)
+    }
+  }
 
   /**
    * Initialize Supabase client if not already done
@@ -157,10 +291,32 @@ export class VotingService {
    * Register a vote for a vendor
    */
   static async registerVote(voteData: VoteData): Promise<VoteResult> {
+    const operationId = `vote_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+    const stopTracking = this.startPerformanceTracking(operationId)
+    
     try {
       const { userFid, vendorId, voteType, photoUrl, gpsLocation, verificationConfidence } = voteData
       
-      console.log('🗳️ Starting vote registration for:', {
+      // Input validation
+      const validation = this.validateVoteData(voteData)
+      if (!validation.isValid) {
+        this.log('error', 'Vote validation failed', { operation: operationId, userFid, vendorId, errors: validation.errors })
+        return {
+          success: false,
+          tokensEarned: 0,
+          newBalance: 0,
+          streakBonus: 0,
+          territoryBonus: 0,
+          error: `Validation failed: ${validation.errors.join(', ')}`
+        }
+      }
+      
+      if (validation.warnings.length > 0) {
+        this.log('warn', 'Vote validation warnings', { operation: operationId, userFid, vendorId, warnings: validation.warnings })
+      }
+      
+      this.log('info', 'Starting vote registration', {
+        operation: operationId,
         userFid,
         vendorId,
         voteType,
@@ -183,12 +339,12 @@ export class VotingService {
         vendorError = error
         
         if (vendor) {
-          console.log('✅ Found vendor in Supabase:', vendor.name)
+          this.log('info', 'Found vendor in Supabase', { operation: operationId, vendorName: vendor.name })
         } else if (error) {
-          console.log('⚠️ Supabase error:', error.message)
+          this.log('warn', 'Supabase vendor lookup error', { operation: operationId, error: error.message })
         }
       } catch (error) {
-        console.warn('⚠️ Supabase connection failed, trying to reset client...')
+        this.log('warn', 'Supabase connection failed, trying to reset client', { operation: operationId, error: error instanceof Error ? error.message : String(error) })
         // Try to reset the client and try again
         try {
           this.resetSupabaseClient()
@@ -202,24 +358,23 @@ export class VotingService {
           vendorError = retryError
           
           if (vendor) {
-            console.log('✅ Found vendor in Supabase after reset:', vendor.name)
+            this.log('info', 'Found vendor in Supabase after reset', { operation: operationId, vendorName: vendor.name })
           } else if (retryError) {
-            console.log('⚠️ Supabase still failing after reset:', retryError.message)
+            this.log('warn', 'Supabase still failing after reset', { operation: operationId, error: retryError.message })
           }
         } catch (retryError) {
-          console.warn('⚠️ Supabase still not available after reset, using mock data')
+          this.log('warn', 'Supabase still not available after reset, using mock data', { operation: operationId, error: retryError instanceof Error ? retryError.message : String(retryError) })
           vendorError = retryError
         }
       }
 
       // If Supabase failed or vendor not found, try mock data
       if (vendorError || !vendor) {
-        console.log('🔍 Trying to find vendor in mock data:', vendorId)
+        this.log('info', 'Trying to find vendor in mock data', { operation: operationId, vendorId })
         vendor = getMockVendor(vendorId)
         
         if (!vendor) {
-          console.error('❌ Vendor not found in Supabase or mock data:', vendorId)
-          console.log('Available mock vendors:', MOCK_VENDORS.map(v => v.id))
+          this.log('error', 'Vendor not found in Supabase or mock data', { operation: operationId, vendorId, availableVendors: MOCK_VENDORS.map(v => v.id) })
           return {
             success: false,
             tokensEarned: 0,
@@ -229,7 +384,7 @@ export class VotingService {
             error: 'Vendor not found'
           }
         }
-        console.log('✅ Using mock vendor:', vendor.name)
+        this.log('info', 'Using mock vendor', { operation: operationId, vendorName: vendor.name })
       }
 
       // 2. Anti-fraud checks for verified votes
@@ -326,6 +481,7 @@ export class VotingService {
       // Try to insert vote in Supabase and get the generated ID
       let actualVoteId: string | undefined
       try {
+        console.log(`🗳️ Inserting vote record into database...`)
         const { data: insertedVote, error: voteError } = await this.supabase!
           .from('votes')
           .insert(voteRecord)
@@ -359,6 +515,7 @@ export class VotingService {
         } else {
           actualVoteId = insertedVote?.id
           console.log('✅ Vote recorded in Supabase with ID:', actualVoteId)
+          console.log('🔄 Database trigger should now be running to update streak...')
         }
       } catch (error) {
         console.error('❌ Supabase not available for vote recording')
@@ -451,24 +608,69 @@ export class VotingService {
       }
 
       // 9. Update vote streak (ONLY if vote was successful)
-      const newStreak = await this.safeRedisOperation(
-        () => streakManager.incrementStreak(userFid),
-        () => mockRedis.incrementStreak(userFid)
-      )
-      
-      // Also update vote streak in database if available
+      // Try to use the database trigger first, but have a robust fallback
+      let newStreak: number
       try {
-        await this.supabase!
-          .from('users')
-          .update({ vote_streak: newStreak })
-          .eq('fid', parseInt(userFid))
+        console.log(`🔄 Waiting for database trigger to complete...`)
+        // Wait a moment for the database trigger to complete
+        await new Promise(resolve => setTimeout(resolve, 100))
+        
+        // Get the updated streak from the database
+        const { StreakService } = await import('@/services/streak')
+        console.log(`🔍 Fetching updated streak from database...`)
+        newStreak = await StreakService.getUserStreak(userFid)
+        console.log(`🔥 Database trigger updated streak to: ${newStreak}`)
+        
+        // If the database trigger didn't work (streak is still 0 or 1), manually update it
+        if (newStreak <= 1) {
+          console.log(`⚠️ Database trigger may not have worked, manually updating streak...`)
+          
+          // First, let's test the streak calculation to see what's happening
+          try {
+            console.log(`🧪 Running streak calculation test...`)
+            const testResult = await StreakService.testStreakCalculation(userFid)
+            console.log(`🧪 Streak test results:`, testResult)
+          } catch (testError) {
+            console.warn('⚠️ Streak test failed:', testError)
+          }
+          
+          try {
+            newStreak = await StreakService.updateStreakOnVote(userFid)
+            console.log(`🔥 Manually updated streak to: ${newStreak}`)
+          } catch (manualError) {
+            console.warn('⚠️ Manual streak update failed:', manualError)
+          }
+        }
+        
+        // Sync Redis with the database value
+        try {
+          const redisKey = `${REDIS_KEYS.VOTE_STREAKS}:${userFid}`
+          await redis.set(redisKey, newStreak)
+          await redis.expire(redisKey, 172800) // 2 days
+          console.log(`🔄 Synced Redis streak with database: ${newStreak}`)
+        } catch (redisError) {
+          console.warn('⚠️ Could not sync Redis streak:', redisError)
+        }
       } catch (error) {
-        console.warn('⚠️ Supabase not available for streak update, continuing with Redis only')
+        console.warn('⚠️ StreakService not available, using Redis fallback:', error)
+        // Fallback to Redis
+        newStreak = await this.safeRedisOperation(
+          () => streakManager.incrementStreak(userFid),
+          () => mockRedis.incrementStreak(userFid)
+        )
       }
 
       // 10. Update vendor stats (ONLY if vote was successful)
       await this.updateVendorStats(vendorId, voteType === 'verified')
 
+      this.log('info', 'Vote registration completed successfully', {
+        operation: operationId,
+        userFid,
+        vendorId,
+        tokensEarned: tokenCalculation.totalTokens,
+        voteId: actualVoteId
+      })
+      
       return {
         success: true,
         voteId: actualVoteId,
@@ -479,7 +681,13 @@ export class VotingService {
       }
 
     } catch (error) {
-      console.error('Error in registerVote:', error)
+      this.log('error', 'Error in registerVote', {
+        operation: operationId,
+        userFid: voteData.userFid,
+        vendorId: voteData.vendorId,
+        error: error instanceof Error ? error.message : String(error)
+      })
+      
       return {
         success: false,
         tokensEarned: 0,
@@ -488,6 +696,38 @@ export class VotingService {
         territoryBonus: 0,
         error: 'Internal server error'
       }
+    } finally {
+      stopTracking()
+    }
+  }
+
+  /**
+   * Sync Redis streak with database and recalculate if needed
+   */
+  static async syncStreakWithDatabase(userFid: string): Promise<number> {
+    try {
+      // Get the current streak directly from StreakService (database source of truth)
+      const { StreakService } = await import('@/services/streak')
+      const dbStreak = await StreakService.getUserStreak(userFid)
+      
+      // Update Redis to match database
+      try {
+        const redisKey = `${REDIS_KEYS.VOTE_STREAKS}:${userFid}`
+        await redis.set(redisKey, dbStreak)
+        await redis.expire(redisKey, 172800) // 2 days
+        console.log(`🔄 Synced Redis streak with database: ${dbStreak}`)
+      } catch (redisError) {
+        console.warn('⚠️ Could not sync Redis streak:', redisError)
+      }
+      
+      return dbStreak
+    } catch (error) {
+      console.warn('⚠️ Error syncing streak with database:', error)
+      // Return Redis streak as fallback
+      return await this.safeRedisOperation(
+        () => streakManager.getVoteStreak(userFid),
+        () => mockRedis.getVoteStreak(userFid)
+      )
     }
   }
 
@@ -509,11 +749,8 @@ export class VotingService {
       baseTokens = isFirstVoteOfDay ? 10 : 5 // Regular votes
     }
 
-    // Streak bonus: +1 BATTLE per consecutive day (max +10)
-    const currentStreak = await this.safeRedisOperation(
-      () => streakManager.getVoteStreak(userFid),
-      () => mockRedis.getVoteStreak(userFid)
-    )
+    // Get streak from database as source of truth, with Redis as fallback
+    const currentStreak = await this.syncStreakWithDatabase(userFid)
     const streakBonus = Math.min(currentStreak, 10) // Max +10 from streak
 
     // Territory bonus (simplified for now - will be implemented with battle system)
@@ -749,5 +986,130 @@ export class VotingService {
     const diff = now.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1)
     const monday = new Date(now.setDate(diff))
     return monday.toISOString().split('T')[0]
+  }
+
+  /**
+   * Get performance metrics for monitoring
+   */
+  static getPerformanceMetrics(): Map<string, PerformanceMetrics> {
+    return new Map(this.performanceMetrics)
+  }
+
+  /**
+   * Clear performance metrics (useful for testing)
+   */
+  static clearPerformanceMetrics(): void {
+    this.performanceMetrics.clear()
+  }
+
+  /**
+   * Get system health status
+   */
+  static async getHealthStatus(): Promise<{
+    supabase: boolean
+    redis: boolean
+    database: boolean
+    overall: boolean
+  }> {
+    const health = {
+      supabase: false,
+      redis: false,
+      database: false,
+      overall: false
+    }
+
+    // Check Supabase
+    try {
+      this.ensureSupabaseClient()
+      const { error } = await this.supabase!.from('vendors').select('id').limit(1)
+      health.supabase = !error
+    } catch {
+      health.supabase = false
+    }
+
+    // Check Redis
+    try {
+      await redis.set('health_check', 'ok', { ex: 10 })
+      health.redis = true
+    } catch {
+      health.redis = false
+    }
+
+    // Check database (through Supabase)
+    health.database = health.supabase
+
+    // Overall health
+    health.overall = health.supabase && health.redis
+
+    return health
+  }
+
+  /**
+   * Rate limiting check for user
+   */
+  static async checkRateLimit(userFid: string): Promise<{
+    allowed: boolean
+    remaining: number
+    resetTime: number
+  }> {
+    try {
+      const key = `rate_limit:${userFid}`
+      const current = await redis.get(key)
+      const limit = 100 // 100 votes per hour
+      const window = 3600 // 1 hour in seconds
+
+      if (!current) {
+        await redis.setex(key, window, 1)
+        return { allowed: true, remaining: limit - 1, resetTime: Date.now() + (window * 1000) }
+      }
+
+      const count = parseInt(String(current))
+      if (count >= limit) {
+        return { allowed: false, remaining: 0, resetTime: Date.now() + (window * 1000) }
+      }
+
+      await redis.incr(key)
+      return { allowed: true, remaining: limit - count - 1, resetTime: Date.now() + (window * 1000) }
+    } catch (error) {
+      // If Redis fails, allow the request (fail open)
+      this.log('warn', 'Rate limiting check failed, allowing request', { userFid, error: error instanceof Error ? error.message : String(error) })
+      return { allowed: true, remaining: 999, resetTime: Date.now() + (3600 * 1000) }
+    }
+  }
+
+  /**
+   * Batch vote processing for multiple votes
+   */
+  static async processBatchVotes(votes: VoteData[]): Promise<{
+    successful: VoteResult[]
+    failed: { voteData: VoteData; error: string }[]
+    summary: { total: number; success: number; failed: number }
+  }> {
+    const results = {
+      successful: [] as VoteResult[],
+      failed: [] as { voteData: VoteData; error: string }[],
+      summary: { total: votes.length, success: 0, failed: 0 }
+    }
+
+    for (const voteData of votes) {
+      try {
+        const result = await this.registerVote(voteData)
+        if (result.success) {
+          results.successful.push(result)
+          results.summary.success++
+        } else {
+          results.failed.push({ voteData, error: result.error || 'Unknown error' })
+          results.summary.failed++
+        }
+      } catch (error) {
+        results.failed.push({ 
+          voteData, 
+          error: error instanceof Error ? error.message : String(error) 
+        })
+        results.summary.failed++
+      }
+    }
+
+    return results
   }
 } 

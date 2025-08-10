@@ -79,6 +79,7 @@
     "@radix-ui/react-avatar": "^1.1.10",
     "@radix-ui/react-label": "^2.1.1",
     "@radix-ui/react-select": "^2.2.5",
+    "@radix-ui/react-tooltip": "^1.2.7",
     "@solana/wallet-adapter-react": "^0.15.38",
     "@supabase/supabase-js": "^2.53.0",
     "@tanstack/react-query": "^5.61.0",
