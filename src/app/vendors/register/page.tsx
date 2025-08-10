@@ -152,6 +152,10 @@ export default function VendorRegistrationPage() {
       }
 
       // Submit vendor data
+      console.log('🔍 Debug authenticatedUser:', authenticatedUser)
+      console.log('🔍 Debug authenticatedUser.fid:', authenticatedUser?.fid)
+      console.log('🔍 Debug authenticatedUser.fid type:', typeof authenticatedUser?.fid)
+      
       const requestData = {
         name: formData.name,
         description: formData.description,
