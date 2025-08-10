@@ -5,7 +5,7 @@ import { v4 as uuidv4 } from 'uuid'
 interface VendorRegistrationData {
   name: string
   description: string
-  zoneId: string
+  delegation: string
   category: string
   imageUrl: string
   ownerFid: number
@@ -17,13 +17,13 @@ export async function POST(request: NextRequest) {
     console.log('📥 Received vendor registration data:', body)
     
     // Validate required fields
-    const { name, description, zoneId, category, imageUrl, ownerFid } = body
+    const { name, description, delegation, category, imageUrl, ownerFid } = body
     
     // Check each required field individually for better error messages
     const missingFields = []
     if (!name) missingFields.push('name')
     if (!description) missingFields.push('description')
-    if (!zoneId) missingFields.push('zoneId')
+    if (!delegation) missingFields.push('delegation')
     if (!category) missingFields.push('category')
     if (!ownerFid) missingFields.push('ownerFid')
     
@@ -44,19 +44,18 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Validate that the zone exists (use regular client for read operations)
-    const { data: zone, error: zoneError } = await supabase
-      .from('zones')
-      .select('id')
-      .eq('id', zoneId)
-      .single()
+    // Get zone by delegation using the function we created in the database
+    const { data: zoneResult, error: zoneError } = await supabase
+      .rpc('get_zone_by_delegation', { delegation_name: delegation })
 
-    if (zoneError || !zone) {
+    if (zoneError || !zoneResult) {
       return NextResponse.json(
-        { success: false, error: 'Invalid zone selected' },
+        { success: false, error: 'Invalid delegation selected' },
         { status: 400 }
       )
     }
+
+    const zoneId = zoneResult
 
     // Obtener el fid del usuario autenticado desde el header o cookie
     const ownerFidHeader = request.headers.get('x-farcaster-fid')
@@ -94,6 +93,7 @@ export async function POST(request: NextRequest) {
         name,
         description,
         zone_id: zoneId,
+        delegation,
         category,
         image_url: imageUrl || 'https://images.unsplash.com/photo-1595273670150-bd0c3c392e46?w=400&h=300&fit=crop',
         owner_fid: ownerFidValue,
@@ -115,7 +115,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       data: vendor,
-      message: 'Vendor registered successfully'
+      message: `Vendor registered successfully in ${delegation} delegation`
     })
 
   } catch (error) {

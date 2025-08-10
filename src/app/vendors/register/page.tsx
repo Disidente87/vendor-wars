@@ -13,21 +13,18 @@ import { ArrowLeft, ArrowRight, Check, Upload, AlertCircle, ImageIcon, X, Loader
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { StorageService } from '@/services/storage'
 import { FARCASTER_CONFIG } from '@/config/farcaster'
+import { DelegationService, ZoneWithDelegations } from '@/services/delegations'
 
 interface VendorFormData {
   name: string
   imageFile: File | null
   imageUrl: string
-  zoneId: string
+  delegation: string
   description: string
   category: string
 }
 
-interface Zone {
-  id: string
-  name: string
-  description: string
-}
+
 
 export default function VendorRegistrationPage() {
   const router = useRouter()
@@ -39,32 +36,29 @@ export default function VendorRegistrationPage() {
   const [isUploadingImage, setIsUploadingImage] = useState(false)
   const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle')
   const [errorMessage, setErrorMessage] = useState('')
-  const [zones, setZones] = useState<Zone[]>([])
+  const [zonesWithDelegations, setZonesWithDelegations] = useState<ZoneWithDelegations[]>([])
   const [formData, setFormData] = useState<VendorFormData>({
     name: '',
     imageFile: null,
     imageUrl: '',
-    zoneId: '',
+    delegation: '',
     description: '',
     category: ''
   })
 
   const totalSteps = 5
 
-  // Load zones on component mount
+  // Load zones with delegations on component mount
   useEffect(() => {
-    const loadZones = async () => {
+    const loadZonesWithDelegations = async () => {
       try {
-        const response = await fetch('/api/zones')
-        if (response.ok) {
-          const result = await response.json()
-          setZones(result.data || [])
-        }
+        const zonesWithDelegations = await DelegationService.getZonesWithDelegations()
+        setZonesWithDelegations(zonesWithDelegations)
       } catch (error) {
-        console.error('Error loading zones:', error)
+        console.error('Error loading zones with delegations:', error)
       }
     }
-    loadZones()
+    loadZonesWithDelegations()
   }, [])
 
   // Redirect if not authenticated
@@ -161,7 +155,7 @@ export default function VendorRegistrationPage() {
       const requestData = {
         name: formData.name,
         description: formData.description,
-        zoneId: formData.zoneId,
+        delegation: formData.delegation,
         category: formData.category,
         imageUrl: imageUrl,
         ownerFid: authenticatedUser.fid
@@ -205,7 +199,7 @@ export default function VendorRegistrationPage() {
       case 2:
         return !formData.imageFile
       case 3:
-        return !formData.zoneId
+        return !formData.delegation
       case 4:
         return !formData.description.trim()
       case 5:
@@ -222,7 +216,7 @@ export default function VendorRegistrationPage() {
       case 2:
         return 'Vendor Photo'
       case 3:
-        return 'Zone'
+        return 'Delegation'
       case 4:
         return 'Description'
       case 5:
@@ -320,25 +314,32 @@ export default function VendorRegistrationPage() {
           <div className="space-y-4">
             <div>
               <Label className="text-sm font-medium text-[#2d1810]">
-                Select your zone
+                Select your delegation
               </Label>
-              <Select value={formData.zoneId} onValueChange={(value) => handleInputChange('zoneId', value)}>
+              <Select value={formData.delegation} onValueChange={(value) => handleInputChange('delegation', value)}>
                 <SelectTrigger className="mt-2">
-                  <SelectValue placeholder="Choose a battle zone" />
+                  <SelectValue placeholder="Choose your delegation" />
                 </SelectTrigger>
                 <SelectContent>
-                  {zones.map((zone) => (
-                    <SelectItem key={zone.id} value={zone.id}>
-                      <div>
-                        <div className="font-medium">{zone.name}</div>
-                        <div className="text-xs text-gray-500">{zone.description}</div>
+                  {zonesWithDelegations.map((zone) => (
+                    <div key={zone.id}>
+                      <div className="px-2 py-1 text-xs font-medium text-gray-500 bg-gray-100">
+                        {zone.name} Zone
                       </div>
-                    </SelectItem>
+                      {zone.delegations.map((delegation) => (
+                        <SelectItem key={delegation.id} value={delegation.delegation_name}>
+                          <div>
+                            <div className="font-medium">{delegation.delegation_name}</div>
+                            <div className="text-xs text-gray-500">{zone.name} Zone</div>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </div>
                   ))}
                 </SelectContent>
               </Select>
               <p className="text-xs text-[#6b5d52] mt-1">
-                Choose the zone where your vendor operates
+                Choose your delegation - the zone will be assigned automatically
               </p>
             </div>
           </div>
@@ -476,7 +477,7 @@ export default function VendorRegistrationPage() {
             <CardDescription>
               {currentStep === 1 && "Let's start with your vendor's name"}
               {currentStep === 2 && "Add a photo to represent your vendor"}
-              {currentStep === 3 && "Choose the zone where you operate"}
+              {currentStep === 3 && "Choose your delegation"}
               {currentStep === 4 && "Tell customers about your vendor"}
               {currentStep === 5 && "What type of food do you sell?"}
             </CardDescription>
