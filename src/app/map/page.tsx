@@ -1,14 +1,14 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { useMiniApp } from '@neynar/react'
 import { useAuthSimulation } from '@/hooks/useAuthSimulation'
 import { UserHeader } from '@/components/UserHeader'
 import { Search, List, Crown, Flame, Trophy, Coins, Bell, Swords, MapPin } from 'lucide-react'
-import { InteractiveMap } from '@/components/InteractiveMap'
 import { useGeolocation } from '@/hooks/useGeolocation'
+import Image from 'next/image'
 
 interface Zone {
   id: string
@@ -28,7 +28,7 @@ export default function MapPage() {
   const router = useRouter()
   const { isSDKLoaded, context } = useMiniApp()
   const [searchQuery, setSearchQuery] = useState('')
-  const [_selectedZone, setSelectedZone] = useState<string | null>(null)
+  const [selectedZone, setSelectedZone] = useState<string | null>(null)
   
   // Use simulation for development
   const { isAuthenticated, user: _user, isLoading } = useAuthSimulation()
@@ -37,17 +37,6 @@ export default function MapPage() {
   const { coordinates: userLocation, error: locationError, isLoading: locationLoading } = useGeolocation()
 
   // Check authentication status
-  useEffect(() => {
-    if (isSDKLoaded) {
-      if (context?.user) {
-        console.log('User authenticated:', context.user)
-      } else {
-        console.log('Using simulated authentication for development')
-      }
-    }
-  }, [isSDKLoaded, context])
-
-  // Show loading while checking auth
   if (isLoading || !isAuthenticated) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -214,7 +203,7 @@ export default function MapPage() {
         </Button>
       </div>
 
-      {/* Battle Map */}
+      {/* CDMX Map with Interactive Zones */}
       <div className="relative z-10 flex-1 p-4">
         <div className="bg-white/60 backdrop-blur-sm rounded-2xl p-4 shadow-xl border border-[#ff6b35]/20 h-full relative">
           {/* Search Bar */}
@@ -237,7 +226,7 @@ export default function MapPage() {
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
                   </div>
                 ) : locationError ? (
-                  <div className="w-8 h-8 bg-red-100 rounded-lg flex items-center justify-center cursor-pointer" title={locationError}>
+                  <div className="w-8 h-8 bg-red-100 rounded-lg flex items-center cursor-pointer" title={locationError}>
                     <MapPin className="w-4 h-4 text-red-500" />
                   </div>
                 ) : userLocation ? (
@@ -253,24 +242,58 @@ export default function MapPage() {
             </div>
           </div>
 
-          {/* Interactive Map */}
+          {/* CDMX Map Image with Interactive Zones */}
           <div className="relative h-full pt-16">
-            <InteractiveMap
-              zones={zones.map(zone => ({
-                id: zone.id,
-                name: zone.name,
-                color: zone.color,
-                heatLevel: zone.battleIntensity,
-                totalVotes: zone.recentVotes,
-                activeVendors: Math.floor(zone.control / 10)
-              }))}
-              onZoneClick={handleZoneClick}
-              onVoteClick={(zoneId) => {
-                console.log('Voting for zone:', zoneId)
-                // TODO: Implement voting logic
-              }}
-              userLocation={userLocation || [-99.1332, 19.4326]} // Use real location or fallback to CDMX center
-            />
+            <div className="relative w-full h-full flex items-center justify-center">
+              {/* CDMX Map Background */}
+              <Image
+                src="/cdmx.png"
+                alt="Mapa de CDMX con zonas de batalla"
+                width={800}
+                height={600}
+                className="w-full h-auto max-w-full max-h-full object-contain rounded-lg"
+                priority
+              />
+              
+              {/* Interactive Zone Overlays */}
+              {zones.map((zone) => (
+                <div
+                  key={zone.id}
+                  className="absolute cursor-pointer transition-all duration-200 hover:scale-110"
+                  style={{
+                    top: zone.position.top,
+                    left: zone.position.left,
+                  }}
+                  onClick={() => handleZoneClick(zone.id)}
+                >
+                  {/* Zone Circle */}
+                  <div
+                    className={`${getZoneSize(zone.size)} rounded-full border-4 border-white shadow-lg flex items-center justify-center relative group`}
+                    style={{ backgroundColor: zone.color }}
+                  >
+                    {/* Zone Icon */}
+                    <div className="text-white font-bold text-lg">
+                      {zone.name.charAt(0)}
+                    </div>
+                    
+                    {/* Hover Tooltip */}
+                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-black/80 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-30">
+                      <div className="font-bold">{zone.name}</div>
+                      <div className="text-xs opacity-80">{zone.leader}</div>
+                      <div className="text-xs opacity-80">{zone.control}% control</div>
+                    </div>
+                  </div>
+                  
+                  {/* Battle Intensity Indicator */}
+                  <div
+                    className="absolute -top-1 -right-1 w-6 h-6 rounded-full border-2 border-white flex items-center justify-center text-xs font-bold text-white"
+                    style={{ backgroundColor: getBattleIntensityColor(zone.battleIntensity) }}
+                  >
+                    {zone.battleIntensity}
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>

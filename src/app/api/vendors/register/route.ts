@@ -45,15 +45,49 @@ export async function POST(request: NextRequest) {
     }
 
     // Get zone by delegation using the function we created in the database
+    console.log('🔍 Looking up zone for delegation:', delegation)
+    
     const { data: zoneResult, error: zoneError } = await supabase
       .rpc('get_zone_by_delegation', { delegation_name: delegation })
 
-    if (zoneError || !zoneResult) {
+    if (zoneError) {
+      console.error('❌ Error calling get_zone_by_delegation:', zoneError)
       return NextResponse.json(
-        { success: false, error: 'Invalid delegation selected' },
+        { success: false, error: `Database error: ${zoneError.message}` },
+        { status: 500 }
+      )
+    }
+
+    if (!zoneResult) {
+      console.error('❌ No zone found for delegation:', delegation)
+      
+      // Let's check what delegations are available
+      const { data: availableDelegations, error: delegationsError } = await supabase
+        .from('zone_delegations')
+        .select('delegation_name, zones!inner(name)')
+        .order('delegation_name')
+      
+      if (delegationsError) {
+        console.error('❌ Error fetching available delegations:', delegationsError)
+        return NextResponse.json(
+          { success: false, error: 'Invalid delegation selected. Please contact support.' },
+          { status: 400 }
+        )
+      }
+      
+      const availableDelegationNames = availableDelegations?.map(d => d.delegation_name) || []
+      console.log('📋 Available delegations:', availableDelegationNames)
+      
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: `Invalid delegation selected: "${delegation}". Available delegations: ${availableDelegationNames.join(', ')}` 
+        },
         { status: 400 }
       )
     }
+
+    console.log('✅ Zone found for delegation:', { delegation, zoneId: zoneResult })
 
     const zoneId = zoneResult
 

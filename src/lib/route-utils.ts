@@ -1,10 +1,10 @@
 // Zone name to ID mapping for friendly URLs
 export const ZONE_ROUTES = {
-  'centro': '49298ccd-5b91-4a41-839d-98c3b2cc504b',
-  'norte': '61bace3e-ae39-4bb5-997b-1737122e8849',
-  'sur': '100b486d-5859-4ab1-9112-2d4bbabcba46',
-  'este': '1ac86da4-0e2f-43fd-9dcb-0ac5a877048d',
-  'oeste': 'a3914cda-f3c5-4c90-b7d2-d46d141f4bfc'
+  'centro': '1',
+  'norte': '2',
+  'sur': '3',
+  'este': '4',
+  'oeste': '5'
 } as const
 
 // Vendor name to ID mapping for friendly URLs
