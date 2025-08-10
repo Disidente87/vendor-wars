@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
-import { useAuthSimulation } from '@/hooks/useAuthSimulation'
+import { useFarcasterAuth } from '@/hooks/useFarcasterAuth'
 import { UserHeader } from '@/components/UserHeader'
 import { 
   ArrowLeft, 
@@ -35,7 +35,7 @@ interface LeaderboardEntry {
 
 export default function LeaderboardPage() {
   const router = useRouter()
-  const { isAuthenticated, user: _user, isLoading } = useAuthSimulation()
+  const { isAuthenticated, user: _user, isLoading } = useFarcasterAuth()
   
   const [timeFilter, setTimeFilter] = useState<'daily' | 'weekly' | 'monthly' | 'all'>('weekly')
   const [activeTab, setActiveTab] = useState<'vendors' | 'users' | 'zones'>('vendors')

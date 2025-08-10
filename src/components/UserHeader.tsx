@@ -1,6 +1,6 @@
 'use client'
 
-import { useAuthSimulation } from '@/hooks/useAuthSimulation'
+import { useFarcasterAuth } from '@/hooks/useFarcasterAuth'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { 
@@ -13,7 +13,7 @@ import { useRouter } from 'next/navigation'
 import { TokenBalance } from './TokenBalance'
 
 export function UserHeader() {
-  const { user } = useAuthSimulation()
+  const { user } = useFarcasterAuth()
   const router = useRouter()
 
   if (!user) return null
@@ -36,13 +36,18 @@ export function UserHeader() {
             <div className="hidden md:flex items-center space-x-4 text-sm">
               <div className="flex items-center space-x-1 text-orange-600">
                 <Trophy className="w-4 h-4" />
-                <span className="font-medium">1,234</span>
+                <span className="font-medium">{user.battleTokens || 0}</span>
               </div>
               <TokenBalance />
             </div>
 
             {/* Notifications */}
-            <Button variant="ghost" size="sm" className="relative">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="relative"
+              onClick={() => router.push('/notifications')}
+            >
               <Bell className="w-5 h-5" />
               <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full text-xs text-white flex items-center justify-center">
                 3
@@ -54,12 +59,12 @@ export function UserHeader() {
               <Avatar className="w-8 h-8">
                 <AvatarImage src={user.pfpUrl} alt={user.displayName} />
                 <AvatarFallback className="bg-orange-100 text-orange-600">
-                  {user.displayName?.charAt(0)}
+                  {user.displayName?.charAt(0) || user.username?.charAt(0) || 'U'}
                 </AvatarFallback>
               </Avatar>
               
               <div className="hidden md:block">
-                <p className="text-sm font-medium text-gray-900">{user.displayName}</p>
+                <p className="text-sm font-medium text-gray-900">{user.displayName || user.username}</p>
                 <p className="text-xs text-gray-500">@{user.username}</p>
               </div>
 
@@ -75,7 +80,7 @@ export function UserHeader() {
                 <Button 
                   variant="ghost" 
                   size="sm"
-                  onClick={() => router.push('/notifications')}
+                  onClick={() => router.push('/settings')}
                 >
                   <Settings className="w-4 h-4" />
                 </Button>

@@ -4,10 +4,11 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { useMiniApp } from '@neynar/react'
-import { useAuthSimulation } from '@/hooks/useAuthSimulation'
+import { useFarcasterAuth } from '@/hooks/useFarcasterAuth'
 import { List, Crown, Flame, Trophy, Bell, Swords } from 'lucide-react'
 import Image from 'next/image'
 import { VendorService } from '@/services/vendors'
+import { UserHeader } from '@/components/UserHeader'
 import type { Vendor } from '@/types'
 
 interface Zone {
@@ -39,8 +40,8 @@ export default function MapPage() {
   const [zonesWithVendors, setZonesWithVendors] = useState<ZoneWithTopVendor[]>([])
   const [isLoading, setIsLoading] = useState(true)
   
-  // Use simulation for development
-  const { isAuthenticated, user: _user, isLoading: authLoading } = useAuthSimulation()
+  // Use Farcaster auth instead of simulation
+  const { isAuthenticated, user: _user, isLoading: authLoading } = useFarcasterAuth()
 
   // Fetch zones with top vendors
   useEffect(() => {
@@ -231,21 +232,12 @@ export default function MapPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#fff8f0] to-[#f4f1eb] relative overflow-hidden">
+      {/* UserHeader at the top */}
+      <UserHeader />
+      
       {/* Battle Map Background */}
       <div className="absolute inset-0 bg-gradient-to-br from-[#ff6b35]/10 via-[#ffd23f]/10 to-[#06d6a0]/10"></div>
       
-      {/* Battle Events Button */}
-      <div className="relative z-10 px-4 pt-4 pb-2">
-        <Button
-          onClick={() => router.push('/battle-events')}
-          className="w-full bg-gradient-to-r from-[#ff6b35] to-[#ffd23f] hover:from-[#e5562e] hover:to-[#e6c200] text-white font-bold py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center space-x-2"
-        >
-          <Swords className="w-5 h-5" />
-          <span>Battle Events</span>
-          <Bell className="w-4 w-4" />
-        </Button>
-      </div>
-
       {/* CDMX Map with Interactive Zones */}
       <div className="relative z-10 px-4 py-4 flex-1">
         <div className="bg-white/60 backdrop-blur-sm rounded-2xl p-4 shadow-xl border border-[#ff6b35]/20 h-full relative">
@@ -278,13 +270,8 @@ export default function MapPage() {
                     className={`${getZoneSize(zone.size)} rounded-full border-4 border-white shadow-lg flex items-center justify-center relative group`}
                     style={{ backgroundColor: zone.color }}
                   >
-                    {/* Zone Icon */}
-                    <div className="text-white font-bold text-lg">
-                      {zone.name.charAt(0)}
-                    </div>
-                    
-                    {/* Top Vendor Avatar */}
-                    <div className="absolute -bottom-2 -right-2 w-8 h-8 rounded-full border-2 border-white shadow-lg overflow-hidden">
+                    {/* Vendor Profile Image instead of Zone Icon */}
+                    <div className="w-12 h-12 rounded-full border-2 border-white shadow-lg overflow-hidden">
                       <img 
                         src={zone.leaderAvatar} 
                         alt={zone.leader}
@@ -295,6 +282,14 @@ export default function MapPage() {
                           target.src = 'https://images.unsplash.com/photo-1565299624946-b28f40a0ca4b?w=100&h=100&fit=crop&crop=face'
                         }}
                       />
+                    </div>
+                    
+                    {/* Vote Count Circle (tangent to the main circle) */}
+                    <div className="absolute -bottom-2 -right-2 w-8 h-8 rounded-full border-2 border-white shadow-lg bg-white flex items-center justify-center">
+                      <div className="text-center">
+                        <div className="text-xs font-bold text-[#2d1810]">{zone.recentVotes}</div>
+                        <div className="text-[8px] text-[#6b5d52]">votes</div>
+                      </div>
                     </div>
                     
                     {/* Battle Intensity Indicator */}
@@ -329,13 +324,29 @@ export default function MapPage() {
         </div>
       </div>
 
+      {/* Battle Events Button - Moved below the map */}
+      <div className="relative z-10 px-4 py-2">
+        <Button
+          onClick={() => router.push('/battle-events')}
+          className="w-full bg-gradient-to-r from-[#ff6b35] to-[#ffd23f] hover:from-[#e5562e] hover:to-[#e6c200] text-white font-bold py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center space-x-2"
+        >
+          <Swords className="w-5 h-5" />
+          <span>Battle Events</span>
+          <Bell className="w-4 w-4" />
+        </Button>
+      </div>
+
       {/* Zone Legend */}
       <div className="relative z-10 px-4 py-2">
         <div className="bg-white/80 backdrop-blur-sm rounded-xl p-3 shadow-lg border border-[#ff6b35]/20">
           <h3 className="font-bold text-[#2d1810] mb-2 text-sm">Zonas de Batalla</h3>
           <div className="space-y-2">
             {displayZones.map((zone) => (
-              <div key={zone.id} className="flex items-center space-x-3">
+              <div 
+                key={zone.id} 
+                className="flex items-center space-x-3 p-2 rounded-lg hover:bg-[#ff6b35]/10 cursor-pointer transition-colors duration-200"
+                onClick={() => handleZoneClick(zone.id)}
+              >
                 <div 
                   className="w-3 h-3 rounded-full"
                   style={{ backgroundColor: zone.color }}
