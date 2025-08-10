@@ -1,3 +1,4 @@
+// /api/vendors/register/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase, supabaseAdmin } from '@/lib/supabase'
 import { v4 as uuidv4 } from 'uuid'
@@ -13,8 +14,9 @@ interface VendorRegistrationData {
 
 export async function POST(request: NextRequest) {
   try {
+    console.log('🚀 API route called')
     const body: VendorRegistrationData = await request.json()
-    console.log('📥 Received vendor registration data:', body)
+    console.log('📝 Request body:', body)
     
     // Validate required fields
     const { name, description, delegation, category, imageUrl, ownerFid } = body
@@ -139,13 +141,15 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (vendorError) {
-      console.error('Error creating vendor:', vendorError)
+      console.error('💥 Error creating vendor:', vendorError)
       return NextResponse.json(
-        { success: false, error: 'Failed to create vendor' },
+        { success: false, error: `Failed to create vendor: ${vendorError.message}` },
         { status: 500 }
       )
     }
 
+    console.log('✅ Vendor created successfully:', vendor)
+    
     return NextResponse.json({
       success: true,
       data: vendor,
@@ -153,9 +157,9 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Error registering vendor:', error)
+    console.error('💥 API Error:', error)
     return NextResponse.json(
-      { success: false, error: 'Failed to register vendor' },
+      { success: false, error: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     )
   }
