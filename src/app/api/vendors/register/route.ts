@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
     console.log('🔍 Looking up zone for delegation:', delegation)
     
     const { data: zoneResult, error: zoneError } = await supabase
-      .rpc('get_zone_by_delegation', { delegation_name: delegation })
+      .rpc('get_zone_by_delegation', { input_delegation_name: delegation })
 
     if (zoneError) {
       console.error('❌ Error calling get_zone_by_delegation:', zoneError)
