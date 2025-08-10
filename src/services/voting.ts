@@ -663,6 +663,9 @@ export class VotingService {
       // 10. Update vendor stats (ONLY if vote was successful)
       await this.updateVendorStats(vendorId, voteType === 'verified')
 
+      // 11. Update zone stats after a vote
+      await this.updateZoneStats(vendorId)
+
       this.log('info', 'Vote registration completed successfully', {
         operation: operationId,
         userFid,
@@ -966,6 +969,88 @@ export class VotingService {
       }
     } catch (error) {
       console.error('Error updating vendor stats:', error)
+    }
+  }
+
+  /**
+   * Update zone statistics after a vote
+   */
+  private static async updateZoneStats(vendorId: string): Promise<void> {
+    try {
+      this.ensureSupabaseClient()
+      
+      // Get vendor's zone ID
+      const { data: vendor, error: vendorError } = await this.supabase!
+        .from('vendors')
+        .select('zone_id')
+        .eq('id', vendorId)
+        .single()
+
+      if (vendorError || !vendor?.zone_id) {
+        console.error('Error fetching vendor zone:', vendorError)
+        return
+      }
+
+      // Get current zone stats
+      const { data: zone, error: zoneError } = await this.supabase!
+        .from('zones')
+        .select('total_votes, active_vendors, heat_level')
+        .eq('id', vendor.zone_id)
+        .single()
+
+      if (zoneError) {
+        console.error('Error fetching zone stats:', zoneError)
+        return
+      }
+
+      // Get total votes for this zone from all vendors
+      const { data: zoneVendors, error: vendorsError } = await this.supabase!
+        .from('vendors')
+        .select('total_votes')
+        .eq('zone_id', vendor.zone_id)
+
+      if (vendorsError) {
+        console.error('Error fetching zone vendors:', vendorsError)
+        return
+      }
+
+      // Calculate new zone stats
+      const newTotalVotes = zoneVendors.reduce((sum, v) => sum + (v.total_votes || 0), 0)
+      const newActiveVendors = zoneVendors.length
+
+      // Calculate heat level based on activity (votes in last 24 hours)
+      const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000)
+      const { data: recentVotes, error: recentVotesError } = await this.supabase!
+        .from('votes')
+        .select('id')
+        .eq('vendor_id', vendorId)
+        .gte('created_at', yesterday.toISOString())
+
+      if (recentVotesError) {
+        console.error('Error fetching recent votes:', recentVotesError)
+      }
+
+      const recentVoteCount = recentVotes?.length || 0
+      const newHeatLevel = Math.min(100, Math.max(0, (recentVoteCount * 10) + (zone.heat_level || 0)))
+
+      // Update zone stats
+      const { error: updateError } = await this.supabase!
+        .from('zones')
+        .update({
+          total_votes: newTotalVotes,
+          active_vendors: newActiveVendors,
+          heat_level: newHeatLevel,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', vendor.zone_id)
+
+      if (updateError) {
+        console.error('Error updating zone stats:', updateError)
+      } else {
+        console.log(`✅ Updated zone ${vendor.zone_id} stats: total_votes=${newTotalVotes}, active_vendors=${newActiveVendors}, heat_level=${newHeatLevel}`)
+      }
+    } catch (error) {
+      console.error('Error updating zone stats:', error)
     }
   }
 

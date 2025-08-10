@@ -80,28 +80,28 @@ export default function MapPage() {
   const zoneConfig = {
     '1': { // Centro
       position: { top: '40%', left: '35%' },
-      color: '#ff6b35',
-      size: 'medium' as const
+      color: '#e63946', // Roja
+      size: 'small' as const
     },
     '2': { // Norte
       position: { top: '12%', left: '40%' },
-      color: '#06d6a0',
-      size: 'medium' as const
+      color: '#06d6a0', // Verde
+      size: 'small' as const
     },
     '3': { // Sur
       position: { top: '68%', left: '49%' },
-      color: '#ffd23f',
-      size: 'medium' as const
+      color: '#8b5cf6', // Purple
+      size: 'small' as const
     },
     '4': { // Este
       position: { top: '36%', left: '65%' },
-      color: '#e63946',
-      size: 'medium' as const
+      color: '#3b82f6', // Azul
+      size: 'small' as const
     },
     '5': { // Oeste
       position: { top: '45%', left: '11%' },
-      color: '#f72585',
-      size: 'medium' as const
+      color: '#fbbf24', // Amarillo
+      size: 'small' as const
     }
   }
 
@@ -128,69 +128,69 @@ export default function MapPage() {
   // Fallback to hardcoded zones if no data is fetched
   const fallbackZones: Zone[] = [
     {
-      id: 'centro',
+      id: '1', // Centro
       name: 'Zona Centro',
       vendor: '@Pupusas_María',
       leader: 'Pupusas María',
       leaderAvatar: 'https://images.unsplash.com/photo-1595273670150-bd0c3c392e46?w=100&h=100&fit=crop&crop=face',
       control: 85,
-      color: '#ff6b35',
+      color: '#e63946', // Roja
       position: { top: '40%', left: '35%' },
-      size: 'medium',
+      size: 'small',
       battleIntensity: 3,
-      recentVotes: 24
+      recentVotes: 7 // Pupusas María tiene 7 votos
     },
     {
-      id: 'norte',
+      id: '2', // Norte
       name: 'Zona Norte',
-      vendor: '@Tacos_El_Rey',
-      leader: 'Tacos El Rey',
+      vendor: '@Tacos_El_Güero',
+      leader: 'Tacos El Güero',
       leaderAvatar: 'https://images.unsplash.com/photo-1566554273541-37a9ca77b91f?w=100&h=100&fit=crop&crop=face',
       control: 72,
-      color: '#06d6a0',
+      color: '#06d6a0', // Verde
       position: { top: '12%', left: '40%' },
-      size: 'medium',
+      size: 'small',
       battleIntensity: 2,
-      recentVotes: 18
+      recentVotes: 14 // Tacos El Güero tiene 14 votos
     },
     {
-      id: 'sur',
+      id: '3', // Sur
       name: 'Zona Sur',
-      vendor: '@Arepa_House',
-      leader: 'Arepa House',
-      leaderAvatar: 'https://images.unsplash.com/photo-1594736797933-d0e501ba2fe6?w=100&h=100&fit=crop&crop=face',
+      vendor: '@Café_Aroma',
+      leader: 'Café Aroma',
+      leaderAvatar: 'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=100&h=100&fit=crop&crop=face',
       control: 91,
-      color: '#ffd23f',
+      color: '#8b5cf6', // Purple
       position: { top: '68%', left: '49%' },
-      size: 'medium',
+      size: 'small',
       battleIntensity: 1,
-      recentVotes: 31
+      recentVotes: 5 // Café Aroma tiene 5 votos
     },
     {
-      id: 'este',
+      id: '4', // Este
       name: 'Zona Este',
-      vendor: '@Empanadas_Doña_Rosa',
-      leader: 'Empanadas Doña Rosa',
-      leaderAvatar: 'https://images.unsplash.com/photo-1547036967-23d11aacaee0?w=100&h=100&fit=crop&crop=face',
+      vendor: '@Pizza_Napoli',
+      leader: 'Pizza Napoli',
+      leaderAvatar: 'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=100&h=100&fit=crop&crop=face',
       control: 64,
-      color: '#e63946',
+      color: '#3b82f6', // Azul
       position: { top: '36%', left: '65%' },
-      size: 'medium',
+      size: 'small',
       battleIntensity: 4,
-      recentVotes: 15
+      recentVotes: 4 // Pizza Napoli tiene 4 votos
     },
     {
-      id: 'oeste',
+      id: '5', // Oeste
       name: 'Zona Oeste',
-      vendor: '@Quesadillas_Express',
-      leader: 'Quesadillas Express',
-      leaderAvatar: 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=100&h=100&fit=crop&crop=face',
+      vendor: '@Sushi_Express',
+      leader: 'Sushi Express',
+      leaderAvatar: 'https://images.unsplash.com/photo-1574071318508-1cdbab80d002?w=100&h=100&fit=crop&crop=face',
       control: 58,
-      color: '#f72585',
+      color: '#fbbf24', // Amarillo
       position: { top: '45%', left: '11%' },
-      size: 'medium',
+      size: 'small',
       battleIntensity: 5,
-      recentVotes: 12
+      recentVotes: 6 // Sushi Express tiene 6 votos
     }
   ]
 

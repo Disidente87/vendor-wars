@@ -267,6 +267,9 @@ export class VendorService {
       throw new Error(`Failed to create vendor: ${error.message}`)
     }
 
+    // Update zone vendor count
+    await this.updateZoneVendorCount('centro')
+
     return mapSupabaseVendorToVendor(newVendor, data.owner)
   }
 
@@ -424,6 +427,20 @@ export class VendorService {
 
   static async deleteVendor(id: string, ownerFid: number): Promise<boolean> {
     const supabase = getSupabaseClient()
+    
+    // Get vendor's zone ID before deleting
+    const { data: vendor, error: fetchError } = await supabase
+      .from('vendors')
+      .select('zone_id')
+      .eq('id', id)
+      .eq('owner_fid', ownerFid)
+      .single()
+
+    if (fetchError) {
+      throw new Error(`Failed to fetch vendor: ${fetchError.message}`)
+    }
+
+    // Delete the vendor
     const { error } = await supabase
       .from('vendors')
       .delete()
@@ -432,6 +449,11 @@ export class VendorService {
 
     if (error) {
       throw new Error(`Failed to delete vendor: ${error.message}`)
+    }
+
+    // Update zone vendor count after deletion
+    if (vendor?.zone_id) {
+      await this.updateZoneVendorCount(vendor.zone_id)
     }
 
     return true
@@ -777,6 +799,59 @@ export class VendorService {
     } catch (error) {
       console.error('❌ Error fetching zones with top vendors:', error)
       throw new Error(`Failed to fetch zones with top vendors: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    }
+  }
+
+  /**
+   * Update zone statistics when vendor count changes
+   */
+  private static async updateZoneVendorCount(zoneId: string): Promise<void> {
+    try {
+      const supabase = getSupabaseClient()
+      
+      // Count active vendors in this zone
+      const { data: vendors, error: countError } = await supabase
+        .from('vendors')
+        .select('id')
+        .eq('zone_id', zoneId)
+
+      if (countError) {
+        console.error('Error counting vendors in zone:', countError)
+        return
+      }
+
+      const activeVendors = vendors.length
+
+      // Get total votes for this zone
+      const { data: zoneVendors, error: votesError } = await supabase
+        .from('vendors')
+        .select('total_votes')
+        .eq('zone_id', zoneId)
+
+      if (votesError) {
+        console.error('Error fetching zone vendor votes:', votesError)
+        return
+      }
+
+      const totalVotes = zoneVendors.reduce((sum, v) => sum + (v.total_votes || 0), 0)
+
+      // Update zone stats
+      const { error: updateError } = await supabase
+        .from('zones')
+        .update({
+          active_vendors: activeVendors,
+          total_votes: totalVotes,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', zoneId)
+
+      if (updateError) {
+        console.error('Error updating zone vendor count:', updateError)
+      } else {
+        console.log(`✅ Updated zone ${zoneId} vendor count: active_vendors=${activeVendors}, total_votes=${totalVotes}`)
+      }
+    } catch (error) {
+      console.error('Error updating zone vendor count:', error)
     }
   }
 

@@ -148,64 +148,20 @@ async function ZonePageAsync({ zoneId }: { zoneId: string }) {
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 to-yellow-50">
       {/* Hero Section */}
-      <div className="relative h-64 bg-gradient-to-r from-orange-500 to-yellow-500">
+      <div className="relative h-32 bg-gradient-to-r from-orange-500 to-yellow-500">
         <div className="absolute inset-0 bg-black/20" />
         <div className="relative z-10 h-full flex items-center justify-center">
           <div className="text-center text-white">
-            <h1 className="text-4xl font-bold mb-2">{zone.name}</h1>
-            <p className="text-xl opacity-90">{zone.description}</p>
+            <h1 className="text-2xl font-bold mb-1">{zone.name}</h1>
+            <p className="text-lg opacity-90">{zone.description}</p>
           </div>
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-8 -mt-8">
+      <div className="container mx-auto px-4 py-8 -mt-4">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-8">
-            {/* Zone Territory Map */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <MapPin className="w-5 h-5" />
-                  Zone Territory Map
-                </CardTitle>
-                <CardDescription>
-                  Top {topVendors.length} vendors currently controlling this zone
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="relative h-64 bg-gradient-to-br from-green-100 to-blue-100 rounded-lg border-2 border-dashed border-green-300">
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="text-center text-gray-600">
-                      <MapPin className="w-12 h-12 mx-auto mb-2" />
-                      <p className="text-sm">Interactive map coming soon</p>
-                    </div>
-                  </div>
-                  
-                  {/* Vendor markers */}
-                  {topVendors.map((vendor, index) => (
-                    <div
-                      key={vendor.id}
-                      className="absolute"
-                      style={{
-                        left: `${20 + (index * 15)}%`,
-                        top: `${30 + (index * 10)}%`
-                      }}
-                    >
-                      <div className="relative">
-                        <Avatar className="w-8 h-8 border-2 border-white shadow-lg">
-                          <img src={vendor.imageUrl} alt={vendor.name} />
-                        </Avatar>
-                        <div className="absolute -top-1 -right-1 bg-orange-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">
-                          {vendor.position}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-
             {/* Complete Leaderboard */}
             <Card>
               <CardHeader>
@@ -272,11 +228,8 @@ async function ZonePageAsync({ zoneId }: { zoneId: string }) {
                 </div>
               </CardContent>
             </Card>
-          </div>
 
-          {/* Sidebar */}
-          <div className="space-y-6">
-            {/* Zone Stats */}
+            {/* Zone Statistics */}
             <Card>
               <CardHeader>
                 <CardTitle>Zone Statistics</CardTitle>
@@ -306,6 +259,53 @@ async function ZonePageAsync({ zoneId }: { zoneId: string }) {
               </CardContent>
             </Card>
 
+            {/* Zone Territory Map */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <MapPin className="w-5 h-5" />
+                  Zone Territory Map
+                </CardTitle>
+                <CardDescription>
+                  Top {topVendors.length} vendors currently controlling this zone
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="relative h-64 bg-gradient-to-br from-green-100 to-blue-100 rounded-lg border-2 border-dashed border-green-300">
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="text-center text-gray-600">
+                      <MapPin className="w-12 h-12 mx-auto mb-2" />
+                      <p className="text-sm">Interactive map coming soon</p>
+                    </div>
+                  </div>
+                  
+                  {/* Vendor markers */}
+                  {topVendors.map((vendor, index) => (
+                    <div
+                      key={vendor.id}
+                      className="absolute"
+                      style={{
+                        left: `${20 + (index * 15)}%`,
+                        top: `${30 + (index * 10)}%`
+                      }}
+                    >
+                      <div className="relative">
+                        <Avatar className="w-8 h-8 border-2 border-white shadow-lg">
+                          <img src={vendor.imageUrl} alt={vendor.name} />
+                        </Avatar>
+                        <div className="absolute -top-1 -right-1 bg-orange-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">
+                          {vendor.position}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Sidebar */}
+          <div className="space-y-6">
             {/* Recent Battle Activity */}
             <Card>
               <CardHeader>

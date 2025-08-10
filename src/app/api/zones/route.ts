@@ -5,7 +5,7 @@ export async function GET(request: NextRequest) {
   try {
     const { data: zones, error } = await supabase
       .from('zones')
-      .select('id, name, description, color, coordinates, heat_level, total_votes, active_vendors')
+      .select('id, name, description, color, heat_level, total_votes, active_vendors')
       .order('name', { ascending: true })
 
     if (error) {
