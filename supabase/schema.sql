@@ -173,7 +173,7 @@ CREATE INDEX idx_vendors_owner ON vendors(owner_fid);
 CREATE INDEX idx_vendors_category ON vendors(category);
 CREATE INDEX idx_battles_zone ON battles(zone_id);
 CREATE INDEX idx_battles_status ON battles(status);
-CREATE INDEX idx_votes_battle ON votes(battle_id);
+-- CREATE INDEX idx_votes_battle ON votes(battle_id); -- Removed: battle_id column doesn't exist
 CREATE INDEX idx_votes_voter ON votes(voter_fid);
 CREATE INDEX idx_attestations_vendor ON attestations(vendor_id);
 CREATE INDEX idx_attestations_user ON attestations(user_fid);
