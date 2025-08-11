@@ -43,19 +43,19 @@ $$ LANGUAGE plpgsql;
 CREATE OR REPLACE FUNCTION update_zone_heat_level()
 RETURNS TRIGGER AS $$
 DECLARE
-  zone_id UUID;
+  target_zone_id UUID;
   recent_votes INTEGER;
 BEGIN
   -- Get the zone_id from the vote
-  zone_id := NEW.vendor_id;
+  target_zone_id := (
+    SELECT zone_id FROM vendors WHERE id = NEW.vendor_id
+  );
   
   -- Count recent votes (last 24 hours) for this vendor's zone
   SELECT COUNT(*) INTO recent_votes
   FROM votes v
   JOIN vendors ven ON v.vendor_id = ven.id
-  WHERE ven.zone_id = (
-    SELECT zone_id FROM vendors WHERE id = NEW.vendor_id
-  )
+  WHERE ven.zone_id = target_zone_id
   AND v.created_at >= NOW() - INTERVAL '24 hours';
   
   -- Update zone heat_level (0-100 scale)
@@ -63,9 +63,7 @@ BEGIN
   SET 
     heat_level = LEAST(100, GREATEST(0, recent_votes * 10)),
     updated_at = NOW()
-  WHERE id = (
-    SELECT zone_id FROM vendors WHERE id = NEW.vendor_id
-  );
+  WHERE id = target_zone_id;
   
   RETURN NEW;
 END;
