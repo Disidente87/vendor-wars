@@ -10,7 +10,7 @@
  * - Configuración del sistema
  */
 
-import { PAYMENT_CONFIG } from '@/config/payment'
+import { PAYMENT_CONFIG, formatTokenAmount, parseTokenAmount, isNetworkSupported, getExplorerUrl, validateVendorData } from '@/config/payment'
 
 console.log('🧪 Iniciando Testing del Sistema de Pagos...\n')
 
@@ -30,14 +30,14 @@ console.log('')
 // Test 2: Funciones de Utilidad
 console.log('🔧 Test 2: Verificar Funciones de Utilidad')
 const testAmount = '50000000000000000000' // 50 tokens en wei
-const formattedAmount = PAYMENT_CONFIG.formatTokenAmount(testAmount)
-const parsedAmount = PAYMENT_CONFIG.parseTokenAmount('50')
+const formattedAmount = formatTokenAmount(testAmount)
+const parsedAmount = parseTokenAmount('50')
 
 console.log('✅ Format Token Amount (50 tokens):', formattedAmount)
 console.log('✅ Parse Token Amount (50):', parsedAmount)
-console.log('✅ Network Supported (84532):', PAYMENT_CONFIG.isNetworkSupported(84532))
-console.log('✅ Network Supported (1):', PAYMENT_CONFIG.isNetworkSupported(1))
-console.log('✅ Explorer URL:', PAYMENT_CONFIG.getExplorerUrl('0x123...'))
+console.log('✅ Network Supported (84532):', isNetworkSupported(84532))
+console.log('✅ Network Supported (1):', isNetworkSupported(1))
+console.log('✅ Explorer URL:', getExplorerUrl('0x123...'))
 console.log('')
 
 // Test 3: Validación de Datos
@@ -58,8 +58,8 @@ const invalidVendorData = {
   imageUrl: ''
 }
 
-const validResult = PAYMENT_CONFIG.validateVendorData(validVendorData)
-const invalidResult = PAYMENT_CONFIG.validateVendorData(invalidVendorData)
+const validResult = validateVendorData(validVendorData)
+const invalidResult = validateVendorData(invalidVendorData)
 
 console.log('✅ Valid Vendor Data:', validResult.isValid)
 console.log('✅ Invalid Vendor Data:', invalidResult.isValid)
