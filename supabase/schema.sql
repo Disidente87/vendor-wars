@@ -81,19 +81,64 @@ CREATE TABLE battles (
 );
 
 -- Votes table - FIFTH
-CREATE TABLE votes (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  voter_fid BIGINT NOT NULL REFERENCES users(fid) ON DELETE CASCADE,
-  battle_id UUID NOT NULL REFERENCES battles(id) ON DELETE CASCADE,
-  vendor_id UUID NOT NULL REFERENCES vendors(id) ON DELETE CASCADE,
-  is_verified BOOLEAN DEFAULT FALSE,
-  token_reward INTEGER DEFAULT 0,
-  multiplier DECIMAL(3,2) DEFAULT 1.00,
-  reason TEXT,
-  attestation_id UUID,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  UNIQUE(voter_fid, battle_id)
-);
+--CREATE TABLE votes (
+--  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+--  voter_fid BIGINT NOT NULL REFERENCES users(fid) ON DELETE CASCADE,
+--  vendor_id UUID NOT NULL REFERENCES vendors(id) ON DELETE CASCADE,
+--  is_verified BOOLEAN DEFAULT FALSE,
+--  token_reward INTEGER DEFAULT 0,
+--  multiplier DECIMAL(3,2) DEFAULT 1.00,
+--  reason TEXT,
+--  attestation_id UUID,
+--  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+--  UNIQUE(voter_fid, battle_id)
+--);
+
+create table public.votes (
+  id uuid not null default extensions.uuid_generate_v4 (),
+  voter_fid bigint not null,
+  vendor_id uuid not null,
+  vote_date date not null default CURRENT_DATE,
+  is_verified boolean null default false,
+  token_reward integer null default 0,
+  multiplier numeric(3, 2) null default 1.00,
+  reason text null,
+  created_at timestamp with time zone null default now(),
+  distribution_status text null default 'pending'::text,
+  transaction_hash text null,
+  distribution_error text null,
+  distributed_at timestamp with time zone null,
+  constraint votes_pkey primary key (id),
+  constraint votes_vendor_id_fkey foreign KEY (vendor_id) references vendors (id) on delete CASCADE,
+  constraint votes_voter_fid_fkey foreign KEY (voter_fid) references users (fid) on delete CASCADE
+) TABLESPACE pg_default;
+
+create index IF not exists idx_votes_distribution_status on public.votes using btree (distribution_status) TABLESPACE pg_default;
+
+create index IF not exists idx_votes_distribution_status_voter_fid on public.votes using btree (distribution_status, voter_fid) TABLESPACE pg_default;
+
+create index IF not exists idx_votes_voter_created on public.votes using btree (voter_fid, created_at) TABLESPACE pg_default;
+
+create index IF not exists idx_votes_voter on public.votes using btree (voter_fid) TABLESPACE pg_default;
+
+create index IF not exists idx_votes_voter_fid on public.votes using btree (voter_fid) TABLESPACE pg_default;
+
+create index IF not exists idx_votes_vendor_id on public.votes using btree (vendor_id) TABLESPACE pg_default;
+
+create index IF not exists idx_votes_created_at on public.votes using btree (created_at) TABLESPACE pg_default;
+
+create index IF not exists idx_votes_vote_date on public.votes using btree (vote_date) TABLESPACE pg_default;
+
+create trigger trigger_update_streak_on_vote
+after INSERT
+or
+update on votes for EACH row
+execute FUNCTION trigger_update_streak_on_vote ();
+
+create trigger trigger_update_zone_heat_level
+after INSERT on votes for EACH row
+execute FUNCTION update_zone_heat_level ();
+
 
 -- Attestations table (for verified votes) - SIXTH
 CREATE TABLE attestations (

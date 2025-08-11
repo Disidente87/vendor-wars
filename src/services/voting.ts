@@ -489,7 +489,14 @@ export class VotingService {
           .single()
 
         if (voteError) {
-          console.error('Error creating vote in Supabase:', voteError)
+          console.error('❌ Error creating vote in Supabase:', voteError)
+          console.error('🗳️ Vote record that failed:', voteRecord)
+          console.error('🔍 Error details:', {
+            message: voteError.message,
+            details: voteError.details,
+            hint: voteError.hint,
+            code: voteError.code
+          })
           
           // Check if it's a foreign key violation
           if (voteError.message && voteError.message.includes('foreign key')) {

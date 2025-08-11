@@ -159,6 +159,17 @@ async function ZonePageAsync({ zoneId }: { zoneId: string }) {
       </div>
 
       <div className="container mx-auto px-4 py-8 -mt-4">
+        {/* Back Arrow Button */}
+        <div className="mb-6">
+          <Link href="/map">
+            <Button variant="outline" size="icon" className="w-10 h-10 flex items-center justify-center">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </Button>
+          </Link>
+        </div>
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-8">
@@ -192,7 +203,7 @@ async function ZonePageAsync({ zoneId }: { zoneId: string }) {
                               <img src={vendor.imageUrl} alt={vendor.name} />
                             </Avatar>
                             <div className="flex-1">
-                              <h3 className="font-semibold text-lg">{vendor.name}</h3>
+                              <h3 className="font-semibold text-lg truncate">{vendor.name}</h3>
                               <p className="text-sm text-gray-600">@{vendor.owner.username}</p>
                             </div>
                           </div>
@@ -205,14 +216,6 @@ async function ZonePageAsync({ zoneId }: { zoneId: string }) {
                             <div className="text-center">
                               <div className="font-semibold">{vendor.stats.winRate}%</div>
                               <div className="text-gray-500">Win Rate</div>
-                            </div>
-                            <div className="text-center">
-                              <div className="font-semibold">{vendor.stats.totalRevenue}</div>
-                              <div className="text-gray-500">Revenue</div>
-                            </div>
-                            <div className="flex items-center gap-1">
-                              {getTierIcon(vendor.owner.credibilityTier)}
-                              <span className="text-xs capitalize">{vendor.owner.credibilityTier}</span>
                             </div>
                           </div>
                         </div>

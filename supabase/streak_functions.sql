@@ -53,11 +53,11 @@ DECLARE
 BEGIN
     -- Empezar desde hoy y ir hacia atrás hasta encontrar un día sin voto
     WHILE check_date >= current_date - INTERVAL '30 days' LOOP
-        -- Verificar si el usuario votó en esta fecha específica
+        -- Verificar si el usuario votó en esta fecha específica usando vote_date
         SELECT EXISTS(
             SELECT 1 FROM votes 
             WHERE voter_fid = user_fid_param 
-            AND DATE(created_at) = check_date
+            AND vote_date = check_date
         ) INTO has_vote;
         
         IF has_vote THEN
@@ -145,10 +145,10 @@ $$ LANGUAGE plpgsql;
 -- =====================================================
 
 -- Índice para optimizar las consultas de streak por usuario y fecha
-CREATE INDEX IF NOT EXISTS idx_votes_voter_date ON votes(voter_fid, DATE(created_at));
+CREATE INDEX IF NOT EXISTS idx_votes_voter_date ON votes(voter_fid, vote_date);
 
 -- Índice para optimizar las consultas de streak por fecha
-CREATE INDEX IF NOT EXISTS idx_votes_date ON votes(DATE(created_at));
+CREATE INDEX IF NOT EXISTS idx_votes_date ON votes(vote_date);
 
 -- =====================================================
 -- TRIGGERS PARA MANTENER STREAKS ACTUALIZADOS

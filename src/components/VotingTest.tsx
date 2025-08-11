@@ -67,7 +67,7 @@ export function VotingTest() {
     return (
       <Card className="w-full max-w-md mx-auto">
         <CardHeader>
-          <CardTitle>Voting System Test</CardTitle>
+          <CardTitle>Voting System</CardTitle>
           <CardDescription>Please login to test the voting system</CardDescription>
         </CardHeader>
       </Card>
@@ -79,7 +79,7 @@ export function VotingTest() {
       <CardHeader>
         <CardTitle>Voting System Test</CardTitle>
         <CardDescription>
-          Test the voting system with {testVendor.name}
+          Vote for your favorite place
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -147,6 +147,8 @@ export function VotingTest() {
         <div className="text-xs text-gray-500 space-y-1">
           <p>• Regular votes earn 10 $BATTLE tokens</p>
           <p>• Verified votes earn 30 $BATTLE tokens</p>
+          <p>• Day streak gives +1 $BATTLE bonus per consecutive day</p>
+          <p>• Creating a new vendor costs 50 $BATTLE</p>
           <p>• No voting restrictions (testing mode)</p>
           <p>• Your Farcaster FID: {authenticatedUser.fid}</p>
         </div>
