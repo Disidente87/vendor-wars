@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useFarcasterAuth } from '@/hooks/useFarcasterAuth'
+import { useAccount } from 'wagmi'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -14,6 +15,11 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { StorageService } from '@/services/storage'
 import { FARCASTER_CONFIG } from '@/config/farcaster'
 import { DelegationService, ZoneWithDelegations } from '@/services/delegations'
+import { PaymentStep } from '@/components/vendor-registration/PaymentStep'
+import { TransactionStatus } from '@/components/vendor-registration/TransactionStatus'
+import { TokenBalanceChecker } from '@/components/vendor-registration/TokenBalanceChecker'
+import { useVendorRegistrationPayment } from '@/hooks/useVendorRegistrationPayment'
+import { vendorPaymentService } from '@/services/vendorPayment'
 
 interface VendorFormData {
   name: string
@@ -22,6 +28,9 @@ interface VendorFormData {
   delegation: string
   description: string
   category: string
+  userAddress: string
+  paymentAmount: string
+  vendorId: string
 }
 
 
@@ -43,10 +52,18 @@ export default function VendorRegistrationPage() {
     imageUrl: '',
     delegation: '',
     description: '',
-    category: ''
+    category: '',
+    userAddress: '',
+    paymentAmount: '50',
+    vendorId: ''
   })
 
-  const totalSteps = 5
+  const totalSteps = 6 // Agregamos el paso de pago
+
+  // Hook para el sistema de pago
+  const paymentHook = useVendorRegistrationPayment()
+  const [isPaymentReady, setIsPaymentReady] = useState(false)
+  const [showTransactionStatus, setShowTransactionStatus] = useState(false)
 
   // Load zones with delegations on component mount
   useEffect(() => {
@@ -60,6 +77,24 @@ export default function VendorRegistrationPage() {
     }
     loadZonesWithDelegations()
   }, [])
+
+  // Generar ID del vendor cuando se complete el primer paso
+  useEffect(() => {
+    if (formData.name && !formData.vendorId) {
+      const vendorId = vendorPaymentService.generateVendorId()
+      setFormData(prev => ({ ...prev, vendorId }))
+    }
+  }, [formData.name, formData.vendorId])
+
+  // Hook para obtener la dirección del usuario
+  const { address: userAddress } = useAccount()
+
+  // Actualizar dirección del usuario cuando se conecte la wallet
+  useEffect(() => {
+    if (userAddress && !formData.userAddress) {
+      setFormData(prev => ({ ...prev, userAddress }))
+    }
+  }, [userAddress, formData.userAddress])
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -114,6 +149,11 @@ export default function VendorRegistrationPage() {
 
   const handleNext = async () => {
     if (currentStep < totalSteps) {
+      // Verificar que el pago esté listo antes de avanzar al paso final
+      if (currentStep === 5 && !isPaymentReady) {
+        setErrorMessage('Debes completar la verificación de pago antes de continuar')
+        return
+      }
       setCurrentStep(currentStep + 1)
     } else {
       await submitVendorRegistration()
@@ -123,6 +163,13 @@ export default function VendorRegistrationPage() {
   const submitVendorRegistration = async () => {
     if (!authenticatedUser) {
       setErrorMessage('You must be logged in to register a vendor')
+      setSubmitStatus('error')
+      return
+    }
+
+    // Verificar que el pago esté completado
+    if (!paymentHook.isTransactionConfirmed) {
+      setErrorMessage('Debes completar el pago antes de registrar el vendor')
       setSubmitStatus('error')
       return
     }
@@ -137,7 +184,7 @@ export default function VendorRegistrationPage() {
       // Upload image if provided
       if (formData.imageFile) {
         setIsUploadingImage(true)
-        const tempVendorId = crypto.randomUUID()
+        const tempVendorId = formData.vendorId || crypto.randomUUID()
         const uploadResult = await StorageService.uploadVendorAvatar(formData.imageFile, tempVendorId)
         
         if (!uploadResult.success) {
@@ -151,7 +198,7 @@ export default function VendorRegistrationPage() {
         setIsUploadingImage(false)
       }
 
-      // Submit vendor data
+      // Submit vendor data with payment information
       console.log('🔍 Debug authenticatedUser:', authenticatedUser)
       console.log('🔍 Debug authenticatedUser.fid:', authenticatedUser?.fid)
       console.log('🔍 Debug authenticatedUser.fid type:', typeof authenticatedUser?.fid)
@@ -162,10 +209,13 @@ export default function VendorRegistrationPage() {
         delegation: formData.delegation,
         category: formData.category,
         imageUrl: imageUrl,
-        ownerFid: authenticatedUser.fid
+        ownerFid: authenticatedUser.fid,
+        userAddress: formData.userAddress,
+        paymentAmount: formData.paymentAmount,
+        vendorId: formData.vendorId
       }
       
-      console.log('🚀 Sending vendor registration data:', requestData)
+      console.log('🚀 Sending vendor registration data with payment:', requestData)
       
       const response = await fetch('/api/vendors/register', {
         method: 'POST',
@@ -208,6 +258,8 @@ export default function VendorRegistrationPage() {
         return !formData.description.trim()
       case 5:
         return !formData.category
+      case 6:
+        return !isPaymentReady
       default:
         return true
     }
@@ -225,6 +277,8 @@ export default function VendorRegistrationPage() {
         return 'Description'
       case 5:
         return 'Category'
+      case 6:
+        return 'Payment'
       default:
         return 'Vendor Registration'
     }
@@ -403,6 +457,42 @@ export default function VendorRegistrationPage() {
           </div>
         )
 
+      case 6:
+        return (
+          <div className="space-y-6">
+            <div className="text-center">
+              <h3 className="text-lg font-semibold text-[#2d1810] mb-2">
+                Paso de Pago - 50 $BATTLE
+              </h3>
+              <p className="text-sm text-[#6b5d52]">
+                Para completar el registro, necesitas pagar 50 $BATTLE tokens
+              </p>
+            </div>
+            
+            {showTransactionStatus ? (
+              <TransactionStatus
+                paymentState={paymentHook}
+                onApprove={paymentHook.approveTokensForRegistration}
+                onRefresh={paymentHook.refreshData}
+                vendorData={JSON.stringify(formData)}
+                vendorId={formData.vendorId}
+                onRegister={() => {
+                  paymentHook.registerVendorWithPayment(
+                    JSON.stringify(formData),
+                    formData.vendorId
+                  )
+                }}
+              />
+            ) : (
+              <PaymentStep
+                onPaymentReady={setIsPaymentReady}
+                onNext={() => setShowTransactionStatus(true)}
+                onBack={() => setCurrentStep(5)}
+              />
+            )}
+          </div>
+        )
+
       default:
         return null
     }
@@ -448,7 +538,7 @@ export default function VendorRegistrationPage() {
     <div className="min-h-screen bg-[#fef7f0] py-8">
       <div className="max-w-2xl mx-auto px-4">
         {/* Header */}
-        <div className="flex items-center mb-8">
+        <div className="flex items-center justify-between mb-8">
           <Button
             variant="ghost"
             size="sm"
@@ -458,6 +548,14 @@ export default function VendorRegistrationPage() {
             <ArrowLeft className="w-4 h-4 mr-1" />
             Back
           </Button>
+          
+          {/* Indicador de Saldo */}
+          {currentStep >= 5 && (
+            <div className="flex items-center gap-2 text-sm">
+              <span className="text-[#6b5d52]">Saldo:</span>
+              <TokenBalanceChecker showRequired={false} />
+            </div>
+          )}
         </div>
 
         {/* Progress Bar */}
@@ -484,6 +582,7 @@ export default function VendorRegistrationPage() {
               {currentStep === 3 && "Choose your delegation"}
               {currentStep === 4 && "Tell customers about your vendor"}
               {currentStep === 5 && "What type of food do you sell?"}
+              {currentStep === 6 && "Complete payment to register your vendor"}
             </CardDescription>
           </CardHeader>
           <CardContent>
