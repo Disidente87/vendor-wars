@@ -12,9 +12,15 @@ import {
   Loader2, 
   ExternalLink,
   Coins,
-  FileText
+  FileText,
+  Shield
 } from 'lucide-react'
 import { PaymentState } from '@/hooks/useVendorRegistrationPayment'
+import { useBattleTokenApprove } from '@/hooks/useBattleToken'
+import { useAccount } from 'wagmi'
+
+// Constantes del contrato
+const VENDOR_REGISTRATION_ADDRESS = process.env.NEXT_PUBLIC_VENDOR_REGISTRATION_CONTRACT_ADDRESS || '0x00aBc357C1285D3107624FF0CDBa872f50a8f36a'
 
 interface TransactionStatusProps {
   paymentState: PaymentState
@@ -48,6 +54,28 @@ export function TransactionStatus({
     balance
   } = paymentState
 
+  // Hook para aprobar tokens
+  const { 
+    approve, 
+    isPending: isApprovalPending, 
+    isSuccess: isApprovalSuccess,
+    error: approvalError 
+  } = useBattleTokenApprove()
+
+  // Función para aprobar tokens
+  const handleApprove = async () => {
+    if (!address) return
+    
+    try {
+      await approve(
+        VENDOR_REGISTRATION_ADDRESS,
+        '50' // 50 BATTLE tokens
+      )
+    } catch (err) {
+      console.error('Error al aprobar tokens:', err)
+    }
+  }
+
   // Determinar el paso actual
   const getCurrentStep = () => {
     if (!isConnected) return 0
@@ -77,6 +105,8 @@ export function TransactionStatus({
     if (status === 'current') return 'text-blue-600'
     return 'text-muted-foreground'
   }
+
+  const { address } = useAccount()
 
   return (
     <Card className="w-full max-w-2xl mx-auto">
@@ -137,6 +167,28 @@ export function TransactionStatus({
                       </div>
                     </div>
                   )}
+
+                  {/* Información adicional para el paso de aprobación */}
+                  {step.id === 'approve' && isConnected && hasSufficientBalance && (
+                    <div className="mt-2 space-y-1">
+                      <div className="text-xs">
+                        <span className="text-muted-foreground">Estado de aprobación:</span>{' '}
+                        <Badge variant={isApproved ? "default" : "destructive"}>
+                          {isApproved ? '✅ Aprobado' : '❌ No aprobado'}
+                        </Badge>
+                      </div>
+                      {!isApproved && (
+                        <div className="text-xs text-orange-600">
+                          ⚠️ Necesitas aprobar que el contrato gaste tus tokens
+                        </div>
+                      )}
+                      {isApproved && (
+                        <div className="text-xs text-green-600">
+                          ✅ Tokens aprobados para el contrato
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             )
@@ -145,8 +197,29 @@ export function TransactionStatus({
 
         {/* Acciones */}
         <div className="space-y-3">
+          {/* Botón de Aprobación */}
+          {currentStep === 1 && isConnected && hasSufficientBalance && !isApproved && (
+            <Button 
+              onClick={handleApprove} 
+              disabled={isApprovalPending}
+              className="w-full bg-orange-600 hover:bg-orange-700 text-white"
+            >
+              {isApprovalPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Aprobando...
+                </>
+              ) : (
+                <>
+                  <Shield className="mr-2 h-4 w-4" />
+                  Aprobar Tokens (50 $BATTLE)
+                </>
+              )}
+            </Button>
+          )}
+
           {/* Botón de Registro */}
-          {currentStep === 1 && isConnected && hasSufficientBalance && vendorData && vendorId && onRegister && (
+          {currentStep === 2 && isConnected && hasSufficientBalance && isApproved && vendorData && vendorId && onRegister && (
             <Button 
               onClick={onRegister} 
               disabled={isTransactionPending}
@@ -183,6 +256,26 @@ export function TransactionStatus({
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+
+        {/* Estado de Error de Aprobación */}
+        {approvalError && (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              Error al aprobar tokens: {approvalError.message}
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {/* Estado de Éxito de Aprobación */}
+        {isApprovalSuccess && !isApproved && (
+          <Alert className="border-orange-200 bg-orange-50">
+            <CheckCircle className="h-4 w-4 text-orange-600" />
+            <AlertDescription className="text-orange-800">
+              ✅ Tokens aprobados exitosamente. Haz clic en &quot;Actualizar Estado&quot; para verificar.
+            </AlertDescription>
           </Alert>
         )}
 

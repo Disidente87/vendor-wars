@@ -20,7 +20,7 @@ import {
   useSwitchChain,
   useChainId
 } from 'wagmi'
-import { baseSepolia, mainnet } from 'wagmi/chains'
+import { baseSepolia } from 'wagmi/chains'
 import { cn } from '@/lib/utils'
 
 interface WalletConnectProps {

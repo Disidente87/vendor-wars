@@ -22,18 +22,9 @@ export const deploymentConfigs: Record<string, DeploymentConfig> = {
     network: 'hardhat',
     rpcUrl: 'http://127.0.0.1:8545',
     chainId: 31337,
-    explorerUrl: 'http://localhost:8545',
+    explorerUrl: '',
+    gasPrice: undefined, // Auto
     confirmations: 1
-  },
-  
-  // Sepolia testnet
-  sepolia: {
-    network: 'sepolia',
-    rpcUrl: process.env.SEPOLIA_RPC_URL || 'https://sepolia.infura.io/v3/YOUR_PROJECT_ID',
-    chainId: 11155111,
-    explorerUrl: 'https://sepolia.etherscan.io',
-    gasPrice: '20000000000', // 20 gwei
-    confirmations: 3
   },
   
   // Base Sepolia testnet (L2)
@@ -44,56 +35,6 @@ export const deploymentConfigs: Record<string, DeploymentConfig> = {
     explorerUrl: 'https://sepolia.basescan.org',
     gasPrice: '1000000000', // 1 gwei (Base Sepolia has lower gas)
     confirmations: 3
-  },
-  
-  // Goerli testnet (deprecated but kept for reference)
-  goerli: {
-    network: 'goerli',
-    rpcUrl: process.env.GOERLI_RPC_URL || 'https://goerli.infura.io/v3/YOUR_PROJECT_ID',
-    chainId: 5,
-    explorerUrl: 'https://goerli.etherscan.io',
-    gasPrice: '20000000000', // 20 gwei
-    confirmations: 3
-  },
-  
-  // Mainnet
-  mainnet: {
-    network: 'mainnet',
-    rpcUrl: process.env.MAINNET_RPC_URL || 'https://mainnet.infura.io/v3/YOUR_PROJECT_ID',
-    chainId: 1,
-    explorerUrl: 'https://etherscan.io',
-    gasPrice: '20000000000', // 20 gwei
-    confirmations: 5
-  },
-  
-  // Base mainnet (L2)
-  base: {
-    network: 'base',
-    rpcUrl: process.env.BASE_RPC_URL || 'https://mainnet.base.org',
-    chainId: 8453,
-    explorerUrl: 'https://basescan.org',
-    gasPrice: '1000000000', // 1 gwei (Base has lower gas)
-    confirmations: 5
-  },
-  
-  // Polygon Mumbai testnet
-  mumbai: {
-    network: 'mumbai',
-    rpcUrl: process.env.MUMBAI_RPC_URL || 'https://polygon-mumbai.infura.io/v3/YOUR_PROJECT_ID',
-    chainId: 80001,
-    explorerUrl: 'https://mumbai.polygonscan.com',
-    gasPrice: '30000000000', // 30 gwei
-    confirmations: 3
-  },
-  
-  // Polygon mainnet
-  polygon: {
-    network: 'polygon',
-    rpcUrl: process.env.POLYGON_RPC_URL || 'https://polygon-rpc.com',
-    chainId: 137,
-    explorerUrl: 'https://polygonscan.com',
-    gasPrice: '30000000000', // 30 gwei
-    confirmations: 5
   }
 }
 
@@ -128,7 +69,7 @@ export function validateEnvironment(network: string): void {
   console.log(`✅ Confirmations: ${config.confirmations}`)
   
   // Special notes for L2 networks
-  if (network === 'baseSepolia' || network === 'base') {
+  if (network === 'baseSepolia') {
     console.log(`🚀 L2 Network: ${network} (Optimism-based)`)
     console.log(`💰 Lower gas costs compared to Ethereum L1`)
     console.log(`⚡ Faster finality and better scalability`)
