@@ -22,7 +22,7 @@ import {
   Globe,
   Shield
 } from 'lucide-react'
-import { PAYMENT_CONFIG } from '@/config/payment'
+import { PAYMENT_CONFIG, validateVendorData, formatTokenAmount, parseTokenAmount, isNetworkSupported } from '@/config/payment'
 import { useVendorRegistrationPayment } from '@/hooks/useVendorRegistrationPayment'
 import { TokenBalanceChecker } from './TokenBalanceChecker'
 
@@ -77,7 +77,7 @@ export function PaymentSystemTester() {
       addTestResult('Validación de Datos', 'pending', 'Probando validaciones...')
       await new Promise(resolve => setTimeout(resolve, 500))
       
-      const validationResult = PAYMENT_CONFIG.validateVendorData(testVendorData)
+      const validationResult = validateVendorData(testVendorData)
       addTestResult('Validación de Datos',
         validationResult.isValid ? 'success' : 'error',
         validationResult.isValid ? 'Datos válidos' : `Errores: ${validationResult.errors.join(', ')}`
@@ -88,12 +88,12 @@ export function PaymentSystemTester() {
       await new Promise(resolve => setTimeout(resolve, 500))
       
       try {
-        const formattedAmount = PAYMENT_CONFIG.formatTokenAmount('50000000000000000000')
-        const parsedAmount = PAYMENT_CONFIG.parseTokenAmount('50')
-        const isNetworkSupported = PAYMENT_CONFIG.isNetworkSupported(84532)
+        const formattedAmount = formatTokenAmount('50000000000000000000')
+        const parsedAmount = parseTokenAmount('50')
+        const networkSupported = isNetworkSupported(84532)
         
         addTestResult('Funciones de Utilidad', 'success', 
-          `Format: ${formattedAmount}, Parse: ${parsedAmount}, Network: ${isNetworkSupported}`
+          `Format: ${formattedAmount}, Parse: ${parsedAmount}, Network: ${networkSupported}`
         )
       } catch (error) {
         addTestResult('Funciones de Utilidad', 'error', 'Error en funciones de utilidad')
