@@ -85,6 +85,45 @@ export async function POST(request: NextRequest) {
       )
     }
     
+    // Verificar que el vendorId no existe en la base de datos
+    console.log('🔍 API: Verificando unicidad del vendorId...')
+    try {
+      const supabase = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!
+      )
+      
+      const { data: existingVendor, error: checkError } = await supabase
+        .from('vendors')
+        .select('id')
+        .eq('id', vendorId)
+        .single()
+      
+      if (checkError && checkError.code !== 'PGRST116') { // PGRST116 = no rows returned
+        console.error('❌ API: Error verificando vendorId:', checkError)
+        return NextResponse.json(
+          { success: false, error: 'Error verificando ID del vendor' },
+          { status: 500 }
+        )
+      }
+      
+      if (existingVendor) {
+        console.error('❌ API: VendorId ya existe:', vendorId)
+        return NextResponse.json(
+          { success: false, error: 'Este ID de vendor ya está en uso. Por favor, intenta de nuevo.' },
+          { status: 400 }
+        )
+      }
+      
+      console.log('✅ API: VendorId es único')
+    } catch (dbError) {
+      console.error('❌ API: Error verificando vendorId en BD:', dbError)
+      return NextResponse.json(
+        { success: false, error: 'Error verificando ID del vendor' },
+        { status: 500 }
+      )
+    }
+    
     // Validar variables de entorno
     const privateKey = process.env.SERVER_PRIVATE_KEY
     const walletAddress = process.env.SERVER_WALLET_ADDRESS
@@ -185,7 +224,7 @@ export async function POST(request: NextRequest) {
         } else if (simulationError.message.includes('Cannot burn tokens from user')) {
           errorMessage = 'No se pueden quemar tokens del usuario. Necesitas aprobar que el contrato gaste tus tokens BATTLE primero'
         } else if (simulationError.message.includes('Vendor already exists')) {
-          errorMessage = 'El vendor ya existe'
+          errorMessage = 'Este vendor ya existe en la blockchain. El ID del vendor debe ser único. Por favor, intenta de nuevo.'
         } else if (simulationError.message.includes('Daily limit exceeded')) {
           errorMessage = 'Has alcanzado el límite diario de registros'
         } else if (simulationError.message.includes('Cooldown period not met')) {

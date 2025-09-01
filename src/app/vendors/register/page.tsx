@@ -520,7 +520,12 @@ export default function VendorRegistrationPage() {
               onRegister={() => {
                 paymentHook.registerVendorWithPayment(
                   JSON.stringify(formData),
-                  formData.vendorId
+                  formData.vendorId,
+                  (newVendorId) => {
+                    // Actualizar el vendorId en el estado del formulario
+                    setFormData(prev => ({ ...prev, vendorId: newVendorId }))
+                    console.log('🔄 VendorId actualizado automáticamente:', newVendorId)
+                  }
                 )
               }}
             />

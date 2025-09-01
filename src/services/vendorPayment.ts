@@ -250,8 +250,19 @@ export class VendorPaymentService {
    */
   generateVendorId(): string {
     const timestamp = Date.now()
-    const random = Math.random().toString(36).substring(2, 8)
-    return `vendor_${timestamp}_${random}`
+    const random1 = Math.random().toString(36).substring(2, 8)
+    const random2 = Math.random().toString(36).substring(2, 8)
+    
+    // Usar crypto del navegador si está disponible, sino generar un fallback
+    let uuid = ''
+    if (typeof window !== 'undefined' && window.crypto && window.crypto.randomUUID) {
+      uuid = window.crypto.randomUUID()
+    } else {
+      // Fallback para entornos sin crypto.randomUUID
+      uuid = `${timestamp}_${random1}_${random2}_${Math.random().toString(36).substring(2, 8)}`
+    }
+    
+    return `vendor_${timestamp}_${random1}_${random2}_${uuid.slice(-8)}`
   }
 
   /**
