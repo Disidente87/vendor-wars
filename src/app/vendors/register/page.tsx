@@ -196,6 +196,14 @@ export default function VendorRegistrationPage() {
       console.log('🔍 Debug authenticatedUser.fid:', authenticatedUser?.fid)
       console.log('🔍 Debug authenticatedUser.fid type:', typeof authenticatedUser?.fid)
       
+      // Validar que el usuario esté autenticado y tenga FID
+      if (!authenticatedUser || !authenticatedUser.fid) {
+        console.error('❌ Usuario no autenticado o sin FID:', authenticatedUser)
+        setErrorMessage('Error: Usuario no autenticado. Por favor, inicia sesión nuevamente.')
+        setIsSubmitting(false)
+        return
+      }
+      
       // Preparar datos para la nueva API con pago
       const vendorData = {
         name: formData.name,

@@ -42,6 +42,7 @@ CREATE TABLE vendors (
   description TEXT NOT NULL,
   image_url TEXT NOT NULL,
   category vendor_category NOT NULL,
+  delegation character varying(255) null,
   zone_id UUID NOT NULL REFERENCES zones(id) ON DELETE CASCADE,
   owner_fid BIGINT NOT NULL REFERENCES users(fid) ON DELETE CASCADE,
   is_verified BOOLEAN DEFAULT FALSE,

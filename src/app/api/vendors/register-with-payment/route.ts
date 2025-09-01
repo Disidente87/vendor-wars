@@ -85,44 +85,11 @@ export async function POST(request: NextRequest) {
       )
     }
     
-    // Verificar que el vendorId no existe en la base de datos
-    console.log('🔍 API: Verificando unicidad del vendorId...')
-    try {
-      const supabase = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!
-      )
-      
-      const { data: existingVendor, error: checkError } = await supabase
-        .from('vendors')
-        .select('id')
-        .eq('id', vendorId)
-        .single()
-      
-      if (checkError && checkError.code !== 'PGRST116') { // PGRST116 = no rows returned
-        console.error('❌ API: Error verificando vendorId:', checkError)
-        return NextResponse.json(
-          { success: false, error: 'Error verificando ID del vendor' },
-          { status: 500 }
-        )
-      }
-      
-      if (existingVendor) {
-        console.error('❌ API: VendorId ya existe:', vendorId)
-        return NextResponse.json(
-          { success: false, error: 'Este ID de vendor ya está en uso. Por favor, intenta de nuevo.' },
-          { status: 400 }
-        )
-      }
-      
-      console.log('✅ API: VendorId es único')
-    } catch (dbError) {
-      console.error('❌ API: Error verificando vendorId en BD:', dbError)
-      return NextResponse.json(
-        { success: false, error: 'Error verificando ID del vendor' },
-        { status: 500 }
-      )
-    }
+    // Nota: No verificamos unicidad del vendorId en la BD porque:
+    // 1. El vendorId del frontend no es un UUID (es un string personalizado)
+    // 2. La tabla vendors usa UUIDs como primary key
+    // 3. El vendorId del frontend se usa solo para el contrato, no para la BD
+    console.log('🔍 API: VendorId del frontend (para contrato):', vendorId)
     
     // Validar variables de entorno
     const privateKey = process.env.SERVER_PRIVATE_KEY
@@ -318,6 +285,9 @@ export async function POST(request: NextRequest) {
         // Parsear vendorData para obtener información completa
         const fullVendorData = JSON.parse(vendorData)
         console.log('🔍 API: Datos completos del vendor:', fullVendorData)
+        console.log('🔍 API: ownerFid específico:', fullVendorData.ownerFid)
+        console.log('🔍 API: Tipo de ownerFid:', typeof fullVendorData.ownerFid)
+        console.log('🔍 API: delegation específica:', fullVendorData.delegation)
         
         // Buscar la zona por delegación
         console.log('🔍 API: Buscando zona para delegación:', fullVendorData.delegation)
@@ -374,6 +344,37 @@ export async function POST(request: NextRequest) {
         const zoneId = zoneResult  // ✅ Usar directamente el resultado como en el endpoint que funciona
         console.log('✅ API: Zona encontrada para delegación:', fullVendorData.delegation, '->', zoneId)
         
+        // Validar que ownerFid no sea null o undefined
+        if (!fullVendorData.ownerFid) {
+          console.error('❌ API: ownerFid es null o undefined:', fullVendorData.ownerFid)
+          return NextResponse.json(
+            { 
+              success: false, 
+              error: 'FID del propietario es requerido para registrar el vendor'
+            },
+            { status: 400 }
+          )
+        }
+        
+        // Convertir ownerFid a número si viene como string
+        const ownerFid = typeof fullVendorData.ownerFid === 'string' 
+          ? parseInt(fullVendorData.ownerFid, 10) 
+          : fullVendorData.ownerFid
+        
+        if (isNaN(ownerFid)) {
+          console.error('❌ API: ownerFid no es un número válido:', fullVendorData.ownerFid)
+          return NextResponse.json(
+            { 
+              success: false, 
+              error: 'FID del propietario debe ser un número válido'
+            },
+            { status: 400 }
+          )
+        }
+        
+        console.log('✅ API: ownerFid validado y convertido:', ownerFid)
+        console.log('✅ API: delegation a guardar:', fullVendorData.delegation)
+        
         // Insertar el vendor con datos completos
         const { data: newVendor, error: vendorError } = await supabase
           .from('vendors')
@@ -383,8 +384,9 @@ export async function POST(request: NextRequest) {
             description: fullVendorData.description,
             image_url: fullVendorData.imageUrl,
             category: fullVendorData.category,
+            delegation: fullVendorData.delegation,
             zone_id: zoneId,
-            owner_fid: fullVendorData.ownerFid,
+            owner_fid: ownerFid,
             is_verified: false,
             total_battles: 0,
             wins: 0,
