@@ -597,7 +597,7 @@ export class VendorService {
         )
       `)
       .eq('zone_id', zoneId)
-      .order('current_zone_rank', { ascending: true })
+      .order('total_votes', { ascending: false })
 
       if (error) {
         console.error('❌ Supabase error in getVendorsByZone:', error)
