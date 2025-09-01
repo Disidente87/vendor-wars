@@ -112,7 +112,7 @@ export function validateEnvironment(network: string): void {
   const requiredVars = ['BATTLE_TOKEN_CONTRACT_ADDRESS']
   
   if (network !== 'hardhat') {
-    requiredVars.push('PRIVATE_KEY')
+    requiredVars.push('SERVER_PRIVATE_KEY')
   }
   
   const missing = requiredVars.filter(varName => !process.env[varName])

@@ -76,7 +76,7 @@ Both scripts require these environment variables:
 BATTLE_TOKEN_CONTRACT_ADDRESS=0x...
 
 # Required for non-local networks
-PRIVATE_KEY=your_private_key
+SERVER_PRIVATE_KEY=your_private_key
 SEPOLIA_RPC_URL=https://sepolia.infura.io/v3/YOUR_PROJECT_ID
 MAINNET_RPC_URL=https://mainnet.infura.io/v3/YOUR_PROJECT_ID
 ```
@@ -212,7 +212,7 @@ If you were using the old JavaScript deployment script:
 
 1. **Missing Environment Variables**
    - Ensure `BATTLE_TOKEN_CONTRACT_ADDRESS` is set
-   - For non-local networks, ensure `PRIVATE_KEY` is set
+   - For non-local networks, ensure `SERVER_PRIVATE_KEY` is set
 
 2. **Network Configuration**
    - Check `HARDHAT_NETWORK` environment variable

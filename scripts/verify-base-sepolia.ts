@@ -29,7 +29,7 @@ async function main() {
       validateEnvironment(network)
     } catch (error) {
       console.log('⚠️  Environment validation skipped for basic verification')
-      console.log('💡 Set BATTLE_TOKEN_CONTRACT_ADDRESS and PRIVATE_KEY for full validation')
+      console.log('💡 Set BATTLE_TOKEN_CONTRACT_ADDRESS and SERVER_PRIVATE_KEY for full validation')
     }
     
     // Get deployment config
@@ -134,7 +134,7 @@ async function main() {
     // Environment setup instructions
     console.log('\n📋 Required Environment Variables:')
     console.log(`  - BATTLE_TOKEN_CONTRACT_ADDRESS: Your BATTLE token on Base Sepolia`)
-    console.log(`  - PRIVATE_KEY: Your deployment wallet private key`)
+    console.log(`  - SERVER_PRIVATE_KEY: Your deployment wallet private key`)
     console.log(`  - BASE_SEPOLIA_RPC_URL: ${config.rpcUrl}`)
     console.log(`  - BASESCAN_API_KEY: For contract verification`)
     

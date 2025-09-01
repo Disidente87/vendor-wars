@@ -31,7 +31,7 @@ NEXT_PUBLIC_VENDOR_REGISTRATION_CONTRACT_ADDRESS=0x...
 # Network Configuration
 HARDHAT_NETWORK=localhost  # or sepolia, mainnet
 SEPOLIA_RPC_URL=https://sepolia.infura.io/v3/YOUR_PROJECT_ID
-PRIVATE_KEY=your_private_key_for_deployment
+SERVER_PRIVATE_KEY=your_private_key_for_deployment
 ```
 
 ## Database Schema Updates

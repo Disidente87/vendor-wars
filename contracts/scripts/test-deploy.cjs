@@ -6,7 +6,7 @@ async function main() {
   
   // Verificar variables de entorno
   console.log("🔍 Variables de entorno:");
-  console.log("  PRIVATE_KEY:", process.env.PRIVATE_KEY ? "✅ Configurada" : "❌ No configurada");
+  console.log("  SERVER_PRIVATE_KEY:", process.env.SERVER_PRIVATE_KEY ? "✅ Configurada" : "❌ No configurada");
   console.log("  BASE_SEPOLIA_RPC_URL:", process.env.BASE_SEPOLIA_RPC_URL ? "✅ Configurada" : "❌ No configurada");
   console.log("  BATTLE_TOKEN_CONTRACT_ADDRESS:", process.env.BATTLE_TOKEN_CONTRACT_ADDRESS ? "✅ Configurada" : "❌ No configurada");
   
@@ -28,7 +28,7 @@ async function main() {
       }
     } else {
       console.log("❌ No se encontraron signers");
-      console.log("💡 Verifica que PRIVATE_KEY esté configurada en .env.local");
+      console.log("💡 Verifica que SERVER_PRIVATE_KEY esté configurada en .env.local");
     }
     
     // Verificar red
