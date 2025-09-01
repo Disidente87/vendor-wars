@@ -7,28 +7,8 @@ import { parseEther, formatEther } from 'viem'
 // ABI simplificado para el token BATTLE
 const BATTLE_TOKEN_ABI = [
   {
-    inputs: [
-      { name: 'spender', type: 'address' },
-      { name: 'amount', type: 'uint256' }
-    ],
-    name: 'approve',
-    outputs: [{ name: '', type: 'bool' }],
-    stateMutability: 'nonpayable',
-    type: 'function'
-  },
-  {
     inputs: [{ name: 'owner', type: 'address' }],
     name: 'balanceOf',
-    outputs: [{ name: '', type: 'uint256' }],
-    stateMutability: 'view',
-    type: 'function'
-  },
-  {
-    inputs: [
-      { name: 'owner', type: 'address' },
-      { name: 'spender', type: 'address' }
-    ],
-    name: 'allowance',
     outputs: [{ name: '', type: 'uint256' }],
     stateMutability: 'view',
     type: 'function'
@@ -71,23 +51,29 @@ export interface PaymentState {
   error: string | null
   balance: string
   requiredAmount: string
-  allowance: string
 }
 
 export function useVendorRegistrationPayment() {
   const [paymentState, setPaymentState] = useState<PaymentState>({
     isConnected: false,
     hasSufficientBalance: false,
-    isApproved: false,
+    isApproved: true, // Siempre true porque no necesitamos allowance para burnFrom
     isTransactionPending: false,
     isTransactionConfirmed: false,
     error: null,
     balance: '0',
-    requiredAmount: '50',
-    allowance: '0'
+    requiredAmount: '50'
   })
 
   const { address, isConnected } = useAccount()
+
+  // Sincronizar estado inicial de conexión
+  useEffect(() => {
+    setPaymentState(prev => ({
+      ...prev,
+      isConnected: isConnected
+    }))
+  }, [isConnected])
 
   // Leer balance del token
   const { data: balanceData, refetch: refetchBalance } = useBalance({
@@ -95,13 +81,7 @@ export function useVendorRegistrationPayment() {
     token: BATTLE_TOKEN_ADDRESS as `0x${string}`,
   })
 
-  // Leer allowance (aprobación) del token
-  const { data: allowanceData, refetch: refetchAllowance } = useContractRead({
-    address: BATTLE_TOKEN_ADDRESS as `0x${string}`,
-    abi: BATTLE_TOKEN_ABI,
-    functionName: 'allowance',
-    args: address ? [address, VENDOR_REGISTRATION_ADDRESS as `0x${string}`] : undefined,
-  })
+
 
   // Leer costo de registro
   const { data: registrationCost } = useContractRead({
@@ -111,19 +91,7 @@ export function useVendorRegistrationPayment() {
   })
 
   // Estado manual para transacciones
-  const [isApprovalPending, setIsApprovalPending] = useState(false)
   const [isRegistrationPending, setIsRegistrationPending] = useState(false)
-
-  // Funciones para aprobar y registrar (simuladas por ahora)
-  const approveTokens = async () => {
-    console.log('🔄 Aprobando tokens...')
-    setIsApprovalPending(true)
-    // TODO: Implementar aprobación real cuando esté disponible
-    setTimeout(() => {
-      setIsApprovalPending(false)
-      setPaymentState(prev => ({ ...prev, isApproved: true, error: null }))
-    }, 2000)
-  }
 
   const registerVendor = async () => {
     console.log('🔄 Registrando vendor...')
@@ -142,7 +110,8 @@ export function useVendorRegistrationPayment() {
 
   // Actualizar estado cuando cambien los datos
   useEffect(() => {
-    if (!address || !isConnected) {
+    // Solo resetear si definitivamente no está conectado
+    if (isConnected === false) {
       setPaymentState(prev => ({
         ...prev,
         isConnected: false,
@@ -152,36 +121,25 @@ export function useVendorRegistrationPayment() {
       return
     }
 
-    const balance = balanceData ? Number(formatEther(balanceData.value)) : 0
-    const allowance = allowanceData ? Number(formatEther(allowanceData)) : 0
-    const hasSufficientBalance = balance >= 50
-    const isApproved = allowance >= 50
+    // Si está conectado pero no tenemos address aún, mantener el estado actual
+    if (isConnected && !address) {
+      return
+    }
 
-    setPaymentState(prev => ({
-      ...prev,
-      isConnected: true,
-      hasSufficientBalance,
-      isApproved,
-      balance: balance.toFixed(2),
-      allowance: allowance.toFixed(2),
-      isTransactionPending: isApprovalPending || isApprovalPending || isRegistrationPending
-    }))
-  }, [address, isConnected, balanceData, allowanceData, isApprovalPending, isRegistrationPending])
+    // Solo actualizar si tenemos address y estamos conectados
+    if (address && isConnected) {
+      const balance = balanceData ? Number(formatEther(balanceData.value)) : 0
+      const hasSufficientBalance = balance >= 50
 
-  // Función para aprobar tokens
-  const approveTokensForRegistration = useCallback(() => {
-    if (!address) return
-
-    try {
-      approveTokens()
-      setPaymentState(prev => ({ ...prev, error: null }))
-    } catch (error) {
-      setPaymentState(prev => ({ 
-        ...prev, 
-        error: `Error al aprobar: ${error instanceof Error ? error.message : 'Error desconocido'}` 
+      setPaymentState(prev => ({
+        ...prev,
+        isConnected: true,
+        hasSufficientBalance,
+        balance: balance.toFixed(2),
+        isTransactionPending: isRegistrationPending
       }))
     }
-  }, [address, approveTokens])
+  }, [address, isConnected, balanceData, isRegistrationPending])
 
   // Función para registrar vendor
   const registerVendorWithPayment = useCallback((
@@ -207,11 +165,8 @@ export function useVendorRegistrationPayment() {
 
   // Función para refrescar datos
   const refreshData = useCallback(async () => {
-    await Promise.all([
-      refetchBalance(),
-      refetchAllowance()
-    ])
-  }, [refetchBalance, refetchAllowance])
+    await refetchBalance()
+  }, [refetchBalance])
 
   // Función para resetear estado
   const resetPaymentState = useCallback(() => {
@@ -224,11 +179,9 @@ export function useVendorRegistrationPayment() {
 
   return {
     ...paymentState,
-    approveTokensForRegistration,
     registerVendorWithPayment,
     refreshData,
     resetPaymentState,
-    isApproving: isApprovalPending,
     isRegistering: isRegistrationPending
   }
 }
