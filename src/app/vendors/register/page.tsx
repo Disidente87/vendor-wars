@@ -215,10 +215,13 @@ export default function VendorRegistrationPage() {
         vendorData: JSON.stringify(vendorData),
         vendorId: formData.vendorId,
         paymentAmount: formData.paymentAmount,
-        signature: '0x' + '0'.repeat(130) // Placeholder signature for now
+        signature: '0x' + '0'.repeat(130), // Placeholder signature for now
+        ownerFid: authenticatedUser.fid // Enviar FID también en el body como backup
       }
       
       console.log('🚀 Sending vendor registration data with payment:', requestData)
+      
+      console.log('🔍 Frontend: Enviando FID en header:', authenticatedUser.fid.toString())
       
       const response = await fetch('/api/vendors/register-with-payment', {
         method: 'POST',
