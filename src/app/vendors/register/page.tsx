@@ -206,6 +206,9 @@ export default function VendorRegistrationPage() {
         imageUrl: imageUrl
       }
       
+      console.log('🔍 Frontend: imageUrl que se envía:', imageUrl)
+      console.log('🔍 Frontend: imageUrl es blob?', imageUrl.startsWith('blob:'))
+      
       const requestData = {
         userAddress: formData.userAddress,
         vendorData: JSON.stringify(vendorData),

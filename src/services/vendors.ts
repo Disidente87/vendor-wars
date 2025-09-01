@@ -671,7 +671,6 @@ export class VendorService {
         `)
         .eq('zone_id', zoneId)
         .order('total_votes', { ascending: false })
-        .order('current_zone_rank', { ascending: true })
         .limit(1)
         .single()
 

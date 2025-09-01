@@ -63,7 +63,8 @@ export class StorageService {
           })
 
         if (error) {
-          console.error('Storage upload error:', error)
+          console.error('❌ StorageService: Error en subida:', error)
+          console.error('❌ StorageService: filePath intentado:', filePath)
           // Return default image URL as fallback
           return {
             success: true,
@@ -75,6 +76,9 @@ export class StorageService {
         const { data: { publicUrl } } = supabase.storage
           .from(this.BUCKET_NAME)
           .getPublicUrl(filePath)
+
+        console.log('🔍 StorageService: URL pública generada:', publicUrl)
+        console.log('🔍 StorageService: filePath:', filePath)
 
         return {
           success: true,

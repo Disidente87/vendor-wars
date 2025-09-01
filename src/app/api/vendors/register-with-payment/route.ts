@@ -306,6 +306,9 @@ export async function POST(request: NextRequest) {
         // Parsear vendorData para obtener información completa
         const fullVendorData = JSON.parse(vendorData)
         
+        console.log('🔍 API: fullVendorData.imageUrl:', fullVendorData.imageUrl)
+        console.log('🔍 API: imageUrl es blob?', fullVendorData.imageUrl?.startsWith('blob:'))
+        
         // Usar FID del header como prioridad, luego del body, luego fallback
         console.log('🔍 API: ownerFid del body:', ownerFid)
         console.log('🔍 API: headerFid:', headerFidNumber)
