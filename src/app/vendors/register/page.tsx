@@ -100,6 +100,8 @@ export default function VendorRegistrationPage() {
       router.push('/')
     }
   }, [isAuthenticated, isLoading, router])
+  
+
 
   const handleInputChange = (field: keyof VendorFormData, value: string) => {
     setFormData(prev => ({
@@ -191,11 +193,6 @@ export default function VendorRegistrationPage() {
         setIsUploadingImage(false)
       }
 
-      // Submit vendor data with payment information
-      console.log('🔍 Debug authenticatedUser:', authenticatedUser)
-      console.log('🔍 Debug authenticatedUser.fid:', authenticatedUser?.fid)
-      console.log('🔍 Debug authenticatedUser.fid type:', typeof authenticatedUser?.fid)
-      
       // Validar que el usuario esté autenticado y tenga FID
       if (!authenticatedUser || !authenticatedUser.fid) {
         console.error('❌ Usuario no autenticado o sin FID:', authenticatedUser)
@@ -210,8 +207,7 @@ export default function VendorRegistrationPage() {
         description: formData.description,
         delegation: formData.delegation,
         category: formData.category,
-        imageUrl: imageUrl,
-        ownerFid: authenticatedUser.fid
+        imageUrl: imageUrl
       }
       
       const requestData = {
@@ -228,6 +224,7 @@ export default function VendorRegistrationPage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'x-farcaster-fid': authenticatedUser.fid.toString(),
         },
         body: JSON.stringify(requestData),
       })

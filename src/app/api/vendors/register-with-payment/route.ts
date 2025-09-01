@@ -284,18 +284,39 @@ export async function POST(request: NextRequest) {
         
         // Parsear vendorData para obtener información completa
         const fullVendorData = JSON.parse(vendorData)
-        console.log('🔍 API: Datos completos del vendor:', fullVendorData)
-        console.log('🔍 API: ownerFid específico:', fullVendorData.ownerFid)
-        console.log('🔍 API: Tipo de ownerFid:', typeof fullVendorData.ownerFid)
-        console.log('🔍 API: delegation específica:', fullVendorData.delegation)
+        
+        // Obtener el fid del usuario autenticado desde el header
+        const ownerFidHeader = request.headers.get('x-farcaster-fid')
+        const ownerFidValue = ownerFidHeader ? parseInt(ownerFidHeader) : null
+
+        if (!ownerFidValue || isNaN(ownerFidValue)) {
+          return NextResponse.json(
+            { success: false, error: 'No se pudo determinar el usuario. Por favor inicia sesión con Farcaster.' },
+            { status: 400 }
+          )
+        }
+
+        // Validar que el usuario existe
+        const { data: user, error: userError } = await supabase
+          .from('users')
+          .select('fid, display_name')
+          .eq('fid', ownerFidValue)
+          .single()
+
+        if (userError || !user) {
+          return NextResponse.json(
+            { success: false, error: 'Usuario no encontrado. Por favor asegúrate de estar logueado con Farcaster.' },
+            { status: 400 }
+          )
+        }
+
+        console.log('✅ API: Usuario autenticado:', user.display_name, 'FID:', ownerFidValue)
         
         // Buscar la zona por delegación
         console.log('🔍 API: Buscando zona para delegación:', fullVendorData.delegation)
         
         const { data: zoneResult, error: zoneError } = await supabase
           .rpc('get_zone_by_delegation', { input_delegation_name: fullVendorData.delegation })
-
-        console.log('🔍 API: Resultado de get_zone_by_delegation:', { zoneResult, zoneError })
 
         if (zoneError) {
           console.error('❌ API: Error al buscar zona:', zoneError)
@@ -341,39 +362,8 @@ export async function POST(request: NextRequest) {
           )
         }
 
-        const zoneId = zoneResult  // ✅ Usar directamente el resultado como en el endpoint que funciona
+        const zoneId = zoneResult
         console.log('✅ API: Zona encontrada para delegación:', fullVendorData.delegation, '->', zoneId)
-        
-        // Validar que ownerFid no sea null o undefined
-        if (!fullVendorData.ownerFid) {
-          console.error('❌ API: ownerFid es null o undefined:', fullVendorData.ownerFid)
-          return NextResponse.json(
-            { 
-              success: false, 
-              error: 'FID del propietario es requerido para registrar el vendor'
-            },
-            { status: 400 }
-          )
-        }
-        
-        // Convertir ownerFid a número si viene como string
-        const ownerFid = typeof fullVendorData.ownerFid === 'string' 
-          ? parseInt(fullVendorData.ownerFid, 10) 
-          : fullVendorData.ownerFid
-        
-        if (isNaN(ownerFid)) {
-          console.error('❌ API: ownerFid no es un número válido:', fullVendorData.ownerFid)
-          return NextResponse.json(
-            { 
-              success: false, 
-              error: 'FID del propietario debe ser un número válido'
-            },
-            { status: 400 }
-          )
-        }
-        
-        console.log('✅ API: ownerFid validado y convertido:', ownerFid)
-        console.log('✅ API: delegation a guardar:', fullVendorData.delegation)
         
         // Insertar el vendor con datos completos
         const { data: newVendor, error: vendorError } = await supabase
@@ -386,7 +376,7 @@ export async function POST(request: NextRequest) {
             category: fullVendorData.category,
             delegation: fullVendorData.delegation,
             zone_id: zoneId,
-            owner_fid: ownerFid,
+            owner_fid: ownerFidValue,
             is_verified: false,
             total_battles: 0,
             wins: 0,
