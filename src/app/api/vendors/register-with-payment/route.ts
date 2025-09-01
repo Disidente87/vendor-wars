@@ -53,13 +53,26 @@ export async function POST(request: NextRequest) {
     const body: VendorRegistrationRequest = await request.json()
     const { userAddress, vendorData, vendorId, paymentAmount, signature, ownerFid } = body
     
+    // Leer FID del header como alternativa
+    const headerFid = request.headers.get('x-farcaster-fid')
+    const headerFidNumber = headerFid ? parseInt(headerFid, 10) : null
+    
     console.log('🔍 API: Body recibido:', { 
       userAddress, 
       vendorId, 
       paymentAmount, 
       signature: signature ? 'SÍ' : 'NO',
-      vendorDataLength: vendorData?.length || 0
+      vendorDataLength: vendorData?.length || 0,
+      ownerFid: ownerFid,
+      headerFid: headerFidNumber
     })
+    
+    console.log('🔍 API: Validando campos...')
+    console.log('🔍 API: userAddress válido?', userAddress && userAddress.match(/^0x[a-fA-F0-9]{40}$/))
+    console.log('🔍 API: vendorData válido?', vendorData && vendorData.length > 0)
+    console.log('🔍 API: vendorId válido?', vendorId && vendorId.length > 0)
+    console.log('🔍 API: paymentAmount válido?', paymentAmount && paymentAmount.length > 0)
+    console.log('🔍 API: signature válido?', signature && signature.length > 0)
     
     // Validar campos requeridos
     if (!userAddress || !vendorData || !vendorId || !paymentAmount || !signature) {
@@ -293,11 +306,12 @@ export async function POST(request: NextRequest) {
         // Parsear vendorData para obtener información completa
         const fullVendorData = JSON.parse(vendorData)
         
-        // Usar el ownerFid del body como en el código original
+        // Usar FID del header como prioridad, luego del body, luego fallback
         console.log('🔍 API: ownerFid del body:', ownerFid)
+        console.log('🔍 API: headerFid:', headerFidNumber)
         
-        // Usar FID por defecto si no está disponible
-        const finalOwnerFid = ownerFid || 465823
+        // Prioridad: header > body > fallback
+        const finalOwnerFid = headerFidNumber || ownerFid || 465823
         console.log('🔍 API: ownerFid final (con fallback):', finalOwnerFid)
         
         // Buscar la zona por delegación

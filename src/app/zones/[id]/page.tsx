@@ -55,7 +55,7 @@ async function getZoneData(zoneId: string) {
     
     // Get top 5 vendors for the map
     const topVendors = vendors
-      .sort((a, b) => b.stats.currentZoneRank - a.stats.currentZoneRank)
+      .sort((a, b) => b.stats.totalVotes - a.stats.totalVotes)
       .slice(0, 5)
       .map((vendor, index) => ({
         id: vendor.id,
@@ -187,7 +187,9 @@ async function ZonePageAsync({ zoneId }: { zoneId: string }) {
               <CardContent>
                 <div className="space-y-4">
                   {vendors.length > 0 ? (
-                    vendors.map((vendor, index) => (
+                    vendors
+                      .sort((a, b) => b.stats.totalVotes - a.stats.totalVotes)
+                      .map((vendor, index) => (
                       <Link key={vendor.id} href={`/vendors/${vendor.id}`}>
                         <div className="flex items-center gap-4 p-4 rounded-lg border hover:bg-orange-50 transition-colors cursor-pointer">
                           <div className="flex items-center gap-3 flex-1">
