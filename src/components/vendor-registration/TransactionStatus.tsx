@@ -18,7 +18,6 @@ import { PaymentState } from '@/hooks/useVendorRegistrationPayment'
 
 interface TransactionStatusProps {
   paymentState: PaymentState
-  onApprove: () => void
   onRefresh: () => void
   vendorData?: string
   vendorId?: string
@@ -27,37 +26,33 @@ interface TransactionStatusProps {
 
 const STEPS = [
   { id: 'connect', label: 'Conectar Wallet', description: 'Conectar wallet y verificar saldo' },
-  { id: 'approve', label: 'Aprobar Tokens', description: 'Aprobar gasto de 50 $BATTLE' },
   { id: 'register', label: 'Registrar Vendor', description: 'Confirmar registro y quemar tokens' },
   { id: 'complete', label: 'Completado', description: 'Vendor registrado exitosamente' }
 ]
 
-export function TransactionStatus({ 
-  paymentState, 
-  onApprove, 
-  onRefresh, 
-  vendorData, 
-  vendorId, 
-  onRegister 
+export function TransactionStatus({
+  paymentState,
+  onRefresh,
+  vendorData,
+  vendorId,
+  onRegister
 }: TransactionStatusProps) {
-  const { 
-    isConnected, 
-    hasSufficientBalance, 
-    isApproved, 
-    isTransactionPending, 
+  const {
+    isConnected,
+    hasSufficientBalance,
+    isApproved,
+    isTransactionPending,
     isTransactionConfirmed,
     error,
-    balance,
-    allowance
+    balance
   } = paymentState
 
   // Determinar el paso actual
   const getCurrentStep = () => {
     if (!isConnected) return 0
     if (!hasSufficientBalance) return 0
-    if (!isApproved) return 1
-    if (!isTransactionConfirmed) return 2
-    return 3
+    if (!isTransactionConfirmed) return 1
+    return 2
   }
 
   const currentStep = getCurrentStep()
@@ -124,7 +119,7 @@ export function TransactionStatus({
                   </div>
                   
                   {/* Información adicional para pasos específicos */}
-                  {step.id === 'approve' && isConnected && (
+                  {step.id === 'connect' && isConnected && (
                     <div className="mt-2 space-y-1">
                       <div className="text-xs">
                         <span className="text-muted-foreground">Saldo actual:</span>{' '}
@@ -133,9 +128,9 @@ export function TransactionStatus({
                         </Badge>
                       </div>
                       <div className="text-xs">
-                        <span className="text-muted-foreground">Aprobación actual:</span>{' '}
-                        <Badge variant={isApproved ? "default" : "secondary"}>
-                          {allowance} $BATTLE
+                        <span className="text-muted-foreground">Requerido:</span>{' '}
+                        <Badge variant="outline">
+                          50 $BATTLE
                         </Badge>
                       </div>
                     </div>
@@ -148,29 +143,8 @@ export function TransactionStatus({
 
         {/* Acciones */}
         <div className="space-y-3">
-          {/* Botón de Aprobación */}
-          {currentStep === 1 && !isApproved && (
-            <Button 
-              onClick={onApprove} 
-              disabled={isTransactionPending}
-              className="w-full"
-            >
-              {isTransactionPending ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Aprobando...
-                </>
-              ) : (
-                <>
-                  <Coins className="mr-2 h-4 w-4" />
-                  Aprobar 50 $BATTLE
-                </>
-              )}
-            </Button>
-          )}
-
           {/* Botón de Registro */}
-          {currentStep === 2 && isApproved && vendorData && vendorId && onRegister && (
+          {currentStep === 1 && isConnected && hasSufficientBalance && vendorData && vendorId && onRegister && (
             <Button 
               onClick={onRegister} 
               disabled={isTransactionPending}

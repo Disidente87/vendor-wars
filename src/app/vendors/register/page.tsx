@@ -470,7 +470,6 @@ export default function VendorRegistrationPage() {
             
             <TransactionStatus
               paymentState={paymentHook}
-              onApprove={paymentHook.approveTokensForRegistration}
               onRefresh={paymentHook.refreshData}
               vendorData={JSON.stringify(formData)}
               vendorId={formData.vendorId}
