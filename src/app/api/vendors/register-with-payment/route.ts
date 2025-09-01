@@ -169,13 +169,15 @@ export async function POST(request: NextRequest) {
       console.log('✅ API: Contrato encontrado')
     
     // Simular la transacción para capturar posibles errores
-    console.log('🔍 API: Simulando transacción...')
+    // Usar un vendorId diferente para la simulación para evitar efectos secundarios
+    const simulationVendorId = `sim_${vendorId}`
+    console.log('🔍 API: Simulando transacción con vendorId de simulación:', simulationVendorId)
     try {
       await simulateContract(publicClient, {
         address: PAYMENT_CONFIG.VENDOR_REGISTRATION.ADDRESS as `0x${string}`,
         abi: VENDOR_REGISTRATION_ABI,
         functionName: 'registerVendor',
-        args: [userAddress as `0x${string}`, amountInWei, vendorData, vendorId],
+        args: [userAddress as `0x${string}`, amountInWei, vendorData, simulationVendorId],
         account: walletAddress as `0x${string}`
       })
       console.log('✅ API: Simulación exitosa')
@@ -295,7 +297,7 @@ export async function POST(request: NextRequest) {
         console.log('🔍 API: ownerFid del body:', ownerFid)
         
         // Usar FID por defecto si no está disponible
-        const finalOwnerFid = ownerFid || 777777
+        const finalOwnerFid = ownerFid || 465823
         console.log('🔍 API: ownerFid final (con fallback):', finalOwnerFid)
         
         // Buscar la zona por delegación
