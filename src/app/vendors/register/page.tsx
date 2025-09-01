@@ -162,12 +162,8 @@ export default function VendorRegistrationPage() {
       return
     }
 
-    // Verificar que el pago esté completado
-    if (!paymentHook.isTransactionConfirmed) {
-      setErrorMessage('Debes completar el pago antes de registrar el vendor')
-      setSubmitStatus('error')
-      return
-    }
+    // Nota: El pago se procesa dentro de la API, no necesitamos verificar aquí
+    // La API se encarga de simular, ejecutar la transacción y guardar en BD
 
     setIsSubmitting(true)
     setSubmitStatus('idle')
