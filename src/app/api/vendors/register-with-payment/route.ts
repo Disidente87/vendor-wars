@@ -295,7 +295,7 @@ export async function POST(request: NextRequest) {
         console.log('🔍 API: ownerFid del body:', ownerFid)
         
         // Usar FID por defecto si no está disponible
-        const finalOwnerFid = ownerFid || 777777
+        const finalOwnerFid = ownerFid || 465823
         console.log('🔍 API: ownerFid final (con fallback):', finalOwnerFid)
         
         // Buscar la zona por delegación
