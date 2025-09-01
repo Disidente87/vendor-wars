@@ -62,8 +62,6 @@ export default function VendorRegistrationPage() {
 
   // Hook para el sistema de pago
   const paymentHook = useVendorRegistrationPayment()
-  const [isPaymentReady, setIsPaymentReady] = useState(false)
-  const [showTransactionStatus, setShowTransactionStatus] = useState(false)
 
   // Load zones with delegations on component mount
   useEffect(() => {
@@ -149,11 +147,6 @@ export default function VendorRegistrationPage() {
 
   const handleNext = async () => {
     if (currentStep < totalSteps) {
-      // Verificar que el pago esté listo antes de avanzar al paso final
-      if (currentStep === 5 && !isPaymentReady) {
-        setErrorMessage('Debes completar la verificación de pago antes de continuar')
-        return
-      }
       setCurrentStep(currentStep + 1)
     } else {
       await submitVendorRegistration()
@@ -203,21 +196,27 @@ export default function VendorRegistrationPage() {
       console.log('🔍 Debug authenticatedUser.fid:', authenticatedUser?.fid)
       console.log('🔍 Debug authenticatedUser.fid type:', typeof authenticatedUser?.fid)
       
-      const requestData = {
+      // Preparar datos para la nueva API con pago
+      const vendorData = {
         name: formData.name,
         description: formData.description,
         delegation: formData.delegation,
         category: formData.category,
         imageUrl: imageUrl,
-        ownerFid: authenticatedUser.fid,
+        ownerFid: authenticatedUser.fid
+      }
+      
+      const requestData = {
         userAddress: formData.userAddress,
+        vendorData: JSON.stringify(vendorData),
+        vendorId: formData.vendorId,
         paymentAmount: formData.paymentAmount,
-        vendorId: formData.vendorId
+        signature: '0x' + '0'.repeat(130) // Placeholder signature for now
       }
       
       console.log('🚀 Sending vendor registration data with payment:', requestData)
       
-      const response = await fetch('/api/vendors/register', {
+      const response = await fetch('/api/vendors/register-with-payment', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -230,7 +229,7 @@ export default function VendorRegistrationPage() {
       if (result.success) {
         setSubmitStatus('success')
         setTimeout(() => {
-          router.push(`/vendors/${result.data.id}`)
+          router.push(`/vendors/${result.data.vendorId}`)
         }, 2000)
       } else {
         setErrorMessage(result.error || 'Failed to register vendor')
@@ -259,7 +258,7 @@ export default function VendorRegistrationPage() {
       case 5:
         return !formData.category
       case 6:
-        return !isPaymentReady
+        return !paymentHook.isTransactionConfirmed
       default:
         return true
     }
@@ -278,7 +277,7 @@ export default function VendorRegistrationPage() {
       case 5:
         return 'Category'
       case 6:
-        return 'Payment'
+        return 'Payment Verification'
       default:
         return 'Vendor Registration'
     }
@@ -462,34 +461,26 @@ export default function VendorRegistrationPage() {
           <div className="space-y-6">
             <div className="text-center">
               <h3 className="text-lg font-semibold text-[#2d1810] mb-2">
-                Paso de Pago - 50 $BATTLE
+                Verificación de Pago - 50 $BATTLE
               </h3>
               <p className="text-sm text-[#6b5d52]">
-                Para completar el registro, necesitas pagar 50 $BATTLE tokens
+                Verifica tu saldo y completa el pago para registrar tu vendor
               </p>
             </div>
             
-            {showTransactionStatus ? (
-              <TransactionStatus
-                paymentState={paymentHook}
-                onApprove={paymentHook.approveTokensForRegistration}
-                onRefresh={paymentHook.refreshData}
-                vendorData={JSON.stringify(formData)}
-                vendorId={formData.vendorId}
-                onRegister={() => {
-                  paymentHook.registerVendorWithPayment(
-                    JSON.stringify(formData),
-                    formData.vendorId
-                  )
-                }}
-              />
-            ) : (
-              <PaymentStep
-                onPaymentReady={setIsPaymentReady}
-                onNext={() => setShowTransactionStatus(true)}
-                onBack={() => setCurrentStep(5)}
-              />
-            )}
+            <TransactionStatus
+              paymentState={paymentHook}
+              onApprove={paymentHook.approveTokensForRegistration}
+              onRefresh={paymentHook.refreshData}
+              vendorData={JSON.stringify(formData)}
+              vendorId={formData.vendorId}
+              onRegister={() => {
+                paymentHook.registerVendorWithPayment(
+                  JSON.stringify(formData),
+                  formData.vendorId
+                )
+              }}
+            />
           </div>
         )
 
@@ -582,7 +573,7 @@ export default function VendorRegistrationPage() {
               {currentStep === 3 && "Choose your delegation"}
               {currentStep === 4 && "Tell customers about your vendor"}
               {currentStep === 5 && "What type of food do you sell?"}
-              {currentStep === 6 && "Complete payment to register your vendor"}
+              {currentStep === 6 && "Verify payment and complete registration"}
             </CardDescription>
           </CardHeader>
           <CardContent>
