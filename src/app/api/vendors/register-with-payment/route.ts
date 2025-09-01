@@ -281,14 +281,59 @@ export async function POST(request: NextRequest) {
         console.log('🔍 API: Datos completos del vendor:', fullVendorData)
         
         // Buscar la zona por delegación
+        console.log('🔍 API: Buscando zona para delegación:', fullVendorData.delegation)
+        
         const { data: zoneResult, error: zoneError } = await supabase
           .rpc('get_zone_by_delegation', { input_delegation_name: fullVendorData.delegation })
 
+        console.log('🔍 API: Resultado de get_zone_by_delegation:', { zoneResult, zoneError })
+
         if (zoneError) {
           console.error('❌ API: Error al buscar zona:', zoneError)
+          return NextResponse.json(
+            { 
+              success: false, 
+              error: 'Error al buscar zona',
+              details: zoneError.message
+            },
+            { status: 500 }
+          )
         }
 
-        const zoneId = zoneResult?.id || 'default-zone-id'
+        if (!zoneResult) {
+          console.error('❌ API: No se encontró zona para delegación:', fullVendorData.delegation)
+          
+          // Mostrar delegaciones disponibles
+          const { data: availableDelegations, error: delegationsError } = await supabase
+            .from('zone_delegations')
+            .select('delegation_name, zones(name)')
+            .order('delegation_name')
+          
+          if (delegationsError) {
+            console.error('❌ API: Error al obtener delegaciones disponibles:', delegationsError)
+            return NextResponse.json(
+              { 
+                success: false, 
+                error: 'Delegación inválida. Contacta soporte.'
+              },
+              { status: 400 }
+            )
+          }
+          
+          const availableDelegationNames = availableDelegations?.map(d => d.delegation_name) || []
+          console.log('📋 API: Delegaciones disponibles:', availableDelegationNames)
+          
+          return NextResponse.json(
+            { 
+              success: false, 
+              error: `Delegación inválida: "${fullVendorData.delegation}". Delegaciones disponibles: ${availableDelegationNames.join(', ')}`
+            },
+            { status: 400 }
+          )
+        }
+
+        const zoneId = zoneResult  // ✅ Usar directamente el resultado como en el endpoint que funciona
+        console.log('✅ API: Zona encontrada para delegación:', fullVendorData.delegation, '->', zoneId)
         
         // Insertar el vendor con datos completos
         const { data: newVendor, error: vendorError } = await supabase

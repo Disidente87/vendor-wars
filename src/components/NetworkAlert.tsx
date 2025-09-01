@@ -30,7 +30,6 @@ export function NetworkAlert({ className }: NetworkAlertProps) {
   const getNetworkName = (id: number) => {
     switch (id) {
       case 84532: return 'Base Sepolia'
-      case 8453: return 'Base'
       case 10: return 'Optimism'
       default: return `Unknown (${id})`
     }
