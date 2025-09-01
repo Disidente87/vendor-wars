@@ -258,7 +258,7 @@ export default function VendorRegistrationPage() {
       case 5:
         return !formData.category
       case 6:
-        return !paymentHook.isTransactionConfirmed
+        return false // ✅ Permitir avanzar al paso 6 para completar el pago
       default:
         return true
     }
@@ -468,6 +468,50 @@ export default function VendorRegistrationPage() {
               </p>
             </div>
             
+            {/* Estado de la Wallet */}
+            <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+              <h4 className="font-medium text-blue-900 mb-2">Estado de la Wallet</h4>
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-blue-700">Conectada:</span>
+                  <span className={paymentHook.isConnected ? "text-green-600 font-medium" : "text-red-600 font-medium"}>
+                    {paymentHook.isConnected ? "✅ Sí" : "❌ No"}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-blue-700">Saldo BATTLE:</span>
+                  <span className={paymentHook.hasSufficientBalance ? "text-green-600 font-medium" : "text-red-600 font-medium"}>
+                    {paymentHook.balance} $BATTLE
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-blue-700">Requerido:</span>
+                  <span className="text-blue-700 font-medium">50 $BATTLE</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Instrucciones de Pago */}
+            {!paymentHook.isTransactionConfirmed && (
+              <div className="p-4 bg-orange-50 rounded-lg border border-orange-200">
+                <h4 className="font-medium text-orange-900 mb-2">📋 Instrucciones para Completar el Pago</h4>
+                <div className="text-sm text-orange-800 space-y-2">
+                  <p>Para registrar tu vendor, necesitas:</p>
+                  <ol className="list-decimal list-inside space-y-1 ml-2">
+                    <li><strong>Conectar tu wallet</strong> (si no está conectada)</li>
+                    <li><strong>Tener al menos 50 BATTLE tokens</strong> en tu saldo</li>
+                    <li><strong>Aprobar que el contrato gaste tus tokens</strong> (esto se hace automáticamente)</li>
+                                            <li><strong>Confirmar el registro</strong> haciendo clic en &quot;Registrar Vendor&quot;</li>
+                  </ol>
+                  <p className="mt-2 text-xs">
+                    <strong>Nota:</strong> Los tokens se queman (destruyen) durante el registro. 
+                    Este es el costo único para registrar tu vendor.
+                  </p>
+                </div>
+              </div>
+            )}
+            
+            {/* Componente de Estado de Transacción */}
             <TransactionStatus
               paymentState={paymentHook}
               onRefresh={paymentHook.refreshData}
@@ -480,6 +524,20 @@ export default function VendorRegistrationPage() {
                 )
               }}
             />
+
+            {/* Mensaje de Éxito */}
+            {paymentHook.isTransactionConfirmed && (
+              <div className="p-4 bg-green-50 rounded-lg border border-green-200">
+                <h4 className="font-medium text-green-900 mb-2">🎉 ¡Pago Completado!</h4>
+                <p className="text-sm text-green-800">
+                  Tu vendor ha sido registrado exitosamente en la blockchain. 
+                  Los 50 BATTLE tokens han sido quemados y tu vendor está activo.
+                </p>
+                <p className="text-sm text-green-700 mt-2">
+                  Ahora puedes hacer clic en &quot;Register Vendor&quot; para completar el proceso.
+                </p>
+              </div>
+            )}
           </div>
         )
 

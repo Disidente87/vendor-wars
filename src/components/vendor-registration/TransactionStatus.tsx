@@ -26,6 +26,7 @@ interface TransactionStatusProps {
 
 const STEPS = [
   { id: 'connect', label: 'Conectar Wallet', description: 'Conectar wallet y verificar saldo' },
+  { id: 'approve', label: 'Aprobar Tokens', description: 'Aprobar que el contrato gaste tokens' },
   { id: 'register', label: 'Registrar Vendor', description: 'Confirmar registro y quemar tokens' },
   { id: 'complete', label: 'Completado', description: 'Vendor registrado exitosamente' }
 ]
@@ -51,8 +52,9 @@ export function TransactionStatus({
   const getCurrentStep = () => {
     if (!isConnected) return 0
     if (!hasSufficientBalance) return 0
-    if (!isTransactionConfirmed) return 1
-    return 2
+    if (!isApproved) return 1
+    if (!isTransactionConfirmed) return 2
+    return 3
   }
 
   const currentStep = getCurrentStep()
@@ -148,7 +150,7 @@ export function TransactionStatus({
             <Button 
               onClick={onRegister} 
               disabled={isTransactionPending}
-              className="w-full"
+              className="w-full text-black"
             >
               {isTransactionPending ? (
                 <>

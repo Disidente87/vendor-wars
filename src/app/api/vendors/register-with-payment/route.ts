@@ -8,6 +8,7 @@ import { sendRawTransaction, waitForTransactionReceipt } from 'viem/actions'
 import { getTransactionCount } from 'viem/actions'
 import { PAYMENT_CONFIG } from '@/config/payment'
 import { createClient } from '@supabase/supabase-js'
+import { simulateContract } from 'viem/actions'
 
 // ABI para el contrato VendorRegistration
 const VENDOR_REGISTRATION_ABI = [
@@ -159,13 +160,57 @@ export async function POST(request: NextRequest) {
       }
       
       console.log('✅ API: Contrato encontrado')
-    } catch (contractError) {
-      console.error('❌ API: Error verificando contrato:', contractError)
+    
+    // Simular la transacción para capturar posibles errores
+    console.log('🔍 API: Simulando transacción...')
+    try {
+      await simulateContract(publicClient, {
+        address: PAYMENT_CONFIG.VENDOR_REGISTRATION.ADDRESS as `0x${string}`,
+        abi: VENDOR_REGISTRATION_ABI,
+        functionName: 'registerVendor',
+        args: [userAddress as `0x${string}`, amountInWei, vendorData, vendorId],
+        account: walletAddress as `0x${string}`
+      })
+      console.log('✅ API: Simulación exitosa')
+    } catch (simulationError: any) {
+      console.error('❌ API: Error en simulación:', simulationError)
+      let errorMessage = 'Transaction would fail'
+      
+      // Extraer mensaje de error específico
+      if (simulationError?.message) {
+        if (simulationError.message.includes('Insufficient balance')) {
+          errorMessage = 'Saldo insuficiente de tokens BATTLE'
+        } else if (simulationError.message.includes('allowance')) {
+          errorMessage = 'Necesitas aprobar que el contrato gaste tus tokens BATTLE primero'
+        } else if (simulationError.message.includes('Cannot burn tokens from user')) {
+          errorMessage = 'No se pueden quemar tokens del usuario. Necesitas aprobar que el contrato gaste tus tokens BATTLE primero'
+        } else if (simulationError.message.includes('Vendor already exists')) {
+          errorMessage = 'El vendor ya existe'
+        } else if (simulationError.message.includes('Daily limit exceeded')) {
+          errorMessage = 'Has alcanzado el límite diario de registros'
+        } else if (simulationError.message.includes('Cooldown period not met')) {
+          errorMessage = 'Debes esperar antes de registrar otro vendor'
+        } else {
+          errorMessage = simulationError.message
+        }
+      }
+      
       return NextResponse.json(
-        { success: false, error: 'Smart contract not found' },
-        { status: 500 }
+        { 
+          success: false, 
+          error: errorMessage,
+          details: simulationError?.message || 'Unknown simulation error'
+        },
+        { status: 400 }
       )
     }
+  } catch (contractError) {
+    console.error('❌ API: Error verificando contrato:', contractError)
+    return NextResponse.json(
+      { success: false, error: 'Smart contract not found' },
+      { status: 500 }
+    )
+  }
     
     // Preparar la transacción
     console.log('🔍 API: Preparando transacción...')
