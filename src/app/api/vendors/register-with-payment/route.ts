@@ -306,7 +306,7 @@ export async function POST(request: NextRequest) {
             wins: 0,
             losses: 0,
             win_rate: 0,
-            total_revenue: parseFloat(paymentAmount),
+            // total_revenue: parseFloat(paymentAmount), // Comentado temporalmente - verificar schema
             average_rating: 0,
             review_count: 0,
             territory_defenses: 0,

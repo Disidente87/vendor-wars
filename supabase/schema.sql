@@ -49,7 +49,6 @@ CREATE TABLE vendors (
   wins INTEGER DEFAULT 0,
   losses INTEGER DEFAULT 0,
   win_rate DECIMAL(5,2) DEFAULT 0.00,
-  total_revenue DECIMAL(10,2) DEFAULT 0.00,
   average_rating DECIMAL(3,2) DEFAULT 0.00,
   review_count INTEGER DEFAULT 0,
   territory_defenses INTEGER DEFAULT 0,
