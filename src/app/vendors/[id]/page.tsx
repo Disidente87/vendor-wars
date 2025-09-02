@@ -199,16 +199,34 @@ export default function VendorProfilePage({ params }: { params: Promise<{ id: st
         })
 
         // Convert to TopVoter format
-        const topVoters = Object.entries(userVotes)
-          .map(([fid, votes]) => {
+        const topVotersData = await Promise.all(
+          Object.entries(userVotes).map(async ([fid, votes]) => {
             const user = votes[0].users
             // Use Farcaster info if this is the authenticated user
             const isAuthenticatedUser = authenticatedUser && fid === authenticatedUser.fid.toString()
+            
+            // Try to get real Farcaster image for all users
+            let realAvatar = user?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${fid}`
+            if (!isAuthenticatedUser) {
+              try {
+                const response = await fetch(`/api/farcaster/user/${fid}`)
+                if (response.ok) {
+                  const userData = await response.json()
+                  if (userData.pfpUrl) {
+                    realAvatar = userData.pfpUrl
+                    console.log(`✅ Got real Farcaster image for user ${fid}:`, realAvatar)
+                  }
+                }
+              } catch (error) {
+                console.warn(`Failed to get Farcaster image for user ${fid}:`, error)
+              }
+            }
+            
             const voterData = {
               id: fid,
               username: isAuthenticatedUser ? authenticatedUser.username : (user?.username || `user_${fid}`),
               displayName: isAuthenticatedUser ? authenticatedUser.displayName : (user?.display_name || `User ${fid}`),
-              avatar: isAuthenticatedUser ? authenticatedUser.pfpUrl : (user?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${fid}`),
+              avatar: isAuthenticatedUser ? authenticatedUser.pfpUrl : realAvatar,
               votesGiven: votes.length,
               totalVotes: votes.length,
               isVerified: votes.some((vote: any) => vote.is_verified)
@@ -216,6 +234,9 @@ export default function VendorProfilePage({ params }: { params: Promise<{ id: st
             console.log(`🔍 TopVoter ${fid}:`, voterData)
             return voterData
           })
+        )
+        
+        const topVoters = topVotersData
           .sort((a, b) => b.votesGiven - a.votesGiven)
           .slice(0, 3)
 

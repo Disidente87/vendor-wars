@@ -54,6 +54,43 @@ export function useFarcasterAuth(): UseFarcasterAuthReturn {
     return null
   }
 
+  // Function to sync profile image with database
+  const syncProfileImage = async (userFid: number, realPfpUrl: string, currentDbPfpUrl: string) => {
+    try {
+      // Only update if the URLs are different
+      if (realPfpUrl && realPfpUrl !== currentDbPfpUrl) {
+        console.log('🔄 Profile image mismatch detected:', {
+          real: realPfpUrl,
+          database: currentDbPfpUrl
+        })
+        
+        const response = await fetch('/api/users/profile-image', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ 
+            fid: userFid,
+            pfpUrl: realPfpUrl 
+          }),
+        })
+        
+        const result = await response.json()
+        if (result.success) {
+          console.log('✅ Profile image updated in database:', realPfpUrl)
+          return realPfpUrl
+        } else {
+          console.warn('Failed to update profile image in database:', result.error)
+        }
+      } else {
+        console.log('✅ Profile image is already up to date')
+      }
+    } catch (error) {
+      console.error('Error syncing profile image:', error)
+    }
+    return currentDbPfpUrl
+  }
+
   useEffect(() => {
     console.log('🔄 useEffect triggered:', { isSDKLoaded, hasContext: !!context, hasInitialized: hasInitialized.current })
     
@@ -103,13 +140,16 @@ export function useFarcasterAuth(): UseFarcasterAuthReturn {
               })
               
               // Use real Farcaster image from context if available
-              const realPfpUrl = context?.user?.pfpUrl
+              const realPfpUrl = context?.user?.pfpUrl || result.data.pfpUrl
               console.log('🖼️ Real Farcaster image from context:', realPfpUrl)
+              
+              // Sync profile image with database
+              const syncedPfpUrl = await syncProfileImage(parsedUser.fid, realPfpUrl, result.data.pfpUrl)
               
               const updatedStreak = await checkAndResetStreak(parsedUser.fid)
               const updatedUser = {
                 ...result.data,
-                pfpUrl: realPfpUrl || result.data.pfpUrl, // Use real image if available
+                pfpUrl: syncedPfpUrl, // Use synced image
                 voteStreak: updatedStreak !== null ? updatedStreak : result.data.voteStreak
               }
               
@@ -159,16 +199,19 @@ export function useFarcasterAuth(): UseFarcasterAuthReturn {
             })
             
             // Use real Farcaster image from context if available
-            const realPfpUrl = currentUser?.pfpUrl
+            const realPfpUrl = currentUser?.pfpUrl || result.data.pfpUrl
             console.log('🖼️ Real Farcaster image from context:', realPfpUrl)
+            
+            // Sync profile image with database
+            const syncedPfpUrl = await syncProfileImage(currentUser.fid, realPfpUrl, result.data.pfpUrl)
             
             // Check and reset streak if needed
             const updatedStreak = await checkAndResetStreak(currentUser.fid)
             
-            // Update user with potentially corrected streak and real image
+            // Update user with potentially corrected streak and synced image
             const updatedUser = {
               ...result.data,
-              pfpUrl: realPfpUrl || result.data.pfpUrl, // Use real image if available
+              pfpUrl: syncedPfpUrl, // Use synced image
               voteStreak: updatedStreak !== null ? updatedStreak : result.data.voteStreak
             }
             
@@ -328,10 +371,14 @@ export function useFarcasterAuth(): UseFarcasterAuthReturn {
         if (result.success) {
           console.log('User exists in database, authenticating...')
           // User exists - authenticate
+          
+          // Sync profile image with database
+          const syncedPfpUrl = await syncProfileImage(currentUser.fid, currentUser.pfpUrl || result.data.pfpUrl, result.data.pfpUrl)
+          
           const updatedStreak = await checkAndResetStreak(currentUser.fid)
           const updatedUser = {
             ...result.data,
-            pfpUrl: currentUser.pfpUrl || result.data.pfpUrl, // Use real image if available
+            pfpUrl: syncedPfpUrl, // Use synced image
             voteStreak: updatedStreak !== null ? updatedStreak : result.data.voteStreak
           }
           
