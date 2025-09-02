@@ -191,33 +191,39 @@ async function ZonePageAsync({ zoneId }: { zoneId: string }) {
                       .sort((a, b) => b.stats.totalVotes - a.stats.totalVotes)
                       .map((vendor, index) => (
                       <Link key={vendor.id} href={`/vendors/${vendor.id}`}>
-                        <div className="flex items-center gap-4 p-4 rounded-lg border hover:bg-orange-50 transition-colors cursor-pointer">
-                          <div className="flex items-center gap-3 flex-1">
-                            <div className="relative">
-                              <span className="text-2xl font-bold text-gray-400 w-8 text-center">
-                                {index + 1}
-                              </span>
-                              {index < 3 && (
-                                <Trophy className="absolute -top-1 -right-1 w-4 h-4 text-yellow-500" />
-                              )}
-                            </div>
-                            <Avatar className="w-12 h-12">
-                              <img src={vendor.imageUrl} alt={vendor.name} />
-                            </Avatar>
-                            <div className="flex-1">
-                              <h3 className="font-semibold text-lg truncate">{vendor.name}</h3>
-                              <p className="text-sm text-gray-600">@{vendor.owner.username}</p>
-                            </div>
+                        <div className="flex items-center gap-3 p-3 rounded-lg border hover:bg-orange-50 transition-colors cursor-pointer">
+                          {/* Rank */}
+                          <div className="relative flex-shrink-0">
+                            <span className="text-lg font-bold text-gray-400 w-6 text-center">
+                              {index + 1}
+                            </span>
+                            {index < 3 && (
+                              <Trophy className="absolute -top-1 -right-1 w-3 h-3 text-yellow-500" />
+                            )}
                           </div>
                           
-                          <div className="flex items-center gap-6 text-sm">
+                          {/* Avatar */}
+                          <div className="flex-shrink-0">
+                            <Avatar className="w-10 h-10">
+                              <img src={vendor.imageUrl} alt={vendor.name} />
+                            </Avatar>
+                          </div>
+                          
+                          {/* Vendor Info - Max 2 lines */}
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-semibold text-sm truncate leading-tight">{vendor.name}</h3>
+                            <p className="text-xs text-gray-600 truncate leading-tight">@{vendor.owner.username}</p>
+                          </div>
+                          
+                          {/* Stats - Always visible */}
+                          <div className="flex items-center gap-4 text-xs flex-shrink-0">
                             <div className="text-center">
-                              <div className="font-semibold">{vendor.stats.totalVotes}</div>
+                              <div className="font-bold text-orange-600">{vendor.stats.totalVotes}</div>
                               <div className="text-gray-500">Votes</div>
                             </div>
                             <div className="text-center">
-                              <div className="font-semibold">{vendor.stats.winRate}%</div>
-                              <div className="text-gray-500">Win Rate</div>
+                              <div className="font-bold text-green-600">{vendor.stats.winRate}%</div>
+                              <div className="text-gray-500">Win</div>
                             </div>
                           </div>
                         </div>
