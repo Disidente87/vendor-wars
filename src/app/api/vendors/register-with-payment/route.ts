@@ -57,6 +57,9 @@ export async function POST(request: NextRequest) {
     const headerFid = request.headers.get('x-farcaster-fid')
     const headerFidNumber = headerFid ? parseInt(headerFid, 10) : null
     
+    console.log('🔍 API: headerFid raw:', headerFid)
+    console.log('🔍 API: headerFid parsed:', headerFidNumber)
+    
     console.log('🔍 API: Body recibido:', { 
       userAddress, 
       vendorId, 

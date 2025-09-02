@@ -186,6 +186,8 @@ export default function VendorRegistrationPage() {
         }
         
         imageUrl = uploadResult.url!
+        console.log('🔍 Frontend: imageUrl asignado después de upload:', imageUrl)
+        console.log('🔍 Frontend: imageUrl es blob después de upload?', imageUrl.startsWith('blob:'))
         setIsUploadingImage(false)
       }
 
@@ -203,8 +205,11 @@ export default function VendorRegistrationPage() {
         description: formData.description,
         delegation: formData.delegation,
         category: formData.category,
-        imageUrl: imageUrl
+        imageUrl: imageUrl // Usar la variable local, no formData.imageUrl
       }
+      
+      console.log('🔍 Frontend: formData.imageUrl (blob):', formData.imageUrl)
+      console.log('🔍 Frontend: imageUrl local (supabase):', imageUrl)
       
       console.log('🔍 Frontend: imageUrl que se envía:', imageUrl)
       console.log('🔍 Frontend: imageUrl es blob?', imageUrl.startsWith('blob:'))
@@ -215,7 +220,7 @@ export default function VendorRegistrationPage() {
         vendorId: formData.vendorId,
         paymentAmount: formData.paymentAmount,
         signature: '0x' + '0'.repeat(130), // Placeholder signature for now
-        ownerFid: authenticatedUser.fid // Enviar FID también en el body como backup
+        ownerFid: authenticatedUser?.fid || null // Asegurar que no sea undefined
       }
       
       console.log('🚀 Sending vendor registration data with payment:', requestData)

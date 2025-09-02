@@ -676,6 +676,7 @@ export class VendorService {
 
       if (error) {
         if (error.code === 'PGRST116') {
+          console.log(`🔍 getTopVendorByZone: No vendors found in zone ${zoneId}`)
           return null // No vendors in this zone
         }
         console.error('❌ Supabase error in getTopVendorByZone:', error)
@@ -683,8 +684,11 @@ export class VendorService {
       }
 
       if (!vendor) {
+        console.log(`🔍 getTopVendorByZone: No vendor data returned for zone ${zoneId}`)
         return null
       }
+      
+      console.log(`🔍 getTopVendorByZone: Found vendor for zone ${zoneId}:`, vendor.name, 'Votes:', vendor.total_votes)
 
       // Handle case where users relation might be null
       if (!vendor.users) {
@@ -760,6 +764,7 @@ export class VendorService {
         zones.map(async (zone) => {
           try {
             const topVendor = await this.getTopVendorByZone(zone.id)
+            console.log(`🔍 getZonesWithTopVendors: Zona ${zone.name} (${zone.id}) - Top vendor:`, topVendor?.name, 'Votes:', topVendor?.stats?.totalVotes)
             
             // Get total vendors and votes for this zone
             const { data: zoneStats, error: statsError } = await supabase
