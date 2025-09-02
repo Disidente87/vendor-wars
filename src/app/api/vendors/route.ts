@@ -48,7 +48,10 @@ export async function GET(request: NextRequest) {
         description: vendor.description,
         imageUrl: vendor.image_url,
         category: vendor.category,
+        subcategories: vendor.subcategories || [], // Include subcategories
         zone: vendor.zones?.name || vendor.zone_id || 'Unknown',
+        zoneId: vendor.zone_id, // Add zone ID for filtering
+        delegation: vendor.delegation, // Add delegation field
         isVerified: vendor.is_verified,
         stats: {
           totalVotes: vendor.total_votes || 0,

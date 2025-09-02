@@ -24,6 +24,7 @@ export interface Vendor {
   category: VendorCategory
   subcategories: string[] // Array of subcategory IDs
   zone: string // Battle zone ID
+  delegation?: string // Delegation field
   coordinates: [number, number] // GPS coordinates
   stats: VendorStats
   owner: User

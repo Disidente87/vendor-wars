@@ -164,6 +164,7 @@ function mapSupabaseVendorToVendor(supabaseVendor: any, owner?: any): Vendor {
     category: supabaseVendor.category as VendorCategory,
     subcategories: supabaseVendor.subcategories || [], // Include subcategories
     zone: supabaseVendor.zones?.name || supabaseVendor.zone_id || 'Unknown',
+    delegation: supabaseVendor.delegation, // Include delegation
     coordinates: supabaseVendor.coordinates,
     owner: owner || {
       fid: supabaseVendor.owner_fid,

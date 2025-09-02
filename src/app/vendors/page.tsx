@@ -29,6 +29,8 @@ interface Vendor {
   category: string
   subcategories?: string[] // Array of subcategory IDs
   zone: string
+  zoneId?: string // Zone ID for filtering
+  delegation?: string // Delegation field
   isVerified: boolean
   stats: {
     totalVotes: number
@@ -79,6 +81,16 @@ export default function VendorsPage() {
     fetchVendors()
   }, [])
 
+  // Zone mapping: name to ID
+  const zoneMapping = {
+    'all': 'all',
+    'Zona Centro': '1',
+    'Zona Norte': '2', 
+    'Zona Sur': '3',
+    'Zona Este': '4',
+    'Zona Oeste': '5'
+  }
+  
   // Filter options
   const zones = ['all', 'Zona Norte', 'Zona Sur', 'Zona Este', 'Zona Oeste', 'Zona Centro']
   const categories = ['all', ...FARCASTER_CONFIG.MAIN_CATEGORIES.map(cat => cat.id)]
@@ -86,18 +98,27 @@ export default function VendorsPage() {
   
   // Get available subcategories based on selected category
   const availableSubcategories = selectedCategory !== 'all' ? getSubcategories(selectedCategory) : []
+  
+  // Debug subcategories
+  if (process.env.NODE_ENV === 'development') {
+    console.log('Subcategory debug:', {
+      selectedCategory,
+      availableSubcategories,
+      availableSubcategoriesLength: availableSubcategories.length,
+      selectedSubcategories,
+      vendorsWithSubcategories: vendors.filter(v => v.subcategories && v.subcategories.length > 0).length
+    })
+  }
 
   // Filter vendors based on search and filters
   const filteredVendors = vendors.filter(vendor => {
     const matchesSearch = vendor.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          vendor.description.toLowerCase().includes(searchQuery.toLowerCase())
     
-    // More flexible zone matching - check if zone name contains the selected zone or vice versa
+    // Zone matching by ID to avoid partial name conflicts (e.g., "oeste" contains "este")
+    const selectedZoneId = zoneMapping[selectedZone as keyof typeof zoneMapping]
     const matchesZone = selectedZone === 'all' || 
-      (vendor.zone && (
-        vendor.zone.toLowerCase().includes(selectedZone.toLowerCase()) ||
-        selectedZone.toLowerCase().includes(vendor.zone.toLowerCase())
-      ))
+      (vendor.zoneId && vendor.zoneId === selectedZoneId)
     
     // More flexible category matching
     const matchesCategory = selectedCategory === 'all' || 
@@ -106,16 +127,24 @@ export default function VendorsPage() {
         selectedCategory.toLowerCase().includes(vendor.category.toLowerCase())
       ))
     
-    // More flexible delegation matching - check if zone contains delegation name
+    // Delegation matching - compare with delegation field
     const matchesDelegation = selectedDelegation === 'all' || 
-      (vendor.zone && (
-        vendor.zone.toLowerCase().includes(selectedDelegation.toLowerCase()) ||
-        selectedDelegation.toLowerCase().includes(vendor.zone.toLowerCase())
-      ))
+      (vendor.delegation && vendor.delegation === selectedDelegation)
     
     // Filter by subcategories - vendor must have at least one of the selected subcategories
     const matchesSubcategories = selectedSubcategories.length === 0 || 
       (vendor.subcategories && vendor.subcategories.some(sub => selectedSubcategories.includes(sub)))
+    
+    // Debug subcategory filtering
+    if (process.env.NODE_ENV === 'development' && selectedSubcategories.length > 0) {
+      console.log(`Vendor ${vendor.name}:`, {
+        vendorSubcategories: vendor.subcategories,
+        selectedSubcategories,
+        matchesSubcategories,
+        hasSubcategories: !!vendor.subcategories,
+        subcategoriesLength: vendor.subcategories?.length || 0
+      })
+    }
     
     return matchesSearch && matchesZone && matchesCategory && matchesDelegation && matchesSubcategories
   })
@@ -335,8 +364,12 @@ export default function VendorsPage() {
               {/* Debug: Show available data */}
               {process.env.NODE_ENV === 'development' && (
                 <div className="text-xs text-gray-500 mt-1 space-y-1">
-                  <div>Available zones: {[...new Set(vendors.map(v => v.zone))].join(', ')}</div>
+                  <div>Available zones: {[...new Set(vendors.map(v => `${v.zone} (${v.zoneId})`))].join(', ')}</div>
                   <div>Available categories: {[...new Set(vendors.map(v => v.category))].join(', ')}</div>
+                  <div>Available delegations: {[...new Set(vendors.map(v => v.delegation).filter(Boolean))].join(', ') || 'none'}</div>
+                  <div>Selected subcategories: {selectedSubcategories.join(', ') || 'none'}</div>
+                  <div>Available subcategories: {[...new Set(vendors.flatMap(v => v.subcategories || []))].join(', ') || 'none'}</div>
+                  <div>Filter debug: selectedCategory={selectedCategory}, selectedDelegation={selectedDelegation}, selectedSubcategories={selectedSubcategories.length}</div>
                 </div>
               )}
             </div>

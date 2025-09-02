@@ -339,15 +339,21 @@ export default function VendorProfilePage({ params }: { params: Promise<{ id: st
               )}
             </div>
             
-            {/* Show verification button only to owner */}
-            {authenticatedUser && vendor.owner?.fid === authenticatedUser.fid && !vendor.isVerified && (
-              <Button
-                onClick={() => router.push(`/vendors/${vendor.id}/verify`)}
-                className="bg-[#ee8c0b] hover:bg-[#d67d0a] text-white text-sm px-4 py-2 rounded-lg"
-              >
-                Verify Vendor
-              </Button>
-            )}
+            {/* Show verification button only to owner - DISABLED */}
+            {(() => {
+              if (!vendor || !authenticatedUser) return null
+              const vendorData = vendor as Vendor
+              const user = authenticatedUser
+              const canShowVerifyButton = false && vendorData.owner?.fid === user.fid && !vendorData.isVerified
+              return canShowVerifyButton && (
+                <Button
+                  onClick={() => router.push(`/vendors/${vendorData.id}/verify`)}
+                  className="bg-[#ee8c0b] hover:bg-[#d67d0a] text-white text-sm px-4 py-2 rounded-lg"
+                >
+                  Verify Vendor
+                </Button>
+              )
+            })()}
           </div>
         </div>
 
@@ -446,6 +452,13 @@ export default function VendorProfilePage({ params }: { params: Promise<{ id: st
             </h3>
             <p className="text-[#181511] text-base font-normal leading-normal pb-3 pt-1 px-4">
               {capitalizeText(vendor.zone || 'Zone information')}
+            </p>
+            
+            <h3 className="text-[#181511] text-lg font-bold leading-tight tracking-[-0.015em] px-4 pb-2 pt-4">
+              Delegation
+            </h3>
+            <p className="text-[#181511] text-base font-normal leading-normal pb-3 pt-1 px-4">
+              {capitalizeText(vendor.delegation || 'Delegation information')}
             </p>
             
             <h3 className="text-[#181511] text-lg font-bold leading-tight tracking-[-0.015em] px-4 pb-2 pt-4">
