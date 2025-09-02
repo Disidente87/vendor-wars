@@ -167,89 +167,9 @@ export function useVendorRegistrationPayment() {
     }))
 
     try {
-      const res = await fetch('/api/vendors/register-with-payment', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userAddress: address,
-          vendorData,
-          vendorId,
-          paymentAmount: '50',
-          // Firma placeholder solo para cumplir validación del backend
-          signature: '0x' + '0'.repeat(130)
-        })
-      })
-
-      const json = await res.json()
-
-      if (!res.ok || !json?.success) {
-        const apiMessage = json?.error || 'Fallo en el registro de vendor'
-        
-        // Si el error es por vendorId duplicado, intentar con un nuevo ID
-        if (apiMessage.includes('vendor ya existe') || apiMessage.includes('Vendor already exists') || apiMessage.includes('ID de vendor ya está en uso')) {
-          console.log('🔄 VendorId duplicado detectado, regenerando...')
-          
-          // Generar nuevo vendorId con un pequeño delay para evitar colisiones
-          await new Promise(resolve => setTimeout(resolve, 100))
-          const newVendorId = `vendor_${Date.now()}_${Math.random().toString(36).substring(2, 8)}_${Math.random().toString(36).substring(2, 8)}_${crypto.randomUUID().slice(-8)}`
-          
-          // Notificar al componente padre para actualizar el vendorId
-          if (onVendorIdConflict) {
-            onVendorIdConflict(newVendorId)
-          }
-          
-          // Intentar de nuevo con el nuevo vendorId
-          const retryRes = await fetch('/api/vendors/register-with-payment', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              userAddress: address,
-              vendorData,
-              vendorId: newVendorId,
-              paymentAmount: '50',
-              signature: '0x' + '0'.repeat(130)
-            })
-          })
-
-          const retryJson = await retryRes.json()
-
-          if (!retryRes.ok || !retryJson?.success) {
-            const retryApiMessage = retryJson?.error || 'Fallo en el registro de vendor (segundo intento)'
-            setPaymentState(prev => ({
-              ...prev,
-              isTransactionConfirmed: false,
-              isTransactionPending: false,
-              error: retryApiMessage
-            }))
-            return
-          }
-
-          // Éxito en el segundo intento
-          setPaymentState(prev => ({
-            ...prev,
-            isTransactionConfirmed: true,
-            isTransactionPending: false,
-            error: null
-          }))
-          return
-        }
-        
-        setPaymentState(prev => ({
-          ...prev,
-          isTransactionConfirmed: false,
-          isTransactionPending: false,
-          error: apiMessage
-        }))
-        return
-      }
-
-      // Éxito confirmado por el backend
-      setPaymentState(prev => ({
-        ...prev,
-        isTransactionConfirmed: true,
-        isTransactionPending: false,
-        error: null
-      }))
+      // Hook deshabilitado - el frontend maneja la API directamente
+      console.log('🚫 Hook deshabilitado - no se hace llamada a la API')
+      return
     } catch (error) {
       setPaymentState(prev => ({
         ...prev,

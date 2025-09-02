@@ -199,6 +199,10 @@ export default function VendorRegistrationPage() {
         return
       }
       
+      // Regenerar vendorId para evitar conflictos
+      const freshVendorId = vendorPaymentService.generateVendorId()
+      console.log('🔄 Frontend: Regenerando vendorId:', freshVendorId)
+      
       // Preparar datos para la nueva API con pago
       const vendorData = {
         name: formData.name,
@@ -217,7 +221,7 @@ export default function VendorRegistrationPage() {
       const requestData = {
         userAddress: formData.userAddress,
         vendorData: JSON.stringify(vendorData),
-        vendorId: formData.vendorId,
+        vendorId: freshVendorId, // Usar el vendorId fresco
         paymentAmount: formData.paymentAmount,
         signature: '0x' + '0'.repeat(130), // Placeholder signature for now
         ownerFid: authenticatedUser?.fid || null // Asegurar que no sea undefined
@@ -537,15 +541,8 @@ export default function VendorRegistrationPage() {
               vendorData={JSON.stringify(formData)}
               vendorId={formData.vendorId}
               onRegister={() => {
-                paymentHook.registerVendorWithPayment(
-                  JSON.stringify(formData),
-                  formData.vendorId,
-                  (newVendorId) => {
-                    // Actualizar el vendorId en el estado del formulario
-                    setFormData(prev => ({ ...prev, vendorId: newVendorId }))
-                    console.log('🔄 VendorId actualizado automáticamente:', newVendorId)
-                  }
-                )
+                // No llamar al hook, el frontend ya maneja la API
+                console.log('🚫 Hook deshabilitado - el frontend maneja la API directamente')
               }}
             />
 
