@@ -285,11 +285,8 @@ export default function MapPage() {
                     </div>
                     
                     {/* Vote Count Circle (tangent to the main circle) */}
-                    <div className="absolute -bottom-2 -right-2 w-8 h-8 rounded-full border-2 border-white shadow-lg bg-white flex items-center justify-center">
-                      <div className="text-center">
-                        <div className="text-xs font-bold text-[#2d1810]">{zone.recentVotes}</div>
-                        <div className="text-[8px] text-[#6b5d52]">votes</div>
-                      </div>
+                    <div className="absolute -bottom-2 -right-2 w-8 h-8 rounded-full border-2 border-white shadow-lg bg-black flex items-center justify-center">
+                      <div className="text-xs font-bold text-white">{zone.recentVotes}</div>
                     </div>
                     
                     {/* Battle Intensity Indicator */}

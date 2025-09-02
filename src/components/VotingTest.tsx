@@ -77,7 +77,7 @@ export function VotingTest() {
   return (
     <Card className="w-full max-w-md mx-auto">
       <CardHeader>
-        <CardTitle>Voting System Test</CardTitle>
+        <CardTitle>Voting System</CardTitle>
         <CardDescription>
           Vote for your favorite place
         </CardDescription>
@@ -96,26 +96,6 @@ export function VotingTest() {
               {balance?.toLocaleString() || 0} $BATTLE
             </Badge>
           </div>
-        </div>
-
-        {/* Voting Buttons */}
-        <div className="space-y-2">
-          <Button
-            onClick={() => handleVote('regular')}
-            disabled={isVoting}
-            className="w-full"
-          >
-            {isVoting ? 'Voting...' : 'Vote Regular (10 tokens)'}
-          </Button>
-          
-          <Button
-            onClick={() => handleVote('verified')}
-            disabled={isVoting}
-            variant="outline"
-            className="w-full"
-          >
-            {isVoting ? 'Voting...' : 'Vote Verified (30 tokens)'}
-          </Button>
         </div>
 
         {/* Error Display */}
@@ -149,8 +129,7 @@ export function VotingTest() {
           <p>• Verified votes earn 30 $BATTLE tokens</p>
           <p>• Day streak gives +1 $BATTLE bonus per consecutive day</p>
           <p>• Creating a new vendor costs 50 $BATTLE</p>
-          <p>• No voting restrictions (testing mode)</p>
-          <p>• Your Farcaster FID: {authenticatedUser.fid}</p>
+          <p>• No voting restrictions (BETA mode)</p>
         </div>
       </CardContent>
     </Card>

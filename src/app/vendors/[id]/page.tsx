@@ -192,11 +192,13 @@ export default function VendorProfilePage({ params }: { params: Promise<{ id: st
         const topVoters = Object.entries(userVotes)
           .map(([fid, votes]) => {
             const user = votes[0].users
+            // Use Farcaster info if this is the authenticated user
+            const isAuthenticatedUser = authenticatedUser && fid === authenticatedUser.fid.toString()
             return {
               id: fid,
-              username: user?.username || `user_${fid}`,
-              displayName: user?.display_name || `User ${fid}`,
-              avatar: user?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${fid}`,
+              username: isAuthenticatedUser ? authenticatedUser.username : (user?.username || `user_${fid}`),
+              displayName: isAuthenticatedUser ? authenticatedUser.displayName : (user?.display_name || `User ${fid}`),
+              avatar: isAuthenticatedUser ? authenticatedUser.pfpUrl : (user?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${fid}`),
               votesGiven: votes.length,
               totalVotes: votes.length,
               isVerified: votes.some((vote: any) => vote.is_verified)
@@ -299,7 +301,7 @@ export default function VendorProfilePage({ params }: { params: Promise<{ id: st
               }}
             >
               <div className="flex p-4">
-                <div className="bg-black/50 backdrop-blur-sm rounded-lg px-4 py-2">
+                <div className="bg-black/30 backdrop-blur-sm rounded-lg px-4 py-2">
                   <p className="text-white tracking-light text-[28px] font-bold leading-tight drop-shadow-lg">
                     {vendor.name}
                   </p>

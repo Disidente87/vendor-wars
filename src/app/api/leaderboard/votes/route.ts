@@ -100,6 +100,7 @@ export async function GET(request: NextRequest) {
         .slice(0, limit)
 
       const fids = sorted.map(([fid]) => fid)
+      console.log('🔍 Leaderboard users - FIDs found:', fids)
       let usersByFid: Record<string, any> = {}
       if (fids.length) {
         const { data: users, error: uErr } = await supabase
@@ -107,20 +108,25 @@ export async function GET(request: NextRequest) {
           .select('fid, username, display_name, avatar_url')
           .in('fid', fids)
         if (uErr) throw uErr
+        console.log('🔍 Leaderboard users - Users from DB:', users)
         usersByFid = Object.fromEntries((users || []).map((u: any) => [String(u.fid), u]))
+        console.log('🔍 Leaderboard users - UsersByFid mapping:', usersByFid)
       }
 
       const result = sorted.map(([fid, count], idx) => {
         const u = usersByFid[String(fid)] || null
-        return {
+        const userResult = {
           id: String(fid),
           rank: idx + 1,
           name: u?.display_name || u?.username || `FID ${fid}`,
           avatar: u?.avatar_url || '',
           votesGiven: count as number,
         }
+        console.log(`🔍 Leaderboard user ${fid}:`, userResult)
+        return userResult
       })
 
+      console.log('🔍 Leaderboard final result:', result)
       return NextResponse.json({ success: true, data: result })
     }
 

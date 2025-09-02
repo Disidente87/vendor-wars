@@ -35,7 +35,7 @@ interface ZoneVotesEntry { id: string; rank: number; name: string; votesReceived
 
 export default function LeaderboardPage() {
   const router = useRouter()
-  const { isAuthenticated, user: _user, isLoading } = useFarcasterAuth()
+  const { isAuthenticated, user: farcasterUser, isLoading } = useFarcasterAuth()
   
   const [timeFilter, setTimeFilter] = useState<'daily' | 'weekly' | 'monthly' | 'all'>('weekly')
   const [activeTab, setActiveTab] = useState<'vendors' | 'users' | 'zones'>('vendors')
@@ -59,7 +59,20 @@ export default function LeaderboardPage() {
         } else if (activeTab === 'users') {
           const res = await fetch(`/api/leaderboard/votes?type=users&limit=20&time=${timeFilter}`)
           const json = await res.json()
-          if (!cancelled && json.success) setUsersVotes(json.data)
+          if (!cancelled && json.success) {
+            // Enhance user data with Farcaster info if available
+            const enhancedData = json.data.map((user: any) => {
+              if (farcasterUser && user.id === farcasterUser.fid.toString()) {
+                return {
+                  ...user,
+                  name: farcasterUser.displayName || farcasterUser.username,
+                  avatar: farcasterUser.pfpUrl
+                }
+              }
+              return user
+            })
+            setUsersVotes(enhancedData)
+          }
         } else {
           const res = await fetch(`/api/leaderboard/votes?type=zones&limit=20&time=${timeFilter}`)
           const json = await res.json()
