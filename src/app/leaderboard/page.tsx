@@ -324,7 +324,16 @@ export default function LeaderboardPage() {
           {getCurrentVotes().map((entry: any, index: number) => (
             <div 
               key={entry.id}
-              className={`${getBackgroundColor(index)} rounded-xl p-4 shadow-lg border border-[#ff6b35]/20 hover:shadow-xl transition-all duration-200`}
+              className={`${getBackgroundColor(index)} rounded-xl p-4 shadow-lg border border-[#ff6b35]/20 hover:shadow-xl transition-all duration-200 ${
+                (activeTab === 'vendors' || activeTab === 'zones') ? 'cursor-pointer' : ''
+              }`}
+              onClick={() => {
+                if (activeTab === 'vendors') {
+                  router.push(`/vendors/${entry.id}`)
+                } else if (activeTab === 'zones') {
+                  router.push(`/zones/${entry.id}`)
+                }
+              }}
             >
               <div className="flex items-center space-x-3">
                 {/* Rank */}
