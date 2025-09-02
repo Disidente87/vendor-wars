@@ -16,5 +16,10 @@
     "webhookUrl": "https://vendor-wars.vercel.app/api/webhook",
     "description": "Battle of the vendors - who will reign supreme?",
     "keywords": ["farcaster", "miniapp", "vendor", "battle", "competition", "food", "latam"]
+  },
+  
+    "baseBuilder": {
+      "allowedAddresses": ["0xa2CEC6063307a3Aa11f9A170Ca7a34F6e841D08C"
   }
+
 } 
