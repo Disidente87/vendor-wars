@@ -7,16 +7,12 @@ import { useFarcasterAuth } from '@/hooks/useFarcasterAuth'
 import { UserHeader } from '@/components/UserHeader'
 import { 
   ArrowLeft, 
-  Trophy, 
-  Crown, 
-  TrendingUp, 
   MapPin,
   Users,
   Store,
   Share2,
-  ChevronUp,
-  ChevronDown,
-  Minus
+  Crown,
+  Trophy
 } from 'lucide-react'
 
 interface LeaderboardEntry {
@@ -48,6 +44,36 @@ export default function LeaderboardPage() {
   const [zonesVotes, setZonesVotes] = useState<ZoneVotesEntry[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  // Fetch real leaderboard by votes (must be declared before any early return)
+  useEffect(() => {
+    let cancelled = false
+    const load = async () => {
+      setLoading(true)
+      setError(null)
+      try {
+        if (activeTab === 'vendors') {
+          const res = await fetch('/api/leaderboard/votes?type=vendors&limit=20')
+          const json = await res.json()
+          if (!cancelled && json.success) setVendorsVotes(json.data)
+        } else if (activeTab === 'users') {
+          const res = await fetch('/api/leaderboard/votes?type=users&limit=20')
+          const json = await res.json()
+          if (!cancelled && json.success) setUsersVotes(json.data)
+        } else {
+          const res = await fetch('/api/leaderboard/votes?type=zones&limit=20')
+          const json = await res.json()
+          if (!cancelled && json.success) setZonesVotes(json.data)
+        }
+      } catch (e: any) {
+        if (!cancelled) setError(e.message || 'Failed to load leaderboard')
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+    load()
+    return () => { cancelled = true }
+  }, [activeTab])
 
   // Show loading while checking auth
   if (isLoading || !isAuthenticated) {
@@ -173,35 +199,6 @@ export default function LeaderboardPage() {
     }
   ]
 
-  // Fetch real leaderboard by votes
-  useEffect(() => {
-    let cancelled = false
-    const load = async () => {
-      setLoading(true)
-      setError(null)
-      try {
-        if (activeTab === 'vendors') {
-          const res = await fetch('/api/leaderboard/votes?type=vendors&limit=20')
-          const json = await res.json()
-          if (!cancelled && json.success) setVendorsVotes(json.data)
-        } else if (activeTab === 'users') {
-          const res = await fetch('/api/leaderboard/votes?type=users&limit=20')
-          const json = await res.json()
-          if (!cancelled && json.success) setUsersVotes(json.data)
-        } else {
-          const res = await fetch('/api/leaderboard/votes?type=zones&limit=20')
-          const json = await res.json()
-          if (!cancelled && json.success) setZonesVotes(json.data)
-        }
-      } catch (e: any) {
-        if (!cancelled) setError(e.message || 'Failed to load leaderboard')
-      } finally {
-        if (!cancelled) setLoading(false)
-      }
-    }
-    load()
-    return () => { cancelled = true }
-  }, [activeTab])
 
   const getCurrentVotes = () => activeTab === 'vendors' ? vendorsVotes : activeTab === 'users' ? usersVotes : zonesVotes
 

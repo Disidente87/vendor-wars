@@ -16,17 +16,24 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '20')
 
     if (type === 'vendors') {
-      // Votes received per vendor
-      const { data: counts, error } = await supabase
+      // Votes received per vendor (aggregate client-side)
+      const { data: votes, error } = await supabase
         .from('votes')
-        .select('vendor_id, count:vendor_id.count()', { count: 'exact', head: false })
-        .group('vendor_id')
-        .order('count', { ascending: false })
-        .limit(limit)
-
+        .select('vendor_id')
       if (error) throw error
 
-      const vendorIds = (counts || []).map((c: any) => c.vendor_id).filter(Boolean)
+      const countsMap: Record<string, number> = {}
+      for (const v of votes || []) {
+        const id = String(v.vendor_id)
+        if (!id) continue
+        countsMap[id] = (countsMap[id] || 0) + 1
+      }
+
+      const sorted = Object.entries(countsMap)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, limit)
+
+      const vendorIds = sorted.map(([id]) => id)
       let vendorsById: Record<string, any> = {}
       if (vendorIds.length) {
         const { data: vendorsData, error: vErr } = await supabase
@@ -37,15 +44,15 @@ export async function GET(request: NextRequest) {
         vendorsById = Object.fromEntries((vendorsData || []).map((v: any) => [v.id, v]))
       }
 
-      const result = (counts || []).map((c: any, idx: number) => {
-        const v = vendorsById[c.vendor_id] || null
+      const result = sorted.map(([vendorId, count], idx) => {
+        const v = vendorsById[vendorId] || null
         return {
-          id: c.vendor_id,
+          id: vendorId,
           rank: idx + 1,
           name: v?.name || 'Unknown Vendor',
           avatar: v?.image_url || '',
           zoneId: v?.zone_id || null,
-          votesReceived: c.count as number,
+          votesReceived: count as number,
         }
       })
 
@@ -53,16 +60,24 @@ export async function GET(request: NextRequest) {
     }
 
     if (type === 'users') {
-      // Votes given per user (voter_fid)
-      const { data: counts, error } = await supabase
+      // Votes given per user (aggregate client-side)
+      const { data: votes, error } = await supabase
         .from('votes')
-        .select('voter_fid, count:voter_fid.count()', { count: 'exact', head: false })
-        .group('voter_fid')
-        .order('count', { ascending: false })
-        .limit(limit)
+        .select('voter_fid')
       if (error) throw error
 
-      const fids = (counts || []).map((c: any) => c.voter_fid)
+      const countsMap: Record<string, number> = {}
+      for (const v of votes || []) {
+        const fid = String(v.voter_fid)
+        if (!fid) continue
+        countsMap[fid] = (countsMap[fid] || 0) + 1
+      }
+
+      const sorted = Object.entries(countsMap)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, limit)
+
+      const fids = sorted.map(([fid]) => fid)
       let usersByFid: Record<string, any> = {}
       if (fids.length) {
         const { data: users, error: uErr } = await supabase
@@ -73,14 +88,14 @@ export async function GET(request: NextRequest) {
         usersByFid = Object.fromEntries((users || []).map((u: any) => [String(u.fid), u]))
       }
 
-      const result = (counts || []).map((c: any, idx: number) => {
-        const u = usersByFid[String(c.voter_fid)] || null
+      const result = sorted.map(([fid, count], idx) => {
+        const u = usersByFid[String(fid)] || null
         return {
-          id: String(c.voter_fid),
+          id: String(fid),
           rank: idx + 1,
-          name: u?.display_name || u?.username || `FID ${c.voter_fid}`,
+          name: u?.display_name || u?.username || `FID ${fid}`,
           avatar: u?.avatar_url || '',
-          votesGiven: c.count as number,
+          votesGiven: count as number,
         }
       })
 
@@ -88,15 +103,20 @@ export async function GET(request: NextRequest) {
     }
 
     if (type === 'zones') {
-      // Votes received per zone (aggregate vendor votes by zone)
-      // First get counts per vendor
-      const { data: counts, error } = await supabase
+      // Votes received per zone (aggregate client-side)
+      const { data: votes, error } = await supabase
         .from('votes')
-        .select('vendor_id, count:vendor_id.count()', { count: 'exact', head: false })
-        .group('vendor_id')
+        .select('vendor_id')
       if (error) throw error
 
-      const vendorIds = (counts || []).map((c: any) => c.vendor_id).filter(Boolean)
+      const vendorCountMap: Record<string, number> = {}
+      for (const v of votes || []) {
+        const id = String(v.vendor_id)
+        if (!id) continue
+        vendorCountMap[id] = (vendorCountMap[id] || 0) + 1
+      }
+
+      const vendorIds = Object.keys(vendorCountMap)
       let vendors: any[] = []
       if (vendorIds.length) {
         const { data: vendorsData, error: vErr } = await supabase
@@ -107,22 +127,18 @@ export async function GET(request: NextRequest) {
         vendors = vendorsData || []
       }
 
-      const voteByVendor: Record<string, number> = Object.fromEntries(
-        (counts || []).map((c: any) => [c.vendor_id, c.count as number])
-      )
-
-      const zoneCounts: Record<string, { zoneId: string; votes: number }> = {}
+      const zoneCounts: Record<string, number> = {}
       for (const v of vendors) {
         const zoneId = String(v.zone_id)
-        if (!zoneCounts[zoneId]) zoneCounts[zoneId] = { zoneId, votes: 0 }
-        zoneCounts[zoneId].votes += voteByVendor[v.id] || 0
+        const vendorVotes = vendorCountMap[v.id] || 0
+        zoneCounts[zoneId] = (zoneCounts[zoneId] || 0) + vendorVotes
       }
 
-      // Map zone names by a helper RPC or a static mapping if present
-      const zones = Object.values(zoneCounts)
+      const zones = Object.entries(zoneCounts)
+        .map(([zoneId, votes]) => ({ id: zoneId, votes }))
         .sort((a, b) => b.votes - a.votes)
         .slice(0, limit)
-        .map((z, idx) => ({ id: z.zoneId, rank: idx + 1, name: `Zone ${z.zoneId}`, votesReceived: z.votes }))
+        .map((z, idx) => ({ id: z.id, rank: idx + 1, name: `Zone ${z.id}`, votesReceived: z.votes }))
 
       return NextResponse.json({ success: true, data: zones })
     }
