@@ -1038,7 +1038,8 @@ export class VotingService {
       }
 
       const recentVoteCount = recentVotes?.length || 0
-      const newHeatLevel = Math.min(100, Math.max(0, (recentVoteCount * 10) + (zone.heat_level || 0)))
+      // Improved logarithmic heat level calculation for better differentiation
+      const newHeatLevel = VotingService.calculateHeatLevel(recentVoteCount)
 
       // Update zone stats
       const { error: updateError } = await this.supabase!
@@ -1203,5 +1204,25 @@ export class VotingService {
     }
 
     return results
+  }
+
+  /**
+   * Calculate heat level using logarithmic formula for better differentiation
+   * @param recentVoteCount Number of votes in the last 24 hours
+   * @returns Heat level between 0-100
+   */
+  private static calculateHeatLevel(recentVoteCount: number): number {
+    // Logarithmic formula: 100 * (1 - e^(-votes/15))
+    // This provides better differentiation between zones with different activity levels
+    // Examples:
+    // 1 vote/day  → 6 heat level
+    // 5 votes/day → 28 heat level  
+    // 10 votes/day → 49 heat level
+    // 25 votes/day → 81 heat level
+    // 50 votes/day → 96 heat level
+    // 100+ votes/day → ~100 heat level
+    return Math.min(100, Math.max(0, 
+      Math.round(100 * (1 - Math.exp(-recentVoteCount / 15)))
+    ))
   }
 } 

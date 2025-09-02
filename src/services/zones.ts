@@ -10,7 +10,7 @@ const MOCK_ZONES: BattleZone[] = [
     color: '#FF6B6B',
     coordinates: [19.4326, -99.1332],
     currentOwner: undefined,
-    heatLevel: 85,
+    heatLevel: 81, // ~25 votes/day with logarithmic formula
     totalVotes: 1247,
     activeVendors: 12
   },
@@ -21,7 +21,7 @@ const MOCK_ZONES: BattleZone[] = [
     color: '#4ECDC4',
     coordinates: [19.4500, -99.1500],
     currentOwner: undefined,
-    heatLevel: 72,
+    heatLevel: 49, // ~10 votes/day with logarithmic formula
     totalVotes: 892,
     activeVendors: 8
   },
@@ -32,7 +32,7 @@ const MOCK_ZONES: BattleZone[] = [
     color: '#45B7D1',
     coordinates: [19.4000, -99.1200],
     currentOwner: undefined,
-    heatLevel: 65,
+    heatLevel: 28, // ~5 votes/day with logarithmic formula
     totalVotes: 634,
     activeVendors: 6
   },
@@ -43,7 +43,7 @@ const MOCK_ZONES: BattleZone[] = [
     color: '#96CEB4',
     coordinates: [19.4200, -99.1000],
     currentOwner: undefined,
-    heatLevel: 58,
+    heatLevel: 6, // ~1 vote/day with logarithmic formula
     totalVotes: 445,
     activeVendors: 5
   },
@@ -54,7 +54,7 @@ const MOCK_ZONES: BattleZone[] = [
     color: '#FFEAA7',
     coordinates: [19.4200, -99.1600],
     currentOwner: undefined,
-    heatLevel: 78,
+    heatLevel: 96, // ~50 votes/day with logarithmic formula
     totalVotes: 756,
     activeVendors: 7
   }
