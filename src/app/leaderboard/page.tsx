@@ -344,10 +344,12 @@ export default function LeaderboardPage() {
                   <h3 className="font-bold text-[#2d1810] text-base truncate">{entry.name}</h3>
                 </div>
 
-                {/* Votes metric */}
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-[#6b5d52]">{activeTab === 'users' ? 'Votes Given' : 'Votes Received'}</span>
-                  <div className="px-2 py-1 bg-white rounded-md border text-[#2d1810] font-semibold">
+                {/* Votes metric - Two lines layout */}
+                <div className="flex flex-col items-end gap-1">
+                  <span className="text-xs text-[#6b5d52] leading-tight">
+                    {activeTab === 'users' ? 'Votes Given' : 'Votes Received'}
+                  </span>
+                  <div className="px-2 py-1 bg-white rounded-md border text-[#2d1810] font-semibold text-sm">
                     {activeTab === 'users' ? entry.votesGiven : entry.votesReceived}
                   </div>
                 </div>
