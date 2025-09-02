@@ -40,7 +40,7 @@ export function TokenBalanceChecker({ showRequired = true, className = '' }: Tok
         <Loader2 className="h-4 w-4 animate-spin" />
       ) : (
         <>
-          <Badge variant={hasSufficientBalance ? "default" : "destructive"}>
+          <Badge variant={hasSufficientBalance ? "default" : "destructive"} className="text-black">
             {balance.toFixed(2)} $BATTLE
           </Badge>
           
