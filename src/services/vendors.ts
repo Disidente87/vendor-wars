@@ -23,6 +23,7 @@ const MOCK_VENDORS: Vendor[] = [
     description: 'Authentic Salvadoran pupusas made with love and tradition',
     imageUrl: 'https://images.unsplash.com/photo-1595273670150-bd0c3c392e46?w=400&h=300&fit=crop',
     category: VendorCategory.PUPUSAS,
+    subcategories: ['pupusas'],
     zone: '49298ccd-5b91-4a41-839d-98c3b2cc504b',
     coordinates: [19.4326, -99.1332],
     owner: {
@@ -67,6 +68,7 @@ const MOCK_VENDORS: Vendor[] = [
     description: 'The best tacos in the north, authentic Mexican flavors',
     imageUrl: 'https://images.unsplash.com/photo-1566554273541-37a9ca77b91f?w=400&h=300&fit=crop',
     category: VendorCategory.TACOS,
+    subcategories: ['tacos', 'tortas'],
     zone: '61bace3e-ae39-4bb5-997b-1737122e8849',
     coordinates: [19.4500, -99.1500],
     owner: {
@@ -111,6 +113,7 @@ const MOCK_VENDORS: Vendor[] = [
     description: 'Artisanal coffee and pastries in a cozy atmosphere',
     imageUrl: 'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=400&h=300&fit=crop',
     category: VendorCategory.BEBIDAS,
+    subcategories: ['cafe', 'panaderia'],
     zone: '100b486d-5859-4ab1-9112-2d4bbabcba46',
     coordinates: [19.4000, -99.1200],
     owner: {
@@ -159,6 +162,7 @@ function mapSupabaseVendorToVendor(supabaseVendor: any, owner?: any): Vendor {
     description: supabaseVendor.description,
     imageUrl: supabaseVendor.image_url,
     category: supabaseVendor.category as VendorCategory,
+    subcategories: supabaseVendor.subcategories || [], // Include subcategories
     zone: supabaseVendor.zones?.name || supabaseVendor.zone_id || 'Unknown',
     coordinates: supabaseVendor.coordinates,
     owner: owner || {
@@ -206,6 +210,7 @@ function mapVendorToSupabase(vendor: Partial<Vendor>): any {
     description: vendor.description,
     image_url: vendor.imageUrl,
     category: vendor.category,
+    subcategories: vendor.subcategories || [], // Include subcategories
     zone: vendor.zone,
     coordinates: vendor.coordinates,
     owner_fid: vendor.owner?.fid,
@@ -399,13 +404,14 @@ export class VendorService {
     return vendors.map(vendor => mapSupabaseVendorToVendor(vendor))
   }
 
-  static async updateVendor(id: string, updates: Partial<Pick<Vendor, 'name' | 'description' | 'imageUrl' | 'category'>>): Promise<Vendor | null> {
+  static async updateVendor(id: string, updates: Partial<Pick<Vendor, 'name' | 'description' | 'imageUrl' | 'category' | 'subcategories'>>): Promise<Vendor | null> {
     const updateData: any = {}
     
     if (updates.name) updateData.name = updates.name
     if (updates.description) updateData.description = updates.description
     if (updates.imageUrl) updateData.image_url = updates.imageUrl
     if (updates.category) updateData.category = updates.category
+    if (updates.subcategories) updateData.subcategories = updates.subcategories
 
     const supabase = getSupabaseClient()
     const { data: vendor, error } = await supabase

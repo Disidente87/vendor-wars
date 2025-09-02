@@ -19,6 +19,7 @@ import {
   Plus
 } from 'lucide-react'
 import { VendorAvatar } from '@/components/VendorAvatar'
+import { FARCASTER_CONFIG, getSubcategories } from '@/config/farcaster'
 
 interface Vendor {
   id: string
@@ -26,6 +27,7 @@ interface Vendor {
   description: string
   imageUrl: string
   category: string
+  subcategories?: string[] // Array of subcategory IDs
   zone: string
   isVerified: boolean
   stats: {
@@ -45,6 +47,13 @@ export default function VendorsPage() {
   const [vendors, setVendors] = useState<Vendor[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  
+  // Filter states
+  const [showFilters, setShowFilters] = useState(false)
+  const [selectedZone, setSelectedZone] = useState('all')
+  const [selectedCategory, setSelectedCategory] = useState('all')
+  const [selectedDelegation, setSelectedDelegation] = useState('all')
+  const [selectedSubcategories, setSelectedSubcategories] = useState<string[]>([])
 
   // Fetch vendors from API
   useEffect(() => {
@@ -70,12 +79,50 @@ export default function VendorsPage() {
     fetchVendors()
   }, [])
 
+  // Filter options
+  const zones = ['all', 'Zona Norte', 'Zona Sur', 'Zona Este', 'Zona Oeste', 'Zona Centro']
+  const categories = ['all', ...FARCASTER_CONFIG.MAIN_CATEGORIES.map(cat => cat.id)]
+  const delegations = ['all', 'Álvaro Obregón', 'Azcapotzalco', 'Benito Juárez', 'Coyoacán', 'Cuajimalpa', 'Cuauhtémoc', 'Gustavo A. Madero', 'Iztacalco', 'Iztapalapa', 'La Magdalena Contreras', 'Miguel Hidalgo', 'Milpa Alta', 'Tláhuac', 'Tlalpan', 'Venustiano Carranza', 'Xochimilco']
+  
+  // Get available subcategories based on selected category
+  const availableSubcategories = selectedCategory !== 'all' ? getSubcategories(selectedCategory) : []
+
+  // Filter vendors based on search and filters
+  const filteredVendors = vendors.filter(vendor => {
+    const matchesSearch = vendor.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         vendor.description.toLowerCase().includes(searchQuery.toLowerCase())
+    
+    const matchesZone = selectedZone === 'all' || vendor.zone === selectedZone
+    const matchesCategory = selectedCategory === 'all' || vendor.category === selectedCategory
+    const matchesDelegation = selectedDelegation === 'all' || vendor.zone === selectedDelegation
+    
+    // Filter by subcategories - vendor must have at least one of the selected subcategories
+    const matchesSubcategories = selectedSubcategories.length === 0 || 
+      (vendor.subcategories && vendor.subcategories.some(sub => selectedSubcategories.includes(sub)))
+    
+    return matchesSearch && matchesZone && matchesCategory && matchesDelegation && matchesSubcategories
+  })
+
   const handleVendorClick = (vendorId: string) => {
     router.push(`/vendors/${vendorId}`)
   }
 
   const handleRegisterVendor = () => {
     router.push('/vendors/register')
+  }
+
+  const handleSubcategoryToggle = (subcategoryId: string) => {
+    setSelectedSubcategories(prev => 
+      prev.includes(subcategoryId)
+        ? prev.filter(id => id !== subcategoryId)
+        : [...prev, subcategoryId]
+    )
+  }
+
+  const handleCategoryChange = (categoryId: string) => {
+    setSelectedCategory(categoryId)
+    // Clear subcategories when category changes
+    setSelectedSubcategories([])
   }
 
   return (
@@ -111,10 +158,117 @@ export default function VendorsPage() {
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
-            <button className="w-10 h-10 bg-[#ff6b35] rounded-xl flex items-center justify-center shadow-lg hover:bg-[#e5562e] transition-colors">
+            <button 
+              onClick={() => setShowFilters(!showFilters)}
+              className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-lg transition-colors ${
+                showFilters ? 'bg-[#e5562e]' : 'bg-[#ff6b35] hover:bg-[#e5562e]'
+              }`}
+            >
               <Filter className="w-5 h-5 text-white" />
             </button>
           </div>
+
+          {/* Advanced Filters */}
+          {showFilters && (
+            <div className="mt-4 p-4 bg-gray-50 rounded-xl border border-gray-200">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Zone Filter */}
+                <div>
+                  <label className="block text-sm font-medium text-[#2d1810] mb-2">Zone</label>
+                  <select
+                    value={selectedZone}
+                    onChange={(e) => setSelectedZone(e.target.value)}
+                    className="w-full px-3 py-2 bg-white rounded-lg border border-gray-300 text-[#2d1810] focus:outline-none focus:ring-2 focus:ring-[#ff6b35]/50"
+                  >
+                    {zones.map(zone => (
+                      <option key={zone} value={zone}>
+                        {zone === 'all' ? 'All Zones' : zone}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Category Filter */}
+                <div>
+                  <label className="block text-sm font-medium text-[#2d1810] mb-2">Category</label>
+                  <select
+                    value={selectedCategory}
+                    onChange={(e) => handleCategoryChange(e.target.value)}
+                    className="w-full px-3 py-2 bg-white rounded-lg border border-gray-300 text-[#2d1810] focus:outline-none focus:ring-2 focus:ring-[#ff6b35]/50"
+                  >
+                    {categories.map(category => {
+                      const categoryInfo = category === 'all' ? null : FARCASTER_CONFIG.MAIN_CATEGORIES.find(cat => cat.id === category)
+                      return (
+                        <option key={category} value={category}>
+                          {category === 'all' ? 'All Categories' : (categoryInfo?.name || category)}
+                        </option>
+                      )
+                    })}
+                  </select>
+                </div>
+
+                {/* Delegation Filter */}
+                <div>
+                  <label className="block text-sm font-medium text-[#2d1810] mb-2">Delegation</label>
+                  <select
+                    value={selectedDelegation}
+                    onChange={(e) => setSelectedDelegation(e.target.value)}
+                    className="w-full px-3 py-2 bg-white rounded-lg border border-gray-300 text-[#2d1810] focus:outline-none focus:ring-2 focus:ring-[#ff6b35]/50"
+                  >
+                    {delegations.map(delegation => (
+                      <option key={delegation} value={delegation}>
+                        {delegation === 'all' ? 'All Delegations' : delegation}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Subcategories Filter */}
+                {selectedCategory !== 'all' && availableSubcategories.length > 0 && (
+                  <div className="md:col-span-3">
+                    <label className="block text-sm font-medium text-[#2d1810] mb-2">
+                      Specialties
+                    </label>
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 max-h-40 overflow-y-auto">
+                      {availableSubcategories.map((subcategory) => (
+                        <label
+                          key={subcategory.id}
+                          className="flex items-center space-x-2 p-2 rounded-lg border border-gray-200 hover:bg-gray-50 cursor-pointer transition-colors"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={selectedSubcategories.includes(subcategory.id)}
+                            onChange={() => handleSubcategoryToggle(subcategory.id)}
+                            className="w-4 h-4 text-[#ff6b35] border-gray-300 rounded focus:ring-[#ff6b35] focus:ring-2"
+                          />
+                          <span className="text-sm">{subcategory.icon}</span>
+                          <span className="text-sm font-medium text-[#2d1810]">{subcategory.name}</span>
+                        </label>
+                      ))}
+                    </div>
+                    <p className="text-xs text-[#6b5d52] mt-2">
+                      Select specific specialties to filter by
+                    </p>
+                  </div>
+                )}
+              </div>
+              
+              {/* Clear Filters Button */}
+              <div className="mt-4 flex justify-end">
+                <button
+                  onClick={() => {
+                    setSelectedZone('all')
+                    setSelectedCategory('all')
+                    setSelectedDelegation('all')
+                    setSelectedSubcategories([])
+                  }}
+                  className="px-4 py-2 text-sm text-[#6b5d52] hover:text-[#2d1810] transition-colors"
+                >
+                  Clear All Filters
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* View Toggle */}
           <div className="flex items-center justify-between">
@@ -141,7 +295,7 @@ export default function VendorsPage() {
               </button>
             </div>
             <div className="text-sm text-[#6b5d52]">
-              {vendors.length} vendors found
+              {filteredVendors.length} vendors found
             </div>
           </div>
         </div>
@@ -176,7 +330,7 @@ export default function VendorsPage() {
       {!loading && !error && (
         <div className="relative z-10 px-4 pb-20">
           <div className="space-y-4">
-            {vendors.map((vendor) => (
+            {filteredVendors.map((vendor) => (
               <div
                 key={vendor.id}
                 onClick={() => handleVendorClick(vendor.id)}

@@ -329,6 +329,7 @@ export async function POST(request: NextRequest) {
             description: fullVendorData.description,
             image_url: fullVendorData.imageUrl,
             category: fullVendorData.category,
+            subcategories: fullVendorData.subcategories || [], // Include subcategories
             delegation: fullVendorData.delegation,
             zone_id: zoneId,
             owner_fid: finalOwnerFid,

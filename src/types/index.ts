@@ -22,6 +22,7 @@ export interface Vendor {
   description: string
   imageUrl: string
   category: VendorCategory
+  subcategories: string[] // Array of subcategory IDs
   zone: string // Battle zone ID
   coordinates: [number, number] // GPS coordinates
   stats: VendorStats

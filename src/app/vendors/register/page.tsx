@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ArrowLeft, ArrowRight, Check, Upload, AlertCircle, ImageIcon, X, Loader2 } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { StorageService } from '@/services/storage'
-import { FARCASTER_CONFIG } from '@/config/farcaster'
+import { FARCASTER_CONFIG, getSubcategories } from '@/config/farcaster'
 import { DelegationService, ZoneWithDelegations } from '@/services/delegations'
 import { PaymentStep } from '@/components/vendor-registration/PaymentStep'
 import { TransactionStatus } from '@/components/vendor-registration/TransactionStatus'
@@ -28,6 +28,7 @@ interface VendorFormData {
   delegation: string
   description: string
   category: string
+  subcategories: string[] // Array of selected subcategory IDs
   userAddress: string
   paymentAmount: string
   vendorId: string
@@ -53,6 +54,7 @@ export default function VendorRegistrationPage() {
     delegation: '',
     description: '',
     category: '',
+    subcategories: [],
     userAddress: '',
     paymentAmount: '50',
     vendorId: ''
@@ -107,6 +109,23 @@ export default function VendorRegistrationPage() {
     setFormData(prev => ({
       ...prev,
       [field]: value
+    }))
+    
+    // Clear subcategories when main category changes
+    if (field === 'category') {
+      setFormData(prev => ({
+        ...prev,
+        subcategories: []
+      }))
+    }
+  }
+
+  const handleSubcategoryToggle = (subcategoryId: string) => {
+    setFormData(prev => ({
+      ...prev,
+      subcategories: prev.subcategories.includes(subcategoryId)
+        ? prev.subcategories.filter(id => id !== subcategoryId)
+        : [...prev.subcategories, subcategoryId]
     }))
   }
 
@@ -209,6 +228,7 @@ export default function VendorRegistrationPage() {
         description: formData.description,
         delegation: formData.delegation,
         category: formData.category,
+        subcategories: formData.subcategories, // Include selected subcategories
         imageUrl: imageUrl // Usar la variable local, no formData.imageUrl
       }
       
@@ -456,6 +476,8 @@ export default function VendorRegistrationPage() {
         )
 
       case 5:
+        const availableSubcategories = formData.category ? getSubcategories(formData.category) : []
+        
         return (
           <div className="space-y-4">
             <div>
@@ -464,13 +486,13 @@ export default function VendorRegistrationPage() {
               </Label>
               <Select value={formData.category} onValueChange={(value) => handleInputChange('category', value)}>
                 <SelectTrigger className="mt-2">
-                  <SelectValue placeholder="Select food category" />
+                  <SelectValue placeholder="Select main category" />
                 </SelectTrigger>
                 <SelectContent>
-                  {FARCASTER_CONFIG.CATEGORIES.map((category) => (
+                  {FARCASTER_CONFIG.MAIN_CATEGORIES.map((category) => (
                     <SelectItem key={category.id} value={category.id}>
-                      <div className="flex items-center space-x-2">
-                        <span>{category.icon}</span>
+                      <div className="flex items-center space-x-3">
+                        <span className="text-lg">{category.icon}</span>
                         <div>
                           <div className="font-medium">{category.name}</div>
                           <div className="text-xs text-gray-500">{category.description}</div>
@@ -484,6 +506,35 @@ export default function VendorRegistrationPage() {
                 Choose your main food category
               </p>
             </div>
+
+            {/* Subcategories Checkboxes */}
+            {formData.category && availableSubcategories.length > 0 && (
+              <div className="mt-6">
+                <Label className="text-sm font-medium text-[#2d1810] mb-3 block">
+                  Select specific items you offer:
+                </Label>
+                <div className="grid grid-cols-2 gap-3 max-h-60 overflow-y-auto">
+                  {availableSubcategories.map((subcategory) => (
+                    <label
+                      key={subcategory.id}
+                      className="flex items-center space-x-2 p-3 rounded-lg border border-gray-200 hover:bg-gray-50 cursor-pointer transition-colors"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={formData.subcategories.includes(subcategory.id)}
+                        onChange={() => handleSubcategoryToggle(subcategory.id)}
+                        className="w-4 h-4 text-[#ff6b35] border-gray-300 rounded focus:ring-[#ff6b35] focus:ring-2"
+                      />
+                      <span className="text-lg">{subcategory.icon}</span>
+                      <span className="text-sm font-medium text-[#2d1810]">{subcategory.name}</span>
+                    </label>
+                  ))}
+                </div>
+                <p className="text-xs text-[#6b5d52] mt-2">
+                  Select all items that apply to your vendor
+                </p>
+              </div>
+            )}
           </div>
         )
 

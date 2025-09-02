@@ -67,16 +67,172 @@ export const FARCASTER_CONFIG = {
     },
   ],
   
-  // Categories (Food-focused for LATAM)
+  // Main Categories (6 main categories)
+  MAIN_CATEGORIES: [
+    { 
+      id: 'comida-mexicana', 
+      name: 'Comida Mexicana', 
+      icon: '🇲🇽', 
+      description: 'Tacos, tortas, quesadillas y más',
+      color: '#16a34a'
+    },
+    { 
+      id: 'comida-internacional', 
+      name: 'Internacional', 
+      icon: '🌍', 
+      description: 'Pupusas, arepas, sushi, pizza',
+      color: '#dc2626'
+    },
+    { 
+      id: 'antojitos', 
+      name: 'Antojitos y Street Food', 
+      icon: '🌽', 
+      description: 'Elote, esquites, churros',
+      color: '#ea580c'
+    },
+    { 
+      id: 'bebidas', 
+      name: 'Bebidas', 
+      icon: '🥤', 
+      description: 'Café, jugos, agua fresca',
+      color: '#0ea5e9'
+    },
+    { 
+      id: 'postres', 
+      name: 'Postres y Panadería', 
+      icon: '🍰', 
+      description: 'Helados, pan dulce, pasteles',
+      color: '#a855f7'
+    },
+    { 
+      id: 'mariscos', 
+      name: 'Mariscos', 
+      icon: '🐟', 
+      description: 'Ceviche, pescado, camarones',
+      color: '#0891b2'
+    }
+  ],
+
+  // Subcategories organized by main category
+  SUBCATEGORIES: {
+    'comida-mexicana': [
+      { id: 'tacos', name: 'Tacos', icon: '🌮' },
+      { id: 'tamales', name: 'Tamales', icon: '🌽' },
+      { id: 'quesadillas', name: 'Quesadillas', icon: '🧀' },
+      { id: 'tortas', name: 'Tortas', icon: '🥪' },
+      { id: 'pozole', name: 'Pozole', icon: '🍲' },
+      { id: 'mole', name: 'Mole', icon: '🍛' },
+      { id: 'chiles-rellenos', name: 'Chiles Rellenos', icon: '🌶️' },
+      { id: 'enchiladas', name: 'Enchiladas', icon: '🌯' },
+      { id: 'chilaquiles', name: 'Chilaquiles', icon: '🌶️' },
+      { id: 'menudo', name: 'Menudo', icon: '🍲' },
+      { id: 'birria', name: 'Birria', icon: '🍲' },
+      { id: 'carnitas', name: 'Carnitas', icon: '🥩' }
+    ],
+    'comida-internacional': [
+      { id: 'pupusas', name: 'Pupusas', icon: '🥟' },
+      { id: 'arepas', name: 'Arepas', icon: '🥟' },
+      { id: 'empanadas', name: 'Empanadas', icon: '🥟' },
+      { id: 'sushi', name: 'Sushi', icon: '🍣' },
+      { id: 'pizza', name: 'Pizza', icon: '🍕' },
+      { id: 'hamburgers', name: 'Hamburgers', icon: '🍔' },
+      { id: 'chinese', name: 'Chinese', icon: '🥢' },
+      { id: 'korean', name: 'Korean', icon: '🍜' },
+      { id: 'thai', name: 'Thai', icon: '🍜' },
+      { id: 'indian', name: 'Indian', icon: '🍛' },
+      { id: 'mediterranean', name: 'Mediterranean', icon: '🥙' },
+      { id: 'vegan', name: 'Vegano', icon: '🌱' },
+      { id: 'vegetariano', name: 'Vegetariano', icon: '🥗' },
+      { id: 'fine-dining', name: 'Fine Dining', icon: '🍽️' }
+    ],
+    'antojitos': [
+      { id: 'elote', name: 'Elote', icon: '🌽' },
+      { id: 'esquites', name: 'Esquites', icon: '🌽' },
+      { id: 'tostadas', name: 'Tostadas', icon: '🥙' },
+      { id: 'sopes', name: 'Sopes', icon: '🥙' },
+      { id: 'huaraches', name: 'Huaraches', icon: '🥙' },
+      { id: 'churros', name: 'Churros', icon: '🍩' },
+      { id: 'gorditas', name: 'Gorditas', icon: '🥙' },
+      { id: 'tlacoyos', name: 'Tlacoyos', icon: '🥙' },
+      { id: 'comida-rapida', name: 'Comida Rápida', icon: '🍟' }
+    ],
+    'bebidas': [
+      { id: 'agua-fresca', name: 'Agua Fresca', icon: '🧊' },
+      { id: 'cafe', name: 'Café', icon: '☕' },
+      { id: 'te', name: 'Té', icon: '🍵' },
+      { id: 'smoothies', name: 'Smoothies', icon: '🥤' },
+      { id: 'juices', name: 'Jugos', icon: '🧃' },
+      { id: 'licuados', name: 'Licuados', icon: '🥤' },
+      { id: 'atole', name: 'Atole', icon: '🥤' },
+      { id: 'champurrado', name: 'Champurrado', icon: '🥤' }
+    ],
+    'postres': [
+      { id: 'helado', name: 'Helado', icon: '🍦' },
+      { id: 'flan', name: 'Flan', icon: '🍮' },
+      { id: 'tres-leches', name: 'Tres Leches', icon: '🍰' },
+      { id: 'pan-dulce', name: 'Pan Dulce', icon: '🥖' },
+      { id: 'panaderia', name: 'Panadería', icon: '🥖' },
+      { id: 'pasteleria', name: 'Pastelería', icon: '🧁' },
+      { id: 'paletas', name: 'Paletas', icon: '🍭' },
+      { id: 'nieve', name: 'Nieve', icon: '🍦' }
+    ],
+    'mariscos': [
+      { id: 'ceviche', name: 'Ceviche', icon: '🐟' },
+      { id: 'pescado', name: 'Pescado', icon: '🐟' },
+      { id: 'camarones', name: 'Camarones', icon: '🦐' },
+      { id: 'pulpo', name: 'Pulpo', icon: '🐙' },
+      { id: 'ostiones', name: 'Ostiones', icon: '🦪' },
+      { id: 'langosta', name: 'Langosta', icon: '🦞' },
+      { id: 'cangrejo', name: 'Cangrejo', icon: '🦀' }
+    ]
+  },
+
+  // Legacy categories for backward compatibility
   CATEGORIES: [
-    { id: 'pupusas', name: 'Pupusas', icon: '🥟', description: 'Traditional Salvadoran pupusas' },
     { id: 'tacos', name: 'Tacos', icon: '🌮', description: 'Authentic Mexican tacos' },
     { id: 'tamales', name: 'Tamales', icon: '🌽', description: 'Traditional tamales' },
     { id: 'quesadillas', name: 'Quesadillas', icon: '🧀', description: 'Cheese quesadillas' },
     { id: 'tortas', name: 'Tortas', icon: '🥪', description: 'Mexican sandwiches' },
-    { id: 'bebidas', name: 'Bebidas', icon: '🥤', description: 'Traditional drinks' },
-    { id: 'postres', name: 'Postres', icon: '🍰', description: 'Traditional desserts' },
-    { id: 'otros', name: 'Otros', icon: '🍽️', description: 'Other local specialties' },
+    { id: 'pozole', name: 'Pozole', icon: '🍲', description: 'Traditional pozole soup' },
+    { id: 'mole', name: 'Mole', icon: '🍛', description: 'Traditional mole dishes' },
+    { id: 'chiles-rellenos', name: 'Chiles Rellenos', icon: '🌶️', description: 'Stuffed peppers' },
+    { id: 'enchiladas', name: 'Enchiladas', icon: '🌯', description: 'Rolled tortillas with sauce' },
+    { id: 'elote', name: 'Elote', icon: '🌽', description: 'Mexican street corn' },
+    { id: 'esquites', name: 'Esquites', icon: '🌽', description: 'Corn in a cup' },
+    { id: 'tostadas', name: 'Tostadas', icon: '🥙', description: 'Crispy tortilla tostadas' },
+    { id: 'sopes', name: 'Sopes', icon: '🥙', description: 'Thick tortilla sopes' },
+    { id: 'huaraches', name: 'Huaraches', icon: '🥙', description: 'Oval-shaped huaraches' },
+    { id: 'pupusas', name: 'Pupusas', icon: '🥟', description: 'Traditional Salvadoran pupusas' },
+    { id: 'arepas', name: 'Arepas', icon: '🥟', description: 'Venezuelan arepas' },
+    { id: 'empanadas', name: 'Empanadas', icon: '🥟', description: 'Latin American empanadas' },
+    { id: 'ceviche', name: 'Ceviche', icon: '🐟', description: 'Fresh seafood ceviche' },
+    { id: 'sushi', name: 'Sushi', icon: '🍣', description: 'Japanese sushi' },
+    { id: 'pizza', name: 'Pizza', icon: '🍕', description: 'Italian pizza' },
+    { id: 'hamburgers', name: 'Hamburgers', icon: '🍔', description: 'American burgers' },
+    { id: 'chinese', name: 'Chinese', icon: '🥢', description: 'Chinese cuisine' },
+    { id: 'korean', name: 'Korean', icon: '🍜', description: 'Korean BBQ and dishes' },
+    { id: 'thai', name: 'Thai', icon: '🍜', description: 'Thai cuisine' },
+    { id: 'indian', name: 'Indian', icon: '🍛', description: 'Indian curry and dishes' },
+    { id: 'mediterranean', name: 'Mediterranean', icon: '🥙', description: 'Mediterranean cuisine' },
+    { id: 'agua-fresca', name: 'Agua Fresca', icon: '🧊', description: 'Fresh fruit waters' },
+    { id: 'cafe', name: 'Café', icon: '☕', description: 'Coffee and espresso' },
+    { id: 'te', name: 'Té', icon: '🍵', description: 'Tea and herbal drinks' },
+    { id: 'smoothies', name: 'Smoothies', icon: '🥤', description: 'Fruit smoothies' },
+    { id: 'juices', name: 'Jugos', icon: '🧃', description: 'Fresh fruit juices' },
+    { id: 'helado', name: 'Helado', icon: '🍦', description: 'Ice cream and gelato' },
+    { id: 'churros', name: 'Churros', icon: '🍩', description: 'Fried dough churros' },
+    { id: 'flan', name: 'Flan', icon: '🍮', description: 'Traditional flan' },
+    { id: 'tres-leches', name: 'Tres Leches', icon: '🍰', description: 'Three milk cake' },
+    { id: 'pan-dulce', name: 'Pan Dulce', icon: '🥖', description: 'Mexican sweet bread' },
+    { id: 'panaderia', name: 'Panadería', icon: '🥖', description: 'Mexican bakery' },
+    { id: 'pasteleria', name: 'Pastelería', icon: '🧁', description: 'Pastry shop' },
+    { id: 'vegan', name: 'Vegano', icon: '🌱', description: 'Vegan cuisine' },
+    { id: 'vegetariano', name: 'Vegetariano', icon: '🥗', description: 'Vegetarian dishes' },
+    { id: 'mariscos', name: 'Mariscos', icon: '🦐', description: 'Seafood specialties' },
+    { id: 'carnes', name: 'Carnes', icon: '🥩', description: 'Meat specialties' },
+    { id: 'comida-rapida', name: 'Comida Rápida', icon: '🍟', description: 'Fast food' },
+    { id: 'fine-dining', name: 'Fine Dining', icon: '🍽️', description: 'Upscale dining' },
+    { id: 'otros', name: 'Otros', icon: '🍽️', description: 'Other local specialties' }
   ],
   
   // Token Economics
@@ -106,6 +262,14 @@ export const FARCASTER_CONFIG = {
 
 export const getCategoryInfo = (categoryId: string) => {
   return FARCASTER_CONFIG.CATEGORIES.find(cat => cat.id === categoryId)
+}
+
+export const getMainCategoryInfo = (categoryId: string) => {
+  return FARCASTER_CONFIG.MAIN_CATEGORIES.find(cat => cat.id === categoryId)
+}
+
+export const getSubcategories = (mainCategoryId: string) => {
+  return FARCASTER_CONFIG.SUBCATEGORIES[mainCategoryId as keyof typeof FARCASTER_CONFIG.SUBCATEGORIES] || []
 }
 
 export const getZoneInfo = (zoneId: string) => {

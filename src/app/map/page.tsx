@@ -125,77 +125,10 @@ export default function MapPage() {
     }
   })
 
-  // Fallback to hardcoded zones if no data is fetched
-  const fallbackZones: Zone[] = [
-    {
-      id: '1', // Centro
-      name: 'Zona Centro',
-      vendor: '@Pupusas_María',
-      leader: 'Pupusas María',
-      leaderAvatar: 'https://images.unsplash.com/photo-1595273670150-bd0c3c392e46?w=100&h=100&fit=crop&crop=face',
-      control: 85,
-      color: '#e63946', // Roja
-      position: { top: '40%', left: '35%' },
-      size: 'small',
-      battleIntensity: 3,
-      recentVotes: 7 // Pupusas María tiene 7 votos
-    },
-    {
-      id: '2', // Norte
-      name: 'Zona Norte',
-      vendor: '@Tacos_El_Güero',
-      leader: 'Tacos El Güero',
-      leaderAvatar: 'https://images.unsplash.com/photo-1566554273541-37a9ca77b91f?w=100&h=100&fit=crop&crop=face',
-      control: 72,
-      color: '#06d6a0', // Verde
-      position: { top: '12%', left: '40%' },
-      size: 'small',
-      battleIntensity: 2,
-      recentVotes: 14 // Tacos El Güero tiene 14 votos
-    },
-    {
-      id: '3', // Sur
-      name: 'Zona Sur',
-      vendor: '@Café_Aroma',
-      leader: 'Café Aroma',
-      leaderAvatar: 'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=100&h=100&fit=crop&crop=face',
-      control: 91,
-      color: '#8b5cf6', // Purple
-      position: { top: '68%', left: '49%' },
-      size: 'small',
-      battleIntensity: 1,
-      recentVotes: 5 // Café Aroma tiene 5 votos
-    },
-    {
-      id: '4', // Este
-      name: 'Zona Este',
-      vendor: '@Pizza_Napoli',
-      leader: 'Pizza Napoli',
-      leaderAvatar: 'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=100&h=100&fit=crop&crop=face',
-      control: 64,
-      color: '#3b82f6', // Azul
-      position: { top: '36%', left: '65%' },
-      size: 'small',
-      battleIntensity: 4,
-      recentVotes: 4 // Pizza Napoli tiene 4 votos
-    },
-    {
-      id: '5', // Oeste
-      name: 'Zona Oeste',
-      vendor: '@Sushi_Express',
-      leader: 'Sushi Express',
-      leaderAvatar: 'https://images.unsplash.com/photo-1574071318508-1cdbab80d002?w=100&h=100&fit=crop&crop=face',
-      control: 58,
-      color: '#fbbf24', // Amarillo
-      position: { top: '45%', left: '11%' },
-      size: 'small',
-      battleIntensity: 5,
-      recentVotes: 6 // Sushi Express tiene 6 votos
-    }
-  ]
 
-  // Use fetched zones if available, otherwise fallback
-  const displayZones = zones.length > 0 ? zones : fallbackZones
+
+  // Use fetched zones only - no fallback to mock data
+  const displayZones = zones
 
   const handleZoneClick = (zoneId: string) => {
     // Add haptic feedback
@@ -254,8 +187,29 @@ export default function MapPage() {
                 priority
               />
               
+              {/* Loading State */}
+              {isLoading && (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="text-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#ff6b35] mx-auto mb-4"></div>
+                    <p className="text-[#2d1810] font-medium">Loading battle zones...</p>
+                  </div>
+                </div>
+              )}
+              
+              {/* No Data State */}
+              {!isLoading && displayZones.length === 0 && (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="text-center">
+                    <Swords className="h-16 w-16 text-[#6b5d52] mx-auto mb-4" />
+                    <p className="text-[#2d1810] font-medium text-lg mb-2">No battle zones available</p>
+                    <p className="text-[#6b5d52] text-sm">Check back later for vendor battles!</p>
+                  </div>
+                </div>
+              )}
+              
               {/* Interactive Zone Overlays */}
-              {displayZones.map((zone) => (
+              {!isLoading && displayZones.map((zone) => (
                 <div
                   key={zone.id}
                   className="absolute cursor-pointer transition-all duration-200 hover:scale-110"
@@ -338,7 +292,10 @@ export default function MapPage() {
         <div className="bg-white/80 backdrop-blur-sm rounded-xl p-3 shadow-lg border border-[#ff6b35]/20">
           <h3 className="font-bold text-[#2d1810] mb-2 text-sm">Zonas de Batalla</h3>
           <div className="space-y-2">
-            {displayZones.map((zone) => (
+            {!isLoading && displayZones.length === 0 ? (
+              <p className="text-[#6b5d52] text-sm text-center py-4">No zones available</p>
+            ) : (
+              displayZones.map((zone) => (
               <div 
                 key={zone.id} 
                 className="flex items-center space-x-3 p-2 rounded-lg hover:bg-[#ff6b35]/10 cursor-pointer transition-colors duration-200"
@@ -360,7 +317,8 @@ export default function MapPage() {
                   <Crown className="w-4 h-4 text-[#ffd23f]" />
                 </div>
               </div>
-            ))}
+            ))
+            )}
           </div>
         </div>
       </div>

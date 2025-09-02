@@ -157,6 +157,7 @@ export class ZoneService {
             description: topVendor.description,
             imageUrl: topVendor.image_url,
             category: topVendor.category,
+            subcategories: [], // Default empty array since not in query
             zone: topVendor.zone_id,
             coordinates: topVendor.coordinates,
             owner: { fid: topVendor.owner_fid } as any, // Simplified owner

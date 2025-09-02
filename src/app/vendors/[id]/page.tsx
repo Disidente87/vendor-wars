@@ -7,6 +7,7 @@ import { ArrowLeft, Trophy, Users, Target, Shield, AlertCircle } from 'lucide-re
 import { VoteResultModal } from '@/components/VoteResultModal'
 import { useFarcasterAuth } from '@/hooks/useFarcasterAuth'
 import { useTokenBalance } from '@/hooks/useTokenBalance'
+import { getSubcategories } from '@/config/farcaster'
 import { VendorStatsRefresh } from '@/components/vendor-stats-refresh'
 import type { Vendor } from '@/types'
 import { getVendorIdFromSlug } from '@/lib/route-utils'
@@ -19,6 +20,12 @@ interface TopVoter {
   votesGiven: number
   totalVotes: number
   isVerified: boolean
+}
+
+// Helper function to capitalize text
+const capitalizeText = (text: string): string => {
+  if (!text) return text
+  return text.charAt(0).toUpperCase() + text.slice(1).toLowerCase()
 }
 
 export default function VendorProfilePage({ params }: { params: Promise<{ id: string }> }) {
@@ -291,9 +298,9 @@ export default function VendorProfilePage({ params }: { params: Promise<{ id: st
           >
             <ArrowLeft className="h-6 w-6" />
           </button>
-          <h2 className="text-[#181511] text-lg font-bold leading-tight tracking-[-0.015em] flex-1 text-center pr-12 break-words">
-            {vendor.name}
-          </h2>
+                  <h2 className="text-[#181511] text-lg font-bold leading-tight tracking-[-0.015em] flex-1 text-center pr-12 break-words">
+          {capitalizeText(vendor.name)}
+        </h2>
         </div>
 
         {/* Hero Image */}
@@ -358,12 +365,12 @@ export default function VendorProfilePage({ params }: { params: Promise<{ id: st
             </Button>
             <Button
               onClick={() => handleVote(true)}
-              disabled={isVoting || !authenticatedUser}
+              disabled={true}
               variant="outline"
-              className="flex-1 cursor-pointer items-center justify-center overflow-hidden rounded-full h-12 px-6 bg-[#f5f3f0] text-[#181511] text-base font-bold leading-normal tracking-[0.015em] hover:bg-[#ebe8e4] border-[#f5f3f0] shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 cursor-pointer items-center justify-center overflow-hidden rounded-full h-12 px-6 bg-gray-100 text-gray-400 text-base font-bold leading-normal tracking-[0.015em] border-gray-200 shadow-lg transition-all duration-200 opacity-50 cursor-not-allowed"
             >
               <span className="truncate">
-                {isVoting ? 'Voting...' : authenticatedUser ? 'Verified Vote' : 'Login to Vote'}
+                Verified Vote (Coming Soon)
               </span>
             </Button>
           </div>
@@ -438,21 +445,49 @@ export default function VendorProfilePage({ params }: { params: Promise<{ id: st
               Zone
             </h3>
             <p className="text-[#181511] text-base font-normal leading-normal pb-3 pt-1 px-4">
-              {vendor.zone || 'Zone information'}
+              {capitalizeText(vendor.zone || 'Zone information')}
             </p>
             
             <h3 className="text-[#181511] text-lg font-bold leading-tight tracking-[-0.015em] px-4 pb-2 pt-4">
               Category
             </h3>
             <p className="text-[#181511] text-base font-normal leading-normal pb-3 pt-1 px-4">
-              {vendor.category}
+              {capitalizeText(vendor.category)}
             </p>
+            
+            {/* Subcategories */}
+            {vendor.subcategories && vendor.subcategories.length > 0 && (
+              <>
+                <h3 className="text-[#181511] text-lg font-bold leading-tight tracking-[-0.015em] px-4 pb-2 pt-4">
+                  Specialties
+                </h3>
+                <div className="px-4 pb-3 pt-1">
+                  <div className="flex flex-wrap gap-2">
+                    {vendor.subcategories.map((subcategoryId) => {
+                      // Get subcategory info from the main category's subcategories
+                      const allSubcategories = getSubcategories(vendor.category)
+                      const subcategoryInfo = allSubcategories.find(sub => sub.id === subcategoryId)
+                      
+                      return (
+                        <span
+                          key={subcategoryId}
+                          className="inline-flex items-center gap-1 px-3 py-1 bg-orange-100 text-orange-800 text-sm font-medium rounded-full border border-orange-200"
+                        >
+                          <span className="text-sm">{subcategoryInfo?.icon || '🍽️'}</span>
+                          <span>{capitalizeText(subcategoryInfo?.name || subcategoryId)}</span>
+                        </span>
+                      )
+                    })}
+                  </div>
+                </div>
+              </>
+            )}
             
             <h3 className="text-[#181511] text-lg font-bold leading-tight tracking-[-0.015em] px-4 pb-2 pt-4">
               Description
             </h3>
             <p className="text-[#181511] text-base font-normal leading-normal pb-3 pt-1 px-4">
-              {vendor.description}
+              {capitalizeText(vendor.description)}
             </p>
             
             <h3 className="text-[#181511] text-lg font-bold leading-tight tracking-[-0.015em] px-4 pb-2 pt-4">
