@@ -86,7 +86,7 @@ export default function ProfilePage() {
     enabled: !!farcasterUser && isAuthenticated
   })
 
-  const getAchievements = (totalVotes: number, verifiedVotes: number, uniqueVendors: number): Achievement[] => {
+  const getAchievements = (totalVotes: number, verifiedVotes: number, uniqueVendors: number, votingStreak: number, territoriesControlled: number): Achievement[] => {
     return [
       {
         id: 'first-vote',
@@ -120,8 +120,8 @@ export default function ProfilePage() {
         name: 'Voting Streak',
         description: 'Maintain a 7-day voting streak',
         icon: '🔥',
-        unlocked: false, // Will be calculated based on actual streak
-        progress: 0,
+        unlocked: votingStreak >= 7,
+        progress: Math.min(votingStreak, 7),
         maxProgress: 7
       },
       {
@@ -129,9 +129,36 @@ export default function ProfilePage() {
         name: 'Territory Master',
         description: 'Control 3 territories',
         icon: '🏆',
-        unlocked: false,
-        progress: 0,
+        unlocked: territoriesControlled >= 3,
+        progress: Math.min(territoriesControlled, 3),
         maxProgress: 3
+      },
+      {
+        id: 'voting-champion',
+        name: 'Voting Champion',
+        description: 'Cast 50 total votes',
+        icon: '💪',
+        unlocked: totalVotes >= 50,
+        progress: Math.min(totalVotes, 50),
+        maxProgress: 50
+      },
+      {
+        id: 'verified-expert',
+        name: 'Verified Expert',
+        description: 'Cast 25 verified votes',
+        icon: '🛡️',
+        unlocked: verifiedVotes >= 25,
+        progress: Math.min(verifiedVotes, 25),
+        maxProgress: 25
+      },
+      {
+        id: 'vendor-enthusiast',
+        name: 'Vendor Enthusiast',
+        description: 'Vote for 10 different vendors',
+        icon: '🌟',
+        unlocked: uniqueVendors >= 10,
+        progress: Math.min(uniqueVendors, 10),
+        maxProgress: 10
       }
     ]
   }
@@ -169,10 +196,66 @@ export default function ProfilePage() {
         imageUrl: vendor?.image_url || 'https://via.placeholder.com/100',
         votesReceived: count,
         totalVotes: count,
-        zone: 'Unknown Zone'
+        zone: vendor?.zone_id || 'Unknown Zone'
       }))
       .sort((a, b) => b.votesReceived - a.votesReceived)
       .slice(0, 3)
+  }
+
+  const calculateVotingStreak = (votes: any[]): number => {
+    if (votes.length === 0) return 0
+
+    // Get unique vote dates sorted in descending order
+    const voteDates = [...new Set(votes.map(vote => vote.vote_date || vote.created_at?.split('T')[0]))]
+      .sort((a, b) => new Date(b).getTime() - new Date(a).getTime())
+
+    if (voteDates.length === 0) return 0
+
+    let streak = 0
+    const today = new Date()
+    const yesterday = new Date(today)
+    yesterday.setDate(yesterday.getDate() - 1)
+
+    // Check if user voted today or yesterday
+    const todayStr = today.toISOString().split('T')[0]
+    const yesterdayStr = yesterday.toISOString().split('T')[0]
+
+    let currentDate = voteDates[0] === todayStr ? today : yesterday
+    let dateIndex = voteDates[0] === todayStr ? 1 : 0
+
+    // Count consecutive days
+    while (dateIndex < voteDates.length) {
+      const expectedDate = new Date(currentDate)
+      expectedDate.setDate(expectedDate.getDate() - 1)
+      const expectedDateStr = expectedDate.toISOString().split('T')[0]
+
+      if (voteDates[dateIndex] === expectedDateStr) {
+        streak++
+        currentDate = expectedDate
+        dateIndex++
+      } else {
+        break
+      }
+    }
+
+    return streak
+  }
+
+  const calculateTerritoriesControlled = async (userFid: number): Promise<number> => {
+    try {
+      const response = await fetch(`/api/users/territories?userFid=${userFid}`)
+      const result = await response.json()
+      
+      if (result.success) {
+        return result.data.count || 0
+      } else {
+        console.error('Failed to fetch territories:', result.error)
+        return 0
+      }
+    } catch (error) {
+      console.error('Error calculating territories controlled:', error)
+      return 0
+    }
   }
 
   const getFallbackStats = (): UserStats => {
@@ -247,6 +330,12 @@ export default function ProfilePage() {
         const verifiedVotes = votes.filter((vote: any) => vote.is_verified).length
         const uniqueVendors = new Set(votes.map((vote: any) => vote.vendor_id)).size
 
+        // Calculate real voting streak
+        const votingStreak = calculateVotingStreak(votes)
+        
+        // Calculate territories controlled
+        const territoriesControlled = await calculateTerritoriesControlled(farcasterUser.fid)
+
         // Calculate level based on total votes (10 XP per vote)
         const totalXP = totalVotes * 10
         const level = Math.floor(totalXP / 100) + 1
@@ -269,10 +358,10 @@ export default function ProfilePage() {
           totalVotes,
           verifiedVotes,
           vendorsVotedFor: uniqueVendors,
-          votingStreak: farcasterUser.voteStreak || 0,
-          territoriesControlled: 0, // Will be calculated from territory data
+          votingStreak,
+          territoriesControlled,
           rank,
-          achievements: getAchievements(totalVotes, verifiedVotes, uniqueVendors),
+          achievements: getAchievements(totalVotes, verifiedVotes, uniqueVendors, votingStreak, territoriesControlled),
           recentActivity: getRecentActivity(votes),
           topVendors: getTopVendors(votes)
         }

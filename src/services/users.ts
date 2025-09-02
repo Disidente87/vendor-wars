@@ -7,18 +7,18 @@ function mapSupabaseUserToUser(supabaseUser: any): User {
     fid: supabaseUser.fid,
     username: supabaseUser.username,
     displayName: supabaseUser.display_name,
-    pfpUrl: supabaseUser.pfp_url,
-    bio: supabaseUser.bio,
-    followerCount: supabaseUser.follower_count,
-    followingCount: supabaseUser.following_count,
-    verifiedAddresses: supabaseUser.verified_addresses,
-    battleTokens: supabaseUser.battle_tokens,
-    credibilityScore: supabaseUser.credibility_score,
-    verifiedPurchases: supabaseUser.verified_purchases,
-    credibilityTier: supabaseUser.credibility_tier,
-    voteStreak: supabaseUser.vote_streak,
-    weeklyVoteCount: supabaseUser.weekly_vote_count,
-    weeklyTerritoryBonus: supabaseUser.weekly_territory_bonus,
+    pfpUrl: supabaseUser.avatar_url, // Fixed: use avatar_url from DB
+    bio: supabaseUser.bio || '',
+    followerCount: supabaseUser.follower_count || 0,
+    followingCount: supabaseUser.following_count || 0,
+    verifiedAddresses: supabaseUser.verified_addresses || [],
+    battleTokens: supabaseUser.battle_tokens || 0,
+    credibilityScore: supabaseUser.credibility_score || 0,
+    verifiedPurchases: supabaseUser.verified_purchases || 0,
+    credibilityTier: supabaseUser.credibility_tier || 'bronze',
+    voteStreak: supabaseUser.vote_streak || 0,
+    weeklyVoteCount: supabaseUser.weekly_vote_count || 0,
+    weeklyTerritoryBonus: supabaseUser.weekly_territory_bonus || 0,
   }
 }
 
@@ -28,7 +28,7 @@ function mapUserToSupabase(user: Partial<User>): any {
     fid: user.fid,
     username: user.username,
     display_name: user.displayName,
-    pfp_url: user.pfpUrl,
+    avatar_url: user.pfpUrl, // Fixed: use avatar_url for DB
     bio: user.bio,
     follower_count: user.followerCount,
     following_count: user.followingCount,
@@ -176,5 +176,67 @@ export class UserService {
     }
 
     return users.map(user => mapSupabaseUserToUser(user))
+  }
+
+  /**
+   * Create or update user when they vote
+   * This ensures users exist in the database for leaderboards
+   */
+  static async upsertUserFromFarcaster(fid: number, farcasterUser: any): Promise<User> {
+    try {
+      // Try to get existing user
+      const existingUser = await this.getUser(fid)
+      
+      if (existingUser) {
+        // Update existing user with latest Farcaster data
+        const updatedUser = await this.updateUser(fid, {
+          username: farcasterUser.username || existingUser.username,
+          displayName: farcasterUser.displayName || existingUser.displayName,
+          pfpUrl: farcasterUser.pfpUrl || existingUser.pfpUrl,
+        })
+        return updatedUser || existingUser
+      } else {
+        // Create new user
+        const newUser: User = {
+          fid,
+          username: farcasterUser.username || `user_${fid}`,
+          displayName: farcasterUser.displayName || `User ${fid}`,
+          pfpUrl: farcasterUser.pfpUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${fid}`,
+          bio: farcasterUser.bio || '',
+          followerCount: farcasterUser.followerCount || 0,
+          followingCount: farcasterUser.followingCount || 0,
+          verifiedAddresses: farcasterUser.verifiedAddresses || [],
+          battleTokens: 0,
+          credibilityScore: 0,
+          verifiedPurchases: 0,
+          credibilityTier: 'bronze',
+          voteStreak: 0,
+          weeklyVoteCount: 0,
+          weeklyTerritoryBonus: 0,
+        }
+        
+        return await this.createUser(newUser)
+      }
+    } catch (error) {
+      console.error('Error upserting user:', error)
+      // Return a fallback user object
+      return {
+        fid,
+        username: farcasterUser.username || `user_${fid}`,
+        displayName: farcasterUser.displayName || `User ${fid}`,
+        pfpUrl: farcasterUser.pfpUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${fid}`,
+        bio: '',
+        followerCount: 0,
+        followingCount: 0,
+        verifiedAddresses: [],
+        battleTokens: 0,
+        credibilityScore: 0,
+        verifiedPurchases: 0,
+        credibilityTier: 'bronze',
+        voteStreak: 0,
+        weeklyVoteCount: 0,
+        weeklyTerritoryBonus: 0,
+      }
+    }
   }
 } 

@@ -114,7 +114,17 @@ export default function VendorProfilePage({ params }: { params: Promise<{ id: st
           voteType: isVerified ? 'verified' : 'regular',
           // For verified votes, we'll need photo data in the future
           photoUrl: isVerified ? 'https://example.com/photo.jpg' : undefined,
-          gpsLocation: isVerified ? { lat: 19.4326, lng: -99.1332 } : undefined
+          gpsLocation: isVerified ? { lat: 19.4326, lng: -99.1332 } : undefined,
+          // Send Farcaster user data for user creation/update
+          farcasterUser: {
+            username: authenticatedUser.username,
+            displayName: authenticatedUser.displayName,
+            pfpUrl: authenticatedUser.pfpUrl,
+            bio: authenticatedUser.bio,
+            followerCount: authenticatedUser.followerCount,
+            followingCount: authenticatedUser.followingCount,
+            verifiedAddresses: authenticatedUser.verifiedAddresses
+          }
         }),
       })
 
@@ -289,9 +299,11 @@ export default function VendorProfilePage({ params }: { params: Promise<{ id: st
               }}
             >
               <div className="flex p-4">
-                <p className="text-white tracking-light text-[28px] font-bold leading-tight">
-                  {vendor.name}
-                </p>
+                <div className="bg-black/50 backdrop-blur-sm rounded-lg px-4 py-2">
+                  <p className="text-white tracking-light text-[28px] font-bold leading-tight drop-shadow-lg">
+                    {vendor.name}
+                  </p>
+                </div>
               </div>
             </div>
           </div>

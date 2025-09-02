@@ -49,9 +49,6 @@ export function UserHeader() {
               onClick={() => router.push('/notifications')}
             >
               <Bell className="w-5 h-5" />
-              <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full text-xs text-white flex items-center justify-center">
-                3
-              </span>
             </Button>
 
             {/* User Avatar & Menu */}

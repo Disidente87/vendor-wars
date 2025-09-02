@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { VotingService } from '@/services/voting'
+import { UserService } from '@/services/users'
 import { tokenManager } from '@/lib/redis'
 
 const _tokenManager = tokenManager
@@ -7,7 +8,7 @@ const _tokenManager = tokenManager
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { userFid, vendorId, voteType, photoUrl, gpsLocation, verificationConfidence } = body
+    const { userFid, vendorId, voteType, photoUrl, gpsLocation, verificationConfidence, farcasterUser } = body
 
     // Validate required fields
     if (!userFid || !vendorId || !voteType) {
@@ -15,6 +16,15 @@ export async function POST(request: NextRequest) {
         { success: false, error: 'Missing required fields: userFid, vendorId, voteType' },
         { status: 400 }
       )
+    }
+
+    // Create or update user in database for leaderboards
+    if (farcasterUser) {
+      try {
+        await UserService.upsertUserFromFarcaster(userFid, farcasterUser)
+      } catch (error) {
+        console.warn('Failed to upsert user, continuing with vote:', error)
+      }
     }
 
     // Validate vote type

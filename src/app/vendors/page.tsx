@@ -192,36 +192,43 @@ export default function VendorsPage() {
 
                   {/* Vendor Info */}
                   <div className="flex-1">
-                    <div className="mb-1">
-                      <h3 className="font-bold text-[#2d1810] text-lg leading-tight">{vendor.name}</h3>
-                      <span className="text-[#6b5d52] text-sm">@{vendor.name.toLowerCase().replace(/\s+/g, '_')}</span>
+                    <div className="mb-2">
+                      <h3 className="font-bold text-[#2d1810] text-lg leading-tight truncate max-w-[200px]" title={vendor.name}>
+                        {vendor.name.length > 20 ? `${vendor.name.substring(0, 20)}...` : vendor.name}
+                      </h3>
+                      {vendor.isVerified && (
+                        <div className="flex items-center space-x-2 mt-1">
+                          <div className="w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center">
+                            <div className="w-2 h-2 bg-white rounded-full"></div>
+                          </div>
+                          <span className="text-xs text-blue-600 font-medium">Verified</span>
+                        </div>
+                      )}
                     </div>
-                    <p className="text-[#6b5d52] text-sm mb-2">{vendor.description?.substring(0, 60)}...</p>
+                    <p className="text-[#6b5d52] text-sm mb-2 line-clamp-2" title={vendor.description}>
+                      {vendor.description?.length > 80 ? `${vendor.description.substring(0, 80)}...` : vendor.description}
+                    </p>
                     
                     {/* Stats */}
-                    <div className="flex items-center space-x-4">
-                      <div className="flex items-center space-x-1">
-                        <Star className="w-4 h-4 text-[#ffd23f]" />
-                        <span className="text-sm font-semibold text-[#2d1810]">{vendor.stats?.winRate || 0}%</span>
+                    <div className="flex items-center space-x-3 mt-2">
+                      <div className="flex items-center space-x-1 bg-[#ffd23f]/10 px-2 py-1 rounded-lg">
+                        <Star className="w-3 h-3 text-[#ffd23f]" />
+                        <span className="text-xs font-semibold text-[#2d1810]">{vendor.stats?.winRate || 0}%</span>
                       </div>
-                      <div className="flex items-center space-x-1">
-                        <Flame className="w-4 h-4 text-[#ff6b35]" />
-                        <span className="text-sm text-[#6b5d52]">{vendor.stats?.totalVotes || 0}</span>
+                      <div className="flex items-center space-x-1 bg-[#ff6b35]/10 px-2 py-1 rounded-lg">
+                        <Flame className="w-3 h-3 text-[#ff6b35]" />
+                        <span className="text-xs font-medium text-[#6b5d52]">{vendor.stats?.totalVotes || 0}</span>
                       </div>
-                      <div className="flex items-center space-x-1">
-                        <Trophy className="w-4 h-4 text-[#06d6a0]" />
-                        <span className="text-sm text-[#6b5d52]">{vendor.stats?.totalBattles || 0}</span>
-                      </div>
-                      <div className="flex items-center space-x-1">
-                        <Coins className="w-4 h-4 text-[#ffd23f]" />
-                        <span className="text-sm text-[#6b5d52]">{vendor.stats?.verifiedVotes || 0}</span>
+                      <div className="flex items-center space-x-1 bg-[#06d6a0]/10 px-2 py-1 rounded-lg">
+                        <Trophy className="w-3 h-3 text-[#06d6a0]" />
+                        <span className="text-xs font-medium text-[#6b5d52]">{vendor.stats?.totalBattles || 0}</span>
                       </div>
                     </div>
                     
                     {/* Zone */}
-                    <div className="flex items-center space-x-1 mt-1">
+                    <div className="flex items-center space-x-1 mt-2">
                       <Map className="w-3 h-3 text-[#6b5d52]" />
-                      <span className="text-xs text-[#6b5d52]">{vendor.zone}</span>
+                      <span className="text-xs text-[#6b5d52] bg-gray-100 px-2 py-1 rounded-full">{vendor.zone}</span>
                     </div>
                   </div>
 
