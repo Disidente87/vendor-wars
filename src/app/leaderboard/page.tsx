@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { useFarcasterAuth } from '@/hooks/useFarcasterAuth'
@@ -33,12 +33,21 @@ interface LeaderboardEntry {
   tier: 'gold' | 'silver' | 'bronze' | 'none'
 }
 
+interface VendorVotesEntry { id: string; rank: number; name: string; avatar: string; votesReceived: number }
+interface UserVotesEntry { id: string; rank: number; name: string; avatar: string; votesGiven: number }
+interface ZoneVotesEntry { id: string; rank: number; name: string; votesReceived: number }
+
 export default function LeaderboardPage() {
   const router = useRouter()
   const { isAuthenticated, user: _user, isLoading } = useFarcasterAuth()
   
   const [timeFilter, setTimeFilter] = useState<'daily' | 'weekly' | 'monthly' | 'all'>('weekly')
   const [activeTab, setActiveTab] = useState<'vendors' | 'users' | 'zones'>('vendors')
+  const [vendorsVotes, setVendorsVotes] = useState<VendorVotesEntry[]>([])
+  const [usersVotes, setUsersVotes] = useState<UserVotesEntry[]>([])
+  const [zonesVotes, setZonesVotes] = useState<ZoneVotesEntry[]>([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   // Show loading while checking auth
   if (isLoading || !isAuthenticated) {
@@ -52,7 +61,7 @@ export default function LeaderboardPage() {
     )
   }
 
-  // Mock data for vendors leaderboard
+  // Deprecated mock: vendors
   const vendorsData: LeaderboardEntry[] = [
     {
       id: '1',
@@ -121,7 +130,7 @@ export default function LeaderboardPage() {
     }
   ]
 
-  // Mock data for users leaderboard
+  // Deprecated mock: users
   const usersData: LeaderboardEntry[] = [
     {
       id: 'u1',
@@ -164,61 +173,37 @@ export default function LeaderboardPage() {
     }
   ]
 
-  // Mock data for zones leaderboard
-  const zonesData: LeaderboardEntry[] = [
-    {
-      id: 'z1',
-      rank: 1,
-      name: 'Zona Centro',
-      avatar: 'https://images.unsplash.com/photo-1595273670150-bd0c3c392e46?w=100&h=100&fit=crop&crop=face',
-      location: '15 Vendors',
-      weeklyPerformance: '+19% this week',
-      score: 3456,
-      todayChange: 234,
-      controlPercentage: 78,
-      rankChange: 0,
-      tier: 'gold'
-    },
-    {
-      id: 'z2',
-      rank: 2,
-      name: 'Zona Norte',
-      avatar: 'https://images.unsplash.com/photo-1566554273541-37a9ca77b91f?w=100&h=100&fit=crop&crop=face',
-      location: '12 Vendors',
-      weeklyPerformance: '+26% this week',
-      score: 3123,
-      todayChange: 198,
-      controlPercentage: 72,
-      rankChange: 1,
-      tier: 'silver'
-    },
-    {
-      id: 'z3',
-      rank: 3,
-      name: 'Zona Sur',
-      avatar: 'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=100&h=100&fit=crop&crop=face',
-      location: '10 Vendors',
-      weeklyPerformance: '+15% this week',
-      score: 2987,
-      todayChange: 145,
-      controlPercentage: 68,
-      rankChange: -1,
-      tier: 'bronze'
+  // Fetch real leaderboard by votes
+  useEffect(() => {
+    let cancelled = false
+    const load = async () => {
+      setLoading(true)
+      setError(null)
+      try {
+        if (activeTab === 'vendors') {
+          const res = await fetch('/api/leaderboard/votes?type=vendors&limit=20')
+          const json = await res.json()
+          if (!cancelled && json.success) setVendorsVotes(json.data)
+        } else if (activeTab === 'users') {
+          const res = await fetch('/api/leaderboard/votes?type=users&limit=20')
+          const json = await res.json()
+          if (!cancelled && json.success) setUsersVotes(json.data)
+        } else {
+          const res = await fetch('/api/leaderboard/votes?type=zones&limit=20')
+          const json = await res.json()
+          if (!cancelled && json.success) setZonesVotes(json.data)
+        }
+      } catch (e: any) {
+        if (!cancelled) setError(e.message || 'Failed to load leaderboard')
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
     }
-  ]
+    load()
+    return () => { cancelled = true }
+  }, [activeTab])
 
-  const getCurrentData = () => {
-    switch (activeTab) {
-      case 'vendors':
-        return vendorsData
-      case 'users':
-        return usersData
-      case 'zones':
-        return zonesData
-      default:
-        return vendorsData
-    }
-  }
+  const getCurrentVotes = () => activeTab === 'vendors' ? vendorsVotes : activeTab === 'users' ? usersVotes : zonesVotes
 
   const getTierIcon = (tier: string) => {
     switch (tier) {
@@ -233,25 +218,7 @@ export default function LeaderboardPage() {
     }
   }
 
-  const getRankChangeIcon = (change: number) => {
-    if (change > 0) {
-      return <ChevronUp className="w-4 h-4 text-green-600" />
-    } else if (change < 0) {
-      return <ChevronDown className="w-4 h-4 text-red-600" />
-    } else {
-      return <Minus className="w-4 h-4 text-blue-600" />
-    }
-  }
-
-  const getRankChangeText = (change: number) => {
-    if (change > 0) {
-      return `+${change}`
-    } else if (change < 0) {
-      return `${change}`
-    } else {
-      return '='
-    }
-  }
+  // Rank change UI removed for vote-based leaderboard
 
   const getBackgroundColor = (index: number) => {
     const colors = [
@@ -344,67 +311,41 @@ export default function LeaderboardPage() {
       {/* Leaderboard Entries */}
       <div className="relative z-10 px-4 pb-20">
         <div className="space-y-3">
-          {getCurrentData().map((entry, index) => (
+          {getCurrentVotes().map((entry: any, index: number) => (
             <div 
               key={entry.id}
               className={`${getBackgroundColor(index)} rounded-xl p-4 shadow-lg border border-[#ff6b35]/20 hover:shadow-xl transition-all duration-200`}
             >
               <div className="flex items-center space-x-3">
-                {/* Rank and Change */}
-                <div className="flex flex-col items-center space-y-1">
-                  {getTierIcon(entry.tier) || (
-                    <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-sm font-bold text-gray-600">
-                      {entry.rank}
-                    </div>
-                  )}
-                  <div className="flex items-center space-x-1 bg-blue-100 rounded px-1 py-0.5">
-                    {getRankChangeIcon(entry.rankChange)}
-                    <span className="text-xs font-medium text-blue-700">
-                      {getRankChangeText(entry.rankChange)}
-                    </span>
-                  </div>
-                </div>
+                {/* Rank */}
+                <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-sm font-bold text-gray-600">{entry.rank}</div>
 
                 {/* Avatar */}
-                <div className="flex-shrink-0">
-                  <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-[#ff6b35]/20">
-                    <img 
-                      src={entry.avatar} 
-                      alt={entry.name}
-                      className="w-full h-full object-cover"
-                    />
+                {entry.avatar && (
+                  <div className="flex-shrink-0">
+                    <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-[#ff6b35]/20">
+                      <img src={entry.avatar} alt={entry.name} className="w-full h-full object-cover" />
+                    </div>
                   </div>
-                </div>
+                )}
 
                 {/* Content */}
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center space-x-2 mb-1">
-                    <h3 className="font-bold text-[#2d1810] text-base truncate">{entry.name}</h3>
-                    {entry.tier === 'gold' && <Crown className="w-4 h-4 text-yellow-600" />}
-                  </div>
-                  <p className="text-[#6b5d52] text-sm mb-1">{entry.location}</p>
-                  <p className="text-green-600 text-sm font-medium mb-2">{entry.weeklyPerformance}</p>
-                  <div className="flex items-center space-x-4 text-sm">
-                    <div className="flex items-center space-x-1">
-                      <Trophy className="w-3 h-3 text-[#ffd23f]" />
-                      <span className="font-semibold text-[#2d1810]">{entry.score.toLocaleString()}</span>
-                    </div>
-                    <div className="flex items-center space-x-1">
-                      <TrendingUp className="w-3 h-3 text-green-600" />
-                      <span className="text-green-600 font-medium">+{entry.todayChange} today</span>
-                    </div>
-                  </div>
+                  <h3 className="font-bold text-[#2d1810] text-base truncate">{entry.name}</h3>
                 </div>
 
-                {/* Control Percentage */}
-                <div className="flex-shrink-0">
-                  <div className="bg-orange-100 text-orange-800 px-3 py-1 rounded-full text-sm font-semibold">
-                    {entry.controlPercentage}% control
+                {/* Votes metric */}
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-[#6b5d52]">{activeTab === 'users' ? 'Votes Given' : 'Votes Received'}</span>
+                  <div className="px-2 py-1 bg-white rounded-md border text-[#2d1810] font-semibold">
+                    {activeTab === 'users' ? entry.votesGiven : entry.votesReceived}
                   </div>
                 </div>
               </div>
             </div>
           ))}
+          {loading && <div className="text-center text-[#6b5d52] text-sm">Loading...</div>}
+          {error && <div className="text-center text-red-600 text-sm">{error}</div>}
         </div>
       </div>
 
