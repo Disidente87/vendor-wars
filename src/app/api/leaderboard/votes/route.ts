@@ -14,12 +14,32 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const type = searchParams.get('type') || 'vendors' // vendors | users | zones
     const limit = parseInt(searchParams.get('limit') || '20')
+    const time = (searchParams.get('time') || 'all') as 'daily' | 'weekly' | 'monthly' | 'all'
+
+    // Compute date lower bound based on time filter
+    let sinceIso: string | null = null
+    const now = new Date()
+    if (time === 'daily') {
+      const start = new Date(now)
+      start.setHours(0, 0, 0, 0)
+      sinceIso = start.toISOString()
+    } else if (time === 'weekly') {
+      const start = new Date(now)
+      start.setDate(start.getDate() - 7)
+      sinceIso = start.toISOString()
+    } else if (time === 'monthly') {
+      const start = new Date(now)
+      start.setMonth(start.getMonth() - 1)
+      sinceIso = start.toISOString()
+    }
 
     if (type === 'vendors') {
       // Votes received per vendor (aggregate client-side)
-      const { data: votes, error } = await supabase
+      let query = supabase
         .from('votes')
-        .select('vendor_id')
+        .select('vendor_id, created_at')
+      if (sinceIso) query = query.gte('created_at', sinceIso)
+      const { data: votes, error } = await query
       if (error) throw error
 
       const countsMap: Record<string, number> = {}
@@ -61,9 +81,11 @@ export async function GET(request: NextRequest) {
 
     if (type === 'users') {
       // Votes given per user (aggregate client-side)
-      const { data: votes, error } = await supabase
+      let query = supabase
         .from('votes')
-        .select('voter_fid')
+        .select('voter_fid, created_at')
+      if (sinceIso) query = query.gte('created_at', sinceIso)
+      const { data: votes, error } = await query
       if (error) throw error
 
       const countsMap: Record<string, number> = {}
@@ -104,9 +126,11 @@ export async function GET(request: NextRequest) {
 
     if (type === 'zones') {
       // Votes received per zone (aggregate client-side)
-      const { data: votes, error } = await supabase
+      let query = supabase
         .from('votes')
-        .select('vendor_id')
+        .select('vendor_id, created_at')
+      if (sinceIso) query = query.gte('created_at', sinceIso)
+      const { data: votes, error } = await query
       if (error) throw error
 
       const vendorCountMap: Record<string, number> = {}
@@ -134,11 +158,29 @@ export async function GET(request: NextRequest) {
         zoneCounts[zoneId] = (zoneCounts[zoneId] || 0) + vendorVotes
       }
 
-      const zones = Object.entries(zoneCounts)
+      const zonesAggregated = Object.entries(zoneCounts)
         .map(([zoneId, votes]) => ({ id: zoneId, votes }))
         .sort((a, b) => b.votes - a.votes)
         .slice(0, limit)
-        .map((z, idx) => ({ id: z.id, rank: idx + 1, name: `Zone ${z.id}`, votesReceived: z.votes }))
+
+      // Fetch real zone names
+      let zoneNameById: Record<string, string> = {}
+      const zoneIds = zonesAggregated.map(z => z.id)
+      if (zoneIds.length) {
+        const { data: zonesMeta, error: zErr } = await supabase
+          .from('zones')
+          .select('id, name')
+          .in('id', zoneIds)
+        if (zErr) throw zErr
+        zoneNameById = Object.fromEntries((zonesMeta || []).map((z: any) => [String(z.id), z.name]))
+      }
+
+      const zones = zonesAggregated.map((z, idx) => ({
+        id: z.id,
+        rank: idx + 1,
+        name: zoneNameById[z.id] || `Zona ${z.id}`,
+        votesReceived: z.votes,
+      }))
 
       return NextResponse.json({ success: true, data: zones })
     }

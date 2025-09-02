@@ -53,15 +53,15 @@ export default function LeaderboardPage() {
       setError(null)
       try {
         if (activeTab === 'vendors') {
-          const res = await fetch('/api/leaderboard/votes?type=vendors&limit=20')
+          const res = await fetch(`/api/leaderboard/votes?type=vendors&limit=20&time=${timeFilter}`)
           const json = await res.json()
           if (!cancelled && json.success) setVendorsVotes(json.data)
         } else if (activeTab === 'users') {
-          const res = await fetch('/api/leaderboard/votes?type=users&limit=20')
+          const res = await fetch(`/api/leaderboard/votes?type=users&limit=20&time=${timeFilter}`)
           const json = await res.json()
           if (!cancelled && json.success) setUsersVotes(json.data)
         } else {
-          const res = await fetch('/api/leaderboard/votes?type=zones&limit=20')
+          const res = await fetch(`/api/leaderboard/votes?type=zones&limit=20&time=${timeFilter}`)
           const json = await res.json()
           if (!cancelled && json.success) setZonesVotes(json.data)
         }
@@ -73,7 +73,7 @@ export default function LeaderboardPage() {
     }
     load()
     return () => { cancelled = true }
-  }, [activeTab])
+  }, [activeTab, timeFilter])
 
   // Show loading while checking auth
   if (isLoading || !isAuthenticated) {
