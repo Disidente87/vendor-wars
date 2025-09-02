@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useMiniApp } from '@neynar/react'
 import type { User } from '@/types'
 
@@ -19,6 +19,7 @@ export function useFarcasterAuth(): UseFarcasterAuthReturn {
   const [user, setUser] = useState<User | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const hasInitialized = useRef(false)
 
   // Debug logging for state changes
   console.log('🔍 useFarcasterAuth state:', {
@@ -54,7 +55,13 @@ export function useFarcasterAuth(): UseFarcasterAuthReturn {
   }
 
   useEffect(() => {
-    console.log('🔄 useEffect triggered:', { isSDKLoaded, hasContext: !!context })
+    console.log('🔄 useEffect triggered:', { isSDKLoaded, hasContext: !!context, hasInitialized: hasInitialized.current })
+    
+    // Prevent multiple initializations
+    if (hasInitialized.current) {
+      console.log('⏭️ Already initialized, skipping...')
+      return
+    }
     
     const initializeAuth = async () => {
       console.log('🚀 Starting initializeAuth...')
@@ -64,6 +71,9 @@ export function useFarcasterAuth(): UseFarcasterAuthReturn {
         setIsLoading(false)
         return
       }
+      
+      // Mark as initialized to prevent re-runs
+      hasInitialized.current = true
 
       console.log('✅ SDK loaded and context available')
 
@@ -86,9 +96,20 @@ export function useFarcasterAuth(): UseFarcasterAuthReturn {
             
             if (result.success) {
               console.log('✅ Stored user verified in database, restoring session...')
+              console.log('🖼️ User profile image data:', {
+                pfpUrl: result.data.pfpUrl,
+                hasPfpUrl: !!result.data.pfpUrl,
+                pfpUrlType: typeof result.data.pfpUrl
+              })
+              
+              // Use real Farcaster image from context if available
+              const realPfpUrl = context?.user?.pfpUrl
+              console.log('🖼️ Real Farcaster image from context:', realPfpUrl)
+              
               const updatedStreak = await checkAndResetStreak(parsedUser.fid)
               const updatedUser = {
                 ...result.data,
+                pfpUrl: realPfpUrl || result.data.pfpUrl, // Use real image if available
                 voteStreak: updatedStreak !== null ? updatedStreak : result.data.voteStreak
               }
               
@@ -131,12 +152,23 @@ export function useFarcasterAuth(): UseFarcasterAuthReturn {
           
           if (result.success) {
             console.log('✅ User found in database, authenticating...')
+            console.log('🖼️ User profile image data:', {
+              pfpUrl: result.data.pfpUrl,
+              hasPfpUrl: !!result.data.pfpUrl,
+              pfpUrlType: typeof result.data.pfpUrl
+            })
+            
+            // Use real Farcaster image from context if available
+            const realPfpUrl = currentUser?.pfpUrl
+            console.log('🖼️ Real Farcaster image from context:', realPfpUrl)
+            
             // Check and reset streak if needed
             const updatedStreak = await checkAndResetStreak(currentUser.fid)
             
-            // Update user with potentially corrected streak
+            // Update user with potentially corrected streak and real image
             const updatedUser = {
               ...result.data,
+              pfpUrl: realPfpUrl || result.data.pfpUrl, // Use real image if available
               voteStreak: updatedStreak !== null ? updatedStreak : result.data.voteStreak
             }
             
@@ -168,17 +200,33 @@ export function useFarcasterAuth(): UseFarcasterAuthReturn {
     }
 
     initializeAuth()
-  }, [isSDKLoaded, context])
+  }, [isSDKLoaded])
 
   const createNewUser = async (farcasterUser: any) => {
     try {
       console.log('Creating new user with FID:', farcasterUser.fid)
+      console.log('Farcaster user data:', farcasterUser)
+      
+      // Try to get real Farcaster profile image from Neynar API
+      let realPfpUrl = farcasterUser.pfpUrl
+      if (!realPfpUrl && farcasterUser.fid) {
+        try {
+          const response = await fetch(`/api/farcaster/user/${farcasterUser.fid}`)
+          if (response.ok) {
+            const userData = await response.json()
+            realPfpUrl = userData.pfpUrl
+            console.log('✅ Got real Farcaster image:', realPfpUrl)
+          }
+        } catch (error) {
+          console.warn('Failed to get real Farcaster image:', error)
+        }
+      }
       
       const newUser: User = {
         fid: farcasterUser.fid,
         username: farcasterUser.username || `user_${farcasterUser.fid}`,
         displayName: farcasterUser.displayName || `User ${farcasterUser.fid}`,
-        pfpUrl: farcasterUser.pfpUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${farcasterUser.fid}`,
+        pfpUrl: realPfpUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${farcasterUser.fid}`,
         followerCount: farcasterUser.followerCount || 0,
         followingCount: farcasterUser.followingCount || 0,
         bio: farcasterUser.bio || 'Vendor Wars enthusiast',
@@ -283,6 +331,7 @@ export function useFarcasterAuth(): UseFarcasterAuthReturn {
           const updatedStreak = await checkAndResetStreak(currentUser.fid)
           const updatedUser = {
             ...result.data,
+            pfpUrl: currentUser.pfpUrl || result.data.pfpUrl, // Use real image if available
             voteStreak: updatedStreak !== null ? updatedStreak : result.data.voteStreak
           }
           

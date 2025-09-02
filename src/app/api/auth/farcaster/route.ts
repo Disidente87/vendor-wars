@@ -90,19 +90,36 @@ export async function GET(request: NextRequest) {
       }
 
       if (dbUser) {
-        // Parse avatar_url if it's a JSON string
+        console.log('🔍 Database user found:', { fid: dbUser.fid, avatar_url: dbUser.avatar_url })
+        
+        // Handle avatar_url - could be a direct URL or JSON object
         let pfpUrl = 'https://api.dicebear.com/7.x/avataaars/svg?seed=default'
         if (dbUser.avatar_url) {
           try {
             if (typeof dbUser.avatar_url === 'string') {
-              const parsedAvatar = JSON.parse(dbUser.avatar_url)
-              pfpUrl = parsedAvatar.url || pfpUrl
+              // Check if it's a JSON string or a direct URL
+              if (dbUser.avatar_url.startsWith('{') || dbUser.avatar_url.startsWith('[')) {
+                // It's JSON, parse it
+                const parsedAvatar = JSON.parse(dbUser.avatar_url)
+                pfpUrl = parsedAvatar.url || pfpUrl
+              } else {
+                // It's a direct URL, use it as is
+                pfpUrl = dbUser.avatar_url
+              }
             } else if (typeof dbUser.avatar_url === 'object' && dbUser.avatar_url.url) {
               pfpUrl = dbUser.avatar_url.url
             }
+            console.log('✅ Parsed pfpUrl:', pfpUrl)
           } catch (error) {
             console.warn('Failed to parse avatar_url:', error)
+            // If parsing fails, try to use the raw value as URL
+            if (typeof dbUser.avatar_url === 'string' && dbUser.avatar_url.startsWith('http')) {
+              pfpUrl = dbUser.avatar_url
+              console.log('✅ Using raw avatar_url as URL:', pfpUrl)
+            }
           }
+        } else {
+          console.log('⚠️ No avatar_url in database, using default')
         }
 
         // Map database user to our User type

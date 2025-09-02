@@ -4,15 +4,11 @@ import { useState } from 'react'
 import { WalletConnect, useWalletConnection } from '@/components/WalletConnect'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { WalletActions } from '@/components/WalletActions'
+
 import { NetworkAlert } from '@/components/NetworkAlert'
 import { 
   Wallet, 
   Coins, 
-  Send, 
-  Download, 
-  History, 
-  Settings,
   Copy,
   ExternalLink,
   ArrowLeft
@@ -178,18 +174,7 @@ export default function WalletPage() {
           </CardContent>
         </Card>
 
-        {/* Quick Actions */}
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle className="text-lg">Quick Actions</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <WalletActions 
-              address={address}
-              isBaseSepoliaNetwork={isBaseSepoliaNetwork}
-            />
-          </CardContent>
-        </Card>
+
 
         {/* Network Info */}
         <Card>
