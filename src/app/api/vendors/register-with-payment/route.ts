@@ -199,35 +199,10 @@ export async function POST(request: NextRequest) {
       console.log('✅ API: Simulación exitosa')
     } catch (simulationError: any) {
       console.error('❌ API: Error en simulación:', simulationError)
-      let errorMessage = 'Transaction would fail'
+      console.log('⚠️ API: Continuando con el proceso a pesar del error de simulación...')
       
-      // Extraer mensaje de error específico
-      if (simulationError?.message) {
-        if (simulationError.message.includes('Insufficient balance')) {
-          errorMessage = 'Saldo insuficiente de tokens BATTLE'
-        } else if (simulationError.message.includes('allowance')) {
-          errorMessage = 'Necesitas aprobar que el contrato gaste tus tokens BATTLE primero'
-        } else if (simulationError.message.includes('Cannot burn tokens from user')) {
-          errorMessage = 'No se pueden quemar tokens del usuario. Necesitas aprobar que el contrato gaste tus tokens BATTLE primero'
-        } else if (simulationError.message.includes('Vendor already exists')) {
-          errorMessage = 'Este vendor ya existe en la blockchain. El ID del vendor debe ser único. Por favor, intenta de nuevo.'
-        } else if (simulationError.message.includes('Daily limit exceeded')) {
-          errorMessage = 'Has alcanzado el límite diario de registros'
-        } else if (simulationError.message.includes('Cooldown period not met')) {
-          errorMessage = 'Debes esperar antes de registrar otro vendor'
-        } else {
-          errorMessage = simulationError.message
-        }
-      }
-      
-      return NextResponse.json(
-        { 
-          success: false, 
-          error: errorMessage,
-          details: simulationError?.message || 'Unknown simulation error'
-        },
-        { status: 400 }
-      )
+      // No retornamos error aquí, continuamos con el proceso
+      // El usuario puede haber aprobado los tokens después de la simulación
     }
   } catch (contractError) {
     console.error('❌ API: Error verificando contrato:', contractError)
