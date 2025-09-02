@@ -92,9 +92,26 @@ export default function VendorsPage() {
     const matchesSearch = vendor.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          vendor.description.toLowerCase().includes(searchQuery.toLowerCase())
     
-    const matchesZone = selectedZone === 'all' || vendor.zone === selectedZone
-    const matchesCategory = selectedCategory === 'all' || vendor.category === selectedCategory
-    const matchesDelegation = selectedDelegation === 'all' || vendor.zone === selectedDelegation
+    // More flexible zone matching - check if zone name contains the selected zone or vice versa
+    const matchesZone = selectedZone === 'all' || 
+      (vendor.zone && (
+        vendor.zone.toLowerCase().includes(selectedZone.toLowerCase()) ||
+        selectedZone.toLowerCase().includes(vendor.zone.toLowerCase())
+      ))
+    
+    // More flexible category matching
+    const matchesCategory = selectedCategory === 'all' || 
+      (vendor.category && (
+        vendor.category.toLowerCase().includes(selectedCategory.toLowerCase()) ||
+        selectedCategory.toLowerCase().includes(vendor.category.toLowerCase())
+      ))
+    
+    // More flexible delegation matching - check if zone contains delegation name
+    const matchesDelegation = selectedDelegation === 'all' || 
+      (vendor.zone && (
+        vendor.zone.toLowerCase().includes(selectedDelegation.toLowerCase()) ||
+        selectedDelegation.toLowerCase().includes(vendor.zone.toLowerCase())
+      ))
     
     // Filter by subcategories - vendor must have at least one of the selected subcategories
     const matchesSubcategories = selectedSubcategories.length === 0 || 
@@ -171,6 +188,17 @@ export default function VendorsPage() {
           {/* Advanced Filters */}
           {showFilters && (
             <div className="mt-4 p-4 bg-gray-50 rounded-xl border border-gray-200">
+              {/* Filter Header with Close Button */}
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-[#2d1810]">Advanced Filters</h3>
+                <button
+                  onClick={() => setShowFilters(false)}
+                  className="text-[#6b5d52] hover:text-[#2d1810] transition-colors"
+                  title="Close filters"
+                >
+                  ✕
+                </button>
+              </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {/* Zone Filter */}
                 <div>
@@ -253,8 +281,8 @@ export default function VendorsPage() {
                 )}
               </div>
               
-              {/* Clear Filters Button */}
-              <div className="mt-4 flex justify-end">
+              {/* Filter Actions */}
+              <div className="mt-4 flex justify-between items-center">
                 <button
                   onClick={() => {
                     setSelectedZone('all')
@@ -266,6 +294,14 @@ export default function VendorsPage() {
                 >
                   Clear All Filters
                 </button>
+                <div className="flex space-x-2">
+                  <button
+                    onClick={() => setShowFilters(false)}
+                    className="px-4 py-2 bg-[#ff6b35] text-white rounded-lg hover:bg-[#e5562e] transition-colors text-sm font-medium"
+                  >
+                    Apply Filters
+                  </button>
+                </div>
               </div>
             </div>
           )}
@@ -296,6 +332,13 @@ export default function VendorsPage() {
             </div>
             <div className="text-sm text-[#6b5d52]">
               {filteredVendors.length} vendors found
+              {/* Debug: Show available data */}
+              {process.env.NODE_ENV === 'development' && (
+                <div className="text-xs text-gray-500 mt-1 space-y-1">
+                  <div>Available zones: {[...new Set(vendors.map(v => v.zone))].join(', ')}</div>
+                  <div>Available categories: {[...new Set(vendors.map(v => v.category))].join(', ')}</div>
+                </div>
+              )}
             </div>
           </div>
         </div>
