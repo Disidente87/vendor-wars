@@ -21,7 +21,9 @@ export async function POST(request: NextRequest) {
     // Create or update user in database for leaderboards
     if (farcasterUser) {
       try {
-        await UserService.upsertUserFromFarcaster(userFid, farcasterUser)
+        console.log('🔍 Upserting user for vote:', userFid, farcasterUser.username)
+        const upsertedUser = await UserService.upsertUserFromFarcaster(userFid, farcasterUser)
+        console.log('✅ User upserted successfully:', upsertedUser.username, upsertedUser.pfpUrl)
       } catch (error) {
         console.warn('Failed to upsert user, continuing with vote:', error)
       }

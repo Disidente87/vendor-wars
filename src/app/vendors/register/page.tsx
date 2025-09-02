@@ -348,9 +348,17 @@ export default function VendorRegistrationPage() {
                   <p className="text-sm text-[#2d1810] font-medium mb-1">
                     Click to upload photo
                   </p>
-                  <p className="text-xs text-[#6b5d52]">
+                  <p className="text-xs text-[#6b5d52] mb-2">
                     JPG, PNG or WebP (max 5MB)
                   </p>
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mt-3">
+                    <p className="text-xs text-blue-700 font-medium mb-1">
+                      💡 Pro tip for best results:
+                    </p>
+                    <p className="text-xs text-blue-600">
+                      Use a 16:9 aspect ratio image for optimal visual display
+                    </p>
+                  </div>
                 </div>
               ) : (
                 <div className="mt-2 relative">

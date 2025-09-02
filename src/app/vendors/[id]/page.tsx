@@ -173,9 +173,12 @@ export default function VendorProfilePage({ params }: { params: Promise<{ id: st
   // Generate dynamic top voters based on vendor data
   const getTopVoters = async (vendor: Vendor): Promise<TopVoter[]> => {
     try {
+      console.log('🔍 Fetching top voters for vendor:', vendor.id)
       // Fetch real top voters from the database
       const response = await fetch(`/api/votes?vendorId=${vendor.id}`)
       const result = await response.json()
+      
+      console.log('🔍 Votes API response:', result)
       
       if (result.success && result.data && result.data.votes) {
         // Group votes by user and calculate totals
@@ -194,7 +197,7 @@ export default function VendorProfilePage({ params }: { params: Promise<{ id: st
             const user = votes[0].users
             // Use Farcaster info if this is the authenticated user
             const isAuthenticatedUser = authenticatedUser && fid === authenticatedUser.fid.toString()
-            return {
+            const voterData = {
               id: fid,
               username: isAuthenticatedUser ? authenticatedUser.username : (user?.username || `user_${fid}`),
               displayName: isAuthenticatedUser ? authenticatedUser.displayName : (user?.display_name || `User ${fid}`),
@@ -203,6 +206,8 @@ export default function VendorProfilePage({ params }: { params: Promise<{ id: st
               totalVotes: votes.length,
               isVerified: votes.some((vote: any) => vote.is_verified)
             }
+            console.log(`🔍 TopVoter ${fid}:`, voterData)
+            return voterData
           })
           .sort((a, b) => b.votesGiven - a.votesGiven)
           .slice(0, 3)
@@ -286,8 +291,8 @@ export default function VendorProfilePage({ params }: { params: Promise<{ id: st
           >
             <ArrowLeft className="h-6 w-6" />
           </button>
-          <h2 className="text-[#181511] text-lg font-bold leading-tight tracking-[-0.015em] flex-1 text-center pr-12">
-            Vendor Profile
+          <h2 className="text-[#181511] text-lg font-bold leading-tight tracking-[-0.015em] flex-1 text-center pr-12 break-words">
+            {vendor.name}
           </h2>
         </div>
 
@@ -297,16 +302,9 @@ export default function VendorProfilePage({ params }: { params: Promise<{ id: st
             <div
               className="bg-cover bg-center flex flex-col justify-end overflow-hidden bg-white @[480px]:rounded-xl min-h-[218px]"
               style={{
-                backgroundImage: `linear-gradient(0deg, rgba(0, 0, 0, 0.4) 0%, rgba(0, 0, 0, 0) 25%), url("${vendor.imageUrl || 'https://images.unsplash.com/photo-1595273670150-bd0c3c392e46?w=400&h=300&fit=crop'}")`
+                backgroundImage: `url("${vendor.imageUrl || 'https://images.unsplash.com/photo-1595273670150-bd0c3c392e46?w=400&h=300&fit=crop'}")`
               }}
             >
-              <div className="flex p-4">
-                <div className="bg-black/30 backdrop-blur-sm rounded-lg px-4 py-2">
-                  <p className="text-white tracking-light text-[28px] font-bold leading-tight drop-shadow-lg">
-                    {vendor.name}
-                  </p>
-                </div>
-              </div>
             </div>
           </div>
         </div>
