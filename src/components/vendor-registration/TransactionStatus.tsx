@@ -60,28 +60,42 @@ export function TransactionStatus({
   }
 
   const { address } = useAccount()
+  const isApprovedNow = isApproved || isApprovalSuccess
 
   return (
     <div className="w-full max-w-2xl mx-auto">
-      {/* Solo mostrar el botón de aprobación si está conectado, tiene saldo suficiente y no está aprobado */}
-      {isConnected && hasSufficientBalance && !isApproved && (
-        <Button 
-          onClick={handleApprove} 
-          disabled={isApprovalPending}
-          className="w-full bg-orange-600 hover:bg-orange-700 text-white"
-        >
-          {isApprovalPending ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Aprobando...
-            </>
-          ) : (
-            <>
-              <Shield className="mr-2 h-4 w-4" />
-              Aprobar Tokens (50 $BATTLE)
-            </>
+      {/* Botón de aprobación: deshabilitar tras aprobar y mostrar mensaje */}
+      {isConnected && hasSufficientBalance && (
+        <>
+          <Button 
+            onClick={handleApprove} 
+            disabled={isApprovalPending || isApprovedNow}
+            className="w-full bg-orange-600 hover:bg-orange-700 text-white disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            {isApprovalPending ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Aprobando...
+              </>
+            ) : isApprovedNow ? (
+              <>
+                <Shield className="mr-2 h-4 w-4" />
+                Successful Payment
+              </>
+            ) : (
+              <>
+                <Shield className="mr-2 h-4 w-4" />
+                Pay Tokens (50 $BATTLE)
+              </>
+            )}
+          </Button>
+
+          {isApprovedNow && (
+            <div className="mt-2 text-sm text-green-700">
+              ✅ Aprobación exitosa. Ya puedes continuar con el registro.
+            </div>
           )}
-        </Button>
+        </>
       )}
     </div>
   )

@@ -150,31 +150,29 @@ export default function ProfilePage() {
   }
 
   const getTopVendors = (votes: any[]): TopVendor[] => {
-    const vendorCounts: { [key: string]: { votes: number; vendor: any } } = {}
-    
-    votes.forEach(vote => {
-      const vendorId = vote.vendor_id
-      const vendor = vote.vendors
-      if (vendor) {
-        if (vendorCounts[vendorId]) {
-          vendorCounts[vendorId].votes++
-        } else {
-          vendorCounts[vendorId] = { votes: 1, vendor }
-        }
-      }
-    })
+    // Contabiliza TODOS los votos por vendor_id, incluso si la relación vendors viene null
+    const counts: Record<string, { count: number; vendor: any | null }> = {}
 
-    return Object.values(vendorCounts)
-      .sort((a, b) => b.votes - a.votes)
-      .slice(0, 3)
-      .map(({ votes, vendor }) => ({
-        id: vendor.id,
-        name: vendor.name,
-        imageUrl: vendor.image_url || 'https://via.placeholder.com/100',
-        votesReceived: votes,
-        totalVotes: votes,
+    for (const vote of votes) {
+      const vendorId = vote.vendor_id
+      if (!vendorId) continue
+      if (!counts[vendorId]) counts[vendorId] = { count: 0, vendor: vote.vendors || null }
+      counts[vendorId].count += 1
+      // Conserva el primer vendor enriquecido que encuentres
+      if (!counts[vendorId].vendor && vote.vendors) counts[vendorId].vendor = vote.vendors
+    }
+
+    return Object.entries(counts)
+      .map(([vendorId, { count, vendor }]) => ({
+        id: vendor?.id || vendorId,
+        name: vendor?.name || 'Unknown Vendor',
+        imageUrl: vendor?.image_url || 'https://via.placeholder.com/100',
+        votesReceived: count,
+        totalVotes: count,
         zone: 'Unknown Zone'
       }))
+      .sort((a, b) => b.votesReceived - a.votesReceived)
+      .slice(0, 3)
   }
 
   const getFallbackStats = (): UserStats => {
@@ -240,7 +238,7 @@ export default function ProfilePage() {
       await refreshBalance()
       
       // Fetch user's voting history and stats
-      const response = await fetch(`/api/votes?userFid=${farcasterUser.fid}`)
+      const response = await fetch(`/api/votes?userFid=${farcasterUser.fid}&limit=1000`)
       const result = await response.json()
       
       if (result.success) {
