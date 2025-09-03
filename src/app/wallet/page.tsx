@@ -15,12 +15,16 @@ import {
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useTokenBalance } from '@/hooks/useTokenBalance'
+import { useFarcasterAuth } from '@/hooks/useFarcasterAuth'
+import { TokenDistributionService } from '@/services/tokenDistribution'
 
 export default function WalletPage() {
   const router = useRouter()
   const { address, isConnected, balance, chainId, isBaseSepoliaNetwork } = useWalletConnection()
   const { balance: battleTokens } = useTokenBalance()
+  const { user: farcasterUser } = useFarcasterAuth()
   const [copied, setCopied] = useState(false)
+  const [isSavingWallet, setIsSavingWallet] = useState(false)
 
   const copyAddress = async () => {
     if (address) {
@@ -36,6 +40,37 @@ export default function WalletPage() {
         ? `https://sepolia.basescan.org/address/${address}`
         : `https://etherscan.io/address/${address}`
       window.open(explorerUrl, '_blank')
+    }
+  }
+
+  const handleWalletConnect = async (walletAddress: string) => {
+    if (!farcasterUser?.fid) {
+      console.warn('No Farcaster user available to save wallet')
+      return
+    }
+
+    setIsSavingWallet(true)
+    try {
+      console.log(`🔗 Saving wallet ${walletAddress} for user ${farcasterUser.fid}`)
+      
+      // Save wallet address and process any pending token distributions
+      const result = await TokenDistributionService.updateUserWallet(
+        farcasterUser.fid.toString(),
+        walletAddress
+      )
+
+      if (result.success) {
+        console.log(`✅ Wallet saved successfully!`)
+        if (result.tokensDistributed > 0) {
+          console.log(`🎁 Processed ${result.tokensDistributed} pending tokens`)
+        }
+      } else {
+        console.error(`❌ Failed to save wallet:`, result.error)
+      }
+    } catch (error) {
+      console.error('Error saving wallet:', error)
+    } finally {
+      setIsSavingWallet(false)
     }
   }
 
@@ -58,9 +93,7 @@ export default function WalletPage() {
 
           {/* Wallet Connect Component */}
           <WalletConnect 
-            onConnect={(address) => {
-              console.log('Wallet connected:', address)
-            }}
+            onConnect={handleWalletConnect}
           />
         </div>
       </div>
@@ -202,6 +235,18 @@ export default function WalletPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Wallet Status */}
+        {isSavingWallet && (
+          <Card className="mb-6">
+            <CardContent className="pt-6">
+              <div className="flex items-center space-x-3">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[#ff6b35]"></div>
+                <span className="text-sm text-gray-600">Saving wallet and processing pending tokens...</span>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Disconnect Button */}
         <div className="mt-6">
