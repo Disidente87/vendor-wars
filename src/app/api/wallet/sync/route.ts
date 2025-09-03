@@ -24,14 +24,37 @@ export async function POST(request: NextRequest) {
 
     console.log(`🔄 API: Synchronizing wallet for user ${userFid} with address ${walletAddress}`)
 
-    // Ensure walletAddress is a string, not an array
-    const cleanWalletAddress = Array.isArray(walletAddress) ? walletAddress[0] : walletAddress
+    // Ensure walletAddress is a clean string (handle legacy formats)
+    let cleanWalletAddress: string
+    
+    if (Array.isArray(walletAddress)) {
+      // Legacy array format
+      cleanWalletAddress = walletAddress[0]
+    } else if (typeof walletAddress === 'string') {
+      // Check if it's a JSON string (legacy) or direct string (new format)
+      try {
+        const parsed = JSON.parse(walletAddress)
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          // Legacy JSON string format
+          cleanWalletAddress = parsed[0]
+        } else {
+          // Direct string format (new)
+          cleanWalletAddress = walletAddress
+        }
+      } catch {
+        // Direct string format (new)
+        cleanWalletAddress = walletAddress
+      }
+    } else {
+      cleanWalletAddress = walletAddress
+    }
+    
     console.log(`🔧 API: Cleaned wallet address: ${cleanWalletAddress}`)
 
-    // 1. Update user's wallet address in database
+    // 1. Update user's wallet address in database (store as string, not array)
     const { error: updateError } = await supabase
       .from('users')
-      .update({ wallet_address: [cleanWalletAddress] })
+      .update({ wallet_address: cleanWalletAddress })
       .eq('fid', parseInt(userFid))
 
     if (updateError) {

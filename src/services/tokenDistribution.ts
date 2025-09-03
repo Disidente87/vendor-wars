@@ -92,8 +92,33 @@ export class TokenDistributionService {
 
       // 2. Check if user has wallet connected
       if (user.wallet_address) {
-        console.log(`✅ User ${userFid} has wallet connected: ${user.wallet_address}`)
-        return await this.distributeToWallet(user.wallet_address, tokens, userFid, voteId, vendorId)
+        // Clean wallet address - handle legacy formats (array, JSON string) and new string format
+        let cleanWalletAddress: string
+        
+        if (Array.isArray(user.wallet_address)) {
+          // Legacy array format
+          cleanWalletAddress = user.wallet_address[0]
+        } else if (typeof user.wallet_address === 'string') {
+          // Check if it's a JSON string (legacy) or direct string (new format)
+          try {
+            const parsed = JSON.parse(user.wallet_address)
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              // Legacy JSON string format
+              cleanWalletAddress = parsed[0]
+            } else {
+              // Direct string format (new)
+              cleanWalletAddress = user.wallet_address
+            }
+          } catch {
+            // Direct string format (new)
+            cleanWalletAddress = user.wallet_address
+          }
+        } else {
+          cleanWalletAddress = user.wallet_address
+        }
+        
+        console.log(`✅ User ${userFid} has wallet connected: ${cleanWalletAddress}`)
+        return await this.distributeToWallet(cleanWalletAddress, tokens, userFid, voteId, vendorId)
       } else {
         console.log(`⏳ User ${userFid} has no wallet connected, storing pending distribution`)
         return await this.storePendingDistribution(userFid, tokens, voteId, vendorId)
@@ -394,7 +419,7 @@ export class TokenDistributionService {
     try {
       console.log(`🔗 Updating wallet address for user ${userFid}: ${walletAddress}`)
 
-      // Update user's wallet address
+      // Update user's wallet address (store as string, not array)
       const { error: updateError } = await this.getSupabaseClient()
         .from('users')
         .update({ wallet_address: walletAddress })

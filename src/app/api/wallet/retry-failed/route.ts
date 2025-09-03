@@ -38,14 +38,32 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const walletAddresses = user.wallet_address || []
-    const cleanWalletAddress = Array.isArray(walletAddresses) && walletAddresses.length > 0 
-      ? walletAddresses[0] 
-      : null
+    const walletAddresses = user.wallet_address
+    let cleanWalletAddress: string | null = null
+    
+    if (Array.isArray(walletAddresses) && walletAddresses.length > 0) {
+      // Legacy array format
+      cleanWalletAddress = walletAddresses[0]
+    } else if (typeof walletAddresses === 'string') {
+      // Check if it's a JSON string (legacy) or direct string (new format)
+      try {
+        const parsed = JSON.parse(walletAddresses)
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          // Legacy JSON string format
+          cleanWalletAddress = parsed[0]
+        } else {
+          // Direct string format (new)
+          cleanWalletAddress = walletAddresses
+        }
+      } catch {
+        // Direct string format (new)
+        cleanWalletAddress = walletAddresses
+      }
+    }
 
     if (!cleanWalletAddress) {
       return NextResponse.json(
-        { success: false, error: 'No wallet address found for user' },
+        { success: false, error: 'No wallet address found for user. Please connect your wallet first.' },
         { status: 400 }
       )
     }
