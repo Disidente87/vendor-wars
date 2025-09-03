@@ -173,9 +173,31 @@ export class ServerBattleTokenService {
     } catch (error) {
       console.error('❌ Token distribution failed:', error)
       
+      // Check if this is a "replacement transaction underpriced" error
+      // This often happens when a transaction succeeds but the error is reported
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error during distribution'
+      
+      if (errorMessage.includes('replacement transaction underpriced')) {
+        console.warn('⚠️ Got "replacement transaction underpriced" error, but transaction may have succeeded')
+        
+        // Try to verify if the transaction actually succeeded by checking balance
+        try {
+          const recipientBalance = await this.getRecipientBalance(recipientAddress)
+          console.log(`🔍 Checking recipient balance after error: ${recipientBalance.formatted} BATTLE`)
+          
+          // If we can't verify, we'll assume it failed and let the retry logic handle it
+          return {
+            success: false,
+            error: 'Transaction may have succeeded despite error. Please retry if needed.'
+          }
+        } catch (balanceError) {
+          console.error('❌ Could not verify balance after error:', balanceError)
+        }
+      }
+      
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error during distribution'
+        error: errorMessage
       }
     }
   }
@@ -253,9 +275,23 @@ export class ServerBattleTokenService {
     } catch (error) {
       console.error('❌ Batch token distribution failed:', error)
       
+      // Check if this is a "replacement transaction underpriced" error
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error during batch distribution'
+      
+      if (errorMessage.includes('replacement transaction underpriced')) {
+        console.warn('⚠️ Got "replacement transaction underpriced" error in batch distribution, but transaction may have succeeded')
+        
+        // For batch operations, it's harder to verify individual balances
+        // We'll let the retry logic handle this
+        return {
+          success: false,
+          error: 'Batch transaction may have succeeded despite error. Please retry if needed.'
+        }
+      }
+      
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error during batch distribution'
+        error: errorMessage
       }
     }
   }
