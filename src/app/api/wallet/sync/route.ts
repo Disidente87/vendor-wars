@@ -71,64 +71,80 @@ export async function POST(request: NextRequest) {
     let failedCount = 0
     const serverTokenService = getServerBattleTokenService()
 
-    // 3. Process each pending distribution
+    // 3. Process each pending distribution with retry logic
     for (const vote of pendingVotes) {
-      try {
-        console.log(`🎁 API: Processing distribution for vote ${vote.id}: ${vote.token_reward} tokens`)
+      let retryCount = 0
+      const maxRetries = 2
+      let success = false
 
-        // Update vote record to mark as pending distribution
-        await supabase
-          .from('votes')
-          .update({ distribution_status: 'pending' })
-          .eq('id', vote.id)
+      while (retryCount <= maxRetries && !success) {
+        try {
+          console.log(`🎁 API: Processing distribution for vote ${vote.id}: ${vote.token_reward} tokens (attempt ${retryCount + 1})`)
 
-        // Convert tokens to wei
-        const tokensInWei = parseEther(vote.token_reward.toString())
+          // Update vote record to mark as pending distribution
+          await supabase
+            .from('votes')
+            .update({ distribution_status: 'pending' })
+            .eq('id', vote.id)
 
-        // Check recipient balance before distribution
-        const beforeBalance = await serverTokenService.getRecipientBalance(walletAddress)
-        console.log(`💰 API: Recipient balance before: ${beforeBalance.formatted} BATTLE`)
+          // Check recipient balance before distribution
+          const beforeBalance = await serverTokenService.getRecipientBalance(walletAddress)
+          console.log(`💰 API: Recipient balance before: ${beforeBalance.formatted} BATTLE`)
 
-        // Execute real blockchain distribution
-        const distributionResult = await serverTokenService.distributeTokens(walletAddress, vote.token_reward)
+          // Execute real blockchain distribution
+          const distributionResult = await serverTokenService.distributeTokens(walletAddress, vote.token_reward)
 
-        if (!distributionResult.success) {
-          throw new Error(distributionResult.error || 'Token distribution failed')
+          if (!distributionResult.success) {
+            throw new Error(distributionResult.error || 'Token distribution failed')
+          }
+
+          const transactionHash = distributionResult.transactionHash!
+          console.log(`✅ API: Distribution successful for vote ${vote.id}`)
+          console.log(`📄 API: Transaction hash: ${transactionHash}`)
+
+          // Verify the distribution by checking balance after
+          const afterBalance = await serverTokenService.getRecipientBalance(walletAddress)
+          console.log(`💰 API: Recipient balance after: ${afterBalance.formatted} BATTLE`)
+
+          // Update vote record with success
+          await supabase
+            .from('votes')
+            .update({
+              distribution_status: 'distributed',
+              distributed_at: new Date().toISOString(),
+              transaction_hash: transactionHash
+            })
+            .eq('id', vote.id)
+
+          totalDistributed += vote.token_reward
+          success = true
+          console.log(`✅ API: Successfully distributed ${vote.token_reward} tokens for vote ${vote.id}`)
+
+        } catch (error) {
+          retryCount++
+          const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+          
+          console.error(`❌ API: Failed to distribute tokens for vote ${vote.id} (attempt ${retryCount}):`, errorMessage)
+
+          if (retryCount > maxRetries) {
+            failedCount++
+            console.error(`❌ API: Max retries exceeded for vote ${vote.id}, marking as failed`)
+
+            // Update vote record with error
+            await supabase
+              .from('votes')
+              .update({
+                distribution_status: 'failed',
+                distribution_error: errorMessage
+              })
+              .eq('id', vote.id)
+          } else {
+            // Wait before retry (exponential backoff)
+            const waitTime = Math.pow(2, retryCount) * 1000 // 2s, 4s, 8s
+            console.log(`⏳ API: Waiting ${waitTime}ms before retry...`)
+            await new Promise(resolve => setTimeout(resolve, waitTime))
+          }
         }
-
-        const transactionHash = distributionResult.transactionHash!
-        console.log(`✅ API: Distribution successful for vote ${vote.id}`)
-        console.log(`📄 API: Transaction hash: ${transactionHash}`)
-
-        // Verify the distribution by checking balance after
-        const afterBalance = await serverTokenService.getRecipientBalance(walletAddress)
-        console.log(`💰 API: Recipient balance after: ${afterBalance.formatted} BATTLE`)
-
-        // Update vote record with success
-        await supabase
-          .from('votes')
-          .update({
-            distribution_status: 'distributed',
-            distributed_at: new Date().toISOString(),
-            transaction_hash: transactionHash
-          })
-          .eq('id', vote.id)
-
-        totalDistributed += vote.token_reward
-        console.log(`✅ API: Successfully distributed ${vote.token_reward} tokens for vote ${vote.id}`)
-
-      } catch (error) {
-        failedCount++
-        console.error(`❌ API: Failed to distribute tokens for vote ${vote.id}:`, error)
-
-        // Update vote record with error
-        await supabase
-          .from('votes')
-          .update({
-            distribution_status: 'failed',
-            distribution_error: error instanceof Error ? error.message : 'Unknown error'
-          })
-          .eq('id', vote.id)
       }
     }
 

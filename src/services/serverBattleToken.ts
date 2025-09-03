@@ -130,13 +130,21 @@ export class ServerBattleTokenService {
         throw new Error(`Insufficient server balance. Have: ${serverBalanceFormatted}, Need: ${tokenAmount}`)
       }
 
+      // Get current gas price and add buffer to avoid "underpriced" errors
+      const gasPrice = await this.publicClient.getGasPrice()
+      const bufferedGasPrice = gasPrice * 120n / 100n // 20% buffer
+      
+      console.log(`⛽ Gas price: ${formatEther(gasPrice)} ETH`)
+      console.log(`⛽ Buffered gas price: ${formatEther(bufferedGasPrice)} ETH`)
+
       // Execute the transfer transaction
       console.log(`📡 Executing blockchain transaction...`)
       const hash = await this.walletClient.writeContract({
         address: this.contractAddress,
         abi: BATTLE_TOKEN_ABI,
         functionName: 'transfer',
-        args: [recipientAddress as `0x${string}`, amountInWei]
+        args: [recipientAddress as `0x${string}`, amountInWei],
+        gasPrice: bufferedGasPrice
       })
 
       console.log(`📄 Transaction submitted: ${hash}`)
@@ -203,13 +211,21 @@ export class ServerBattleTokenService {
         throw new Error(`Insufficient server balance. Have: ${serverBalanceFormatted}, Need: ${totalTokens}`)
       }
 
+      // Get current gas price and add buffer to avoid "underpriced" errors
+      const gasPrice = await this.publicClient.getGasPrice()
+      const bufferedGasPrice = gasPrice * 120n / 100n // 20% buffer
+      
+      console.log(`⛽ Gas price: ${formatEther(gasPrice)} ETH`)
+      console.log(`⛽ Buffered gas price: ${formatEther(bufferedGasPrice)} ETH`)
+
       // Execute the batch distribution transaction
       console.log(`📡 Executing batch blockchain transaction...`)
       const hash = await this.walletClient.writeContract({
         address: this.contractAddress,
         abi: BATTLE_TOKEN_ABI,
         functionName: 'distributeTokens',
-        args: [recipients, amounts]
+        args: [recipients, amounts],
+        gasPrice: bufferedGasPrice
       })
 
       console.log(`📄 Batch transaction submitted: ${hash}`)
