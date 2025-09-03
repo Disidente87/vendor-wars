@@ -202,44 +202,7 @@ export default function ProfilePage() {
       .slice(0, 3)
   }
 
-  const calculateVotingStreak = (votes: any[]): number => {
-    if (votes.length === 0) return 0
 
-    // Get unique vote dates sorted in descending order
-    const voteDates = [...new Set(votes.map(vote => vote.vote_date || vote.created_at?.split('T')[0]))]
-      .sort((a, b) => new Date(b).getTime() - new Date(a).getTime())
-
-    if (voteDates.length === 0) return 0
-
-    let streak = 0
-    const today = new Date()
-    const yesterday = new Date(today)
-    yesterday.setDate(yesterday.getDate() - 1)
-
-    // Check if user voted today or yesterday
-    const todayStr = today.toISOString().split('T')[0]
-    const yesterdayStr = yesterday.toISOString().split('T')[0]
-
-    let currentDate = voteDates[0] === todayStr ? today : yesterday
-    let dateIndex = voteDates[0] === todayStr ? 1 : 0
-
-    // Count consecutive days
-    while (dateIndex < voteDates.length) {
-      const expectedDate = new Date(currentDate)
-      expectedDate.setDate(expectedDate.getDate() - 1)
-      const expectedDateStr = expectedDate.toISOString().split('T')[0]
-
-      if (voteDates[dateIndex] === expectedDateStr) {
-        streak++
-        currentDate = expectedDate
-        dateIndex++
-      } else {
-        break
-      }
-    }
-
-    return streak
-  }
 
   const calculateTerritoriesControlled = async (userFid: number): Promise<number> => {
     try {
@@ -330,8 +293,10 @@ export default function ProfilePage() {
         const verifiedVotes = votes.filter((vote: any) => vote.is_verified).length
         const uniqueVendors = new Set(votes.map((vote: any) => vote.vendor_id)).size
 
-        // Calculate real voting streak
-        const votingStreak = calculateVotingStreak(votes)
+        // Get voting streak from database (source of truth)
+        const streakResponse = await fetch(`/api/users/streak?userFid=${farcasterUser.fid}`)
+        const streakResult = await streakResponse.json()
+        const votingStreak = streakResult.success ? streakResult.data.streak : 0
         
         // Calculate territories controlled
         const territoriesControlled = await calculateTerritoriesControlled(farcasterUser.fid)

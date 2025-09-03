@@ -53,7 +53,7 @@ DECLARE
 BEGIN
     -- Empezar desde hoy y ir hacia atrás hasta encontrar un día sin voto
     WHILE check_date >= current_date - INTERVAL '30 days' LOOP
-        -- Verificar si el usuario votó en esta fecha específica usando vote_date
+        -- Verificar si el usuario votó en esta fecha específica
         SELECT EXISTS(
             SELECT 1 FROM votes 
             WHERE voter_fid = user_fid_param 
@@ -68,7 +68,7 @@ BEGIN
             EXIT;
         END IF;
     END LOOP;
-    
+
     RETURN current_streak;
 END;
 $$ LANGUAGE plpgsql;

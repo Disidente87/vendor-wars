@@ -430,7 +430,7 @@ export default function WalletPage() {
                     ) : (
                       <>
                         <RefreshCw className="w-3 h-3 mr-1" />
-                        Sync Balance Only
+                        Sync Balance
                       </>
                     )}
                   </Button>
@@ -475,7 +475,7 @@ export default function WalletPage() {
                       ) : (
                         <>
                           <RefreshCw className="w-3 h-3 mr-1" />
-                          Distribute Pending ({tokenStatus.pendingCount})
+                          Distribute Pending ({tokenStatus.totalPendingTokens})
                         </>
                       )}
                     </Button>
