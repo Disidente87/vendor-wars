@@ -17,7 +17,6 @@ import {
 import { useRouter } from 'next/navigation'
 import { useTokenBalance } from '@/hooks/useTokenBalance'
 import { useFarcasterAuth } from '@/hooks/useFarcasterAuth'
-import { TokenDistributionService } from '@/services/tokenDistribution'
 
 export default function WalletPage() {
   const router = useRouter()
@@ -60,11 +59,19 @@ export default function WalletPage() {
     try {
       console.log(`🔗 Saving wallet ${walletAddress} for user ${farcasterUser.fid}`)
       
-      // Save wallet address and process any pending token distributions
-      const result = await TokenDistributionService.updateUserWallet(
-        farcasterUser.fid.toString(),
-        walletAddress
-      )
+      // Call the API endpoint to sync wallet and distribute tokens
+      const response = await fetch('/api/wallet/sync', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userFid: farcasterUser.fid.toString(),
+          walletAddress: walletAddress
+        }),
+      })
+
+      const result = await response.json()
 
       if (result.success) {
         console.log(`✅ Wallet saved successfully!`)
@@ -93,24 +100,28 @@ export default function WalletPage() {
     try {
       console.log(`🔄 Synchronizing balance for user ${farcasterUser.fid} with wallet ${address}`)
       
-      // Save wallet address and process any pending token distributions
-      const result = await TokenDistributionService.updateUserWallet(
-        farcasterUser.fid.toString(),
-        address
-      )
+      // Call the API endpoint to sync wallet and distribute tokens
+      const response = await fetch('/api/wallet/sync', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userFid: farcasterUser.fid.toString(),
+          walletAddress: address
+        }),
+      })
+
+      const result = await response.json()
 
       if (result.success) {
-        const message = result.tokensDistributed > 0 
-          ? `Successfully distributed ${result.tokensDistributed} BATTLE tokens to your wallet!`
-          : 'Wallet synchronized successfully. No pending tokens to distribute.'
-        
         setSyncResult({
           success: true,
           tokensDistributed: result.tokensDistributed,
-          message
+          message: result.message
         })
         
-        console.log(`✅ Synchronization successful: ${message}`)
+        console.log(`✅ Synchronization successful: ${result.message}`)
         
         // Refresh token balance after successful sync
         if (result.tokensDistributed > 0) {
