@@ -7,7 +7,6 @@ export async function GET(request: Request) {
 
   // Detecta entornos automáticamente según el dominio
   const isProduction = url.host === "vendor-wars.vercel.app";
-  const isStaging = url.host.includes("git-dev"); // Para el branch "dev" en Vercel Preview
 
   // Config base común para todos los entornos
   const config: Record<string, any> = {
@@ -37,32 +36,26 @@ export async function GET(request: Request) {
     },
   };
 
-  // Account association para producción
-  const prodAccountAssociation = {
+// ✅ Usamos credenciales distintas según el entorno
+if (isProduction) {
+  config.accountAssociation = {
     header:
       "eyJmaWQiOjQ5Nzg2NiwidHlwZSI6ImN1c3RvZHkiLCJrZXkiOiIweERFOTdEMTc1NTBhNzI0NkIxYzRGYjAwZDFkNDNlOTdDMzhhMURERkEifQ",
     payload:
       "eyJkb21haW4iOiJ2ZW5kb3Itd2Fycy52ZXJjZWwuYXBwIn0",
     signature:
-      "MHg1ZGVjOGYwZGU4ZGFlMDBkMmY1YTE1NDZjNzAwMjk1NWE2YTg1NDIxZGNmZGM0MTRiNWIyZDUxMTAxMWJmNjZjNmY0ZTkxZDI0ODlkYjUzMzM2YTI2NWU1ZDU4YmQ4MzIzZjY5YmEzNWJlZWUyZDFiZDZlNThmODRhZGE3MWNjMTFi",
+      "MHg1ZGVjOGYwZGU4ZGFlMDBkMmY1YTE1NDZjNzAwMjk1NWE2YTg1NDIxZGNmZGM0MTRiNWIyZDUxMTAxMWJmNjZjNmY0ZTkxZDI0ODlkYjUzMzM2YTI2NWU1ZDU4YmQ4MzIzZjY5YmEzNWJlZWUyZDFiZDZlNThmODRhZGE3MWNjMTFi"
   };
-
-  // Account association para staging / dev
-  const stagingAccountAssociation = {
+} else {
+  config.accountAssociation = {
     header:
       "eyJmaWQiOjQ5Nzg2NiwidHlwZSI6ImF1dGgiLCJrZXkiOiIweDUwMjQ2OTNjZjZkZTRCNTYxMjk2NWE0NzkyMDQxNzEwZDVlQkMwOWEifQ",
     payload:
       "eyJkb21haW4iOiJ2ZW5kb3Itd2Fycy1naXQtZGV2LWRpc2lkZW50ZXMtcHJvamVjdHMudmVyY2VsLmFwcCJ9",
     signature:
-      "XSxypFaM91ikUmtAiOFjryxki6vCCdXGlyIlpYap/9acEgG7dO6hNsO1wbJpiZPZVEN+I08iJPvqODIhs=",
+      "P7WMT/XSxypFaM91ikUmtAiOFjryxki6vCCdXGlyIlpYap/9acEgG7dO6hNsO1wbJpiZPZVEN+I08iJPvqODIhs="
   };
-
-  // Aplicar account association según el entorno
-  if (isProduction) {
-    config.accountAssociation = prodAccountAssociation;
-  } else if (isStaging) {
-    config.accountAssociation = stagingAccountAssociation;
-  }
+}
 
   return NextResponse.json(config);
 }
