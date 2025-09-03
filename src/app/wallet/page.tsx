@@ -11,7 +11,8 @@ import {
   Coins, 
   Copy,
   ExternalLink,
-  ArrowLeft
+  ArrowLeft,
+  RefreshCw
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useTokenBalance } from '@/hooks/useTokenBalance'
@@ -25,6 +26,12 @@ export default function WalletPage() {
   const { user: farcasterUser } = useFarcasterAuth()
   const [copied, setCopied] = useState(false)
   const [isSavingWallet, setIsSavingWallet] = useState(false)
+  const [isSynchronizing, setIsSynchronizing] = useState(false)
+  const [syncResult, setSyncResult] = useState<{
+    success: boolean
+    tokensDistributed: number
+    message: string
+  } | null>(null)
 
   const copyAddress = async () => {
     if (address) {
@@ -71,6 +78,63 @@ export default function WalletPage() {
       console.error('Error saving wallet:', error)
     } finally {
       setIsSavingWallet(false)
+    }
+  }
+
+  const handleSynchronizeBalance = async () => {
+    if (!farcasterUser?.fid || !address) {
+      console.warn('No Farcaster user or wallet address available')
+      return
+    }
+
+    setIsSynchronizing(true)
+    setSyncResult(null)
+    
+    try {
+      console.log(`🔄 Synchronizing balance for user ${farcasterUser.fid} with wallet ${address}`)
+      
+      // Save wallet address and process any pending token distributions
+      const result = await TokenDistributionService.updateUserWallet(
+        farcasterUser.fid.toString(),
+        address
+      )
+
+      if (result.success) {
+        const message = result.tokensDistributed > 0 
+          ? `Successfully distributed ${result.tokensDistributed} BATTLE tokens to your wallet!`
+          : 'Wallet synchronized successfully. No pending tokens to distribute.'
+        
+        setSyncResult({
+          success: true,
+          tokensDistributed: result.tokensDistributed,
+          message
+        })
+        
+        console.log(`✅ Synchronization successful: ${message}`)
+        
+        // Refresh token balance after successful sync
+        if (result.tokensDistributed > 0) {
+          // Force refresh of token balance
+          window.location.reload()
+        }
+      } else {
+        setSyncResult({
+          success: false,
+          tokensDistributed: 0,
+          message: result.error || 'Failed to synchronize balance'
+        })
+        console.error(`❌ Synchronization failed:`, result.error)
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
+      setSyncResult({
+        success: false,
+        tokensDistributed: 0,
+        message: errorMessage
+      })
+      console.error('Error synchronizing balance:', error)
+    } finally {
+      setIsSynchronizing(false)
     }
   }
 
@@ -162,7 +226,28 @@ export default function WalletPage() {
 
             {/* Balances */}
             <div className="space-y-3">
-              <label className="text-sm font-medium text-gray-700">Balances</label>
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-medium text-gray-700">Balances</label>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleSynchronizeBalance}
+                  disabled={isSynchronizing}
+                  className="text-xs"
+                >
+                  {isSynchronizing ? (
+                    <>
+                      <RefreshCw className="w-3 h-3 mr-1 animate-spin" />
+                      Syncing...
+                    </>
+                  ) : (
+                    <>
+                      <RefreshCw className="w-3 h-3 mr-1" />
+                      Sync Balance
+                    </>
+                  )}
+                </Button>
+              </div>
               
               {/* ETH/BASE Balance */}
               {balance && (
@@ -207,7 +292,41 @@ export default function WalletPage() {
           </CardContent>
         </Card>
 
-
+        {/* Synchronization Result */}
+        {syncResult && (
+          <Card className={`mb-6 ${syncResult.success ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'}`}>
+            <CardContent className="pt-6">
+              <div className="flex items-start space-x-3">
+                <div className={`w-5 h-5 rounded-full flex items-center justify-center ${
+                  syncResult.success ? 'bg-green-500' : 'bg-red-500'
+                }`}>
+                  {syncResult.success ? (
+                    <span className="text-white text-xs">✓</span>
+                  ) : (
+                    <span className="text-white text-xs">✗</span>
+                  )}
+                </div>
+                <div className="flex-1">
+                  <p className={`text-sm font-medium ${
+                    syncResult.success ? 'text-green-800' : 'text-red-800'
+                  }`}>
+                    {syncResult.success ? 'Synchronization Successful' : 'Synchronization Failed'}
+                  </p>
+                  <p className={`text-sm mt-1 ${
+                    syncResult.success ? 'text-green-700' : 'text-red-700'
+                  }`}>
+                    {syncResult.message}
+                  </p>
+                  {syncResult.success && syncResult.tokensDistributed > 0 && (
+                    <p className="text-xs text-green-600 mt-2">
+                      💰 Your balance has been updated across all pages
+                    </p>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Network Info */}
         <Card>
