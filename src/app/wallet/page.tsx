@@ -137,8 +137,10 @@ export default function WalletPage() {
         
         // Refresh token balance after successful sync
         if (result.tokensDistributed > 0) {
-          // Refresh balance from database
-          refreshBalance()
+          // Refresh balance from database (with small delay to ensure cache is updated)
+          setTimeout(() => {
+            refreshBalance()
+          }, 500)
         }
         
         // Check token status again to update button visibility
@@ -200,7 +202,10 @@ export default function WalletPage() {
         
         // Refresh balance after successful retry
         if (result.tokensDistributed > 0) {
-          refreshBalance()
+          // Refresh balance from database (with small delay to ensure cache is updated)
+          setTimeout(() => {
+            refreshBalance()
+          }, 500)
         }
         
         // Check token status again to update button visibility
@@ -261,8 +266,10 @@ export default function WalletPage() {
         
         console.log(`✅ Balance sync successful: ${result.message}`)
         
-        // Refresh balance after successful sync
-        refreshBalance()
+        // Refresh balance after successful sync (with small delay to ensure cache is updated)
+        setTimeout(() => {
+          refreshBalance()
+        }, 500)
         
         // Check token status again to update button visibility
         checkTokenStatus()

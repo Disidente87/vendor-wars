@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { getServerBattleTokenService } from '@/services/serverBattleToken'
+import { tokenManager } from '@/lib/redis'
 import { parseEther } from 'viem'
 
 // Use service role key for server-side operations
@@ -201,6 +202,14 @@ export async function POST(request: NextRequest) {
         console.error('❌ API: Error updating user balance:', updateError)
       } else {
         console.log(`✅ API: Updated user balance to match blockchain: ${realBalance} BATTLE tokens`)
+        
+        // Update Redis cache as well
+        try {
+          await tokenManager.updateUserTokens(userFid, realBalance)
+          console.log(`✅ API: Updated Redis cache with new balance: ${realBalance} BATTLE tokens`)
+        } catch (cacheError) {
+          console.warn('⚠️ API: Could not update Redis cache:', cacheError)
+        }
       }
     } catch (error) {
       console.error('❌ API: Error syncing user balance with blockchain:', error)
