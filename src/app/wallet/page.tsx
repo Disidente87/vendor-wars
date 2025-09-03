@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { WalletConnect, useWalletConnection } from '@/components/WalletConnect'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -27,6 +27,15 @@ export default function WalletPage() {
   const [isSavingWallet, setIsSavingWallet] = useState(false)
   const [isSynchronizing, setIsSynchronizing] = useState(false)
   const [isRetryingFailed, setIsRetryingFailed] = useState(false)
+  const [isSyncingBalance, setIsSyncingBalance] = useState(false)
+  const [tokenStatus, setTokenStatus] = useState<{
+    hasPendingTokens: boolean
+    hasFailedTokens: boolean
+    pendingCount: number
+    failedCount: number
+    totalPendingTokens: number
+    totalFailedTokens: number
+  } | null>(null)
   const [syncResult, setSyncResult] = useState<{
     success: boolean
     tokensDistributed: number
@@ -131,6 +140,9 @@ export default function WalletPage() {
           // Refresh balance from database
           refreshBalance()
         }
+        
+        // Check token status again to update button visibility
+        checkTokenStatus()
       } else {
         setSyncResult({
           success: false,
@@ -190,6 +202,9 @@ export default function WalletPage() {
         if (result.tokensDistributed > 0) {
           refreshBalance()
         }
+        
+        // Check token status again to update button visibility
+        checkTokenStatus()
       } else {
         setSyncResult({
           success: false,
@@ -210,6 +225,96 @@ export default function WalletPage() {
       setIsRetryingFailed(false)
     }
   }
+
+  const handleSyncBalanceOnly = async () => {
+    if (!farcasterUser?.fid || !address) {
+      console.warn('No Farcaster user or wallet address available')
+      return
+    }
+
+    setIsSyncingBalance(true)
+    setSyncResult(null)
+    
+    try {
+      console.log(`🔄 Syncing balance only for user ${farcasterUser.fid} with wallet ${address}`)
+      
+      // Call the API endpoint to sync balance only
+      const response = await fetch('/api/wallet/sync-balance', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userFid: farcasterUser.fid.toString(),
+          walletAddress: address
+        }),
+      })
+
+      const result = await response.json()
+
+      if (result.success) {
+        setSyncResult({
+          success: true,
+          tokensDistributed: 0,
+          message: result.message
+        })
+        
+        console.log(`✅ Balance sync successful: ${result.message}`)
+        
+        // Refresh balance after successful sync
+        refreshBalance()
+        
+        // Check token status again to update button visibility
+        checkTokenStatus()
+      } else {
+        setSyncResult({
+          success: false,
+          tokensDistributed: 0,
+          message: result.error || 'Failed to sync balance'
+        })
+        console.error(`❌ Balance sync failed:`, result.error)
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
+      setSyncResult({
+        success: false,
+        tokensDistributed: 0,
+        message: errorMessage
+      })
+      console.error('Error syncing balance:', error)
+    } finally {
+      setIsSyncingBalance(false)
+    }
+  }
+
+  const checkTokenStatus = async () => {
+    if (!farcasterUser?.fid) {
+      return
+    }
+
+    try {
+      console.log(`🔍 Checking token status for user ${farcasterUser.fid}`)
+      
+      const response = await fetch(`/api/wallet/check-status?userFid=${farcasterUser.fid}`)
+      const result = await response.json()
+
+      if (result.success) {
+        setTokenStatus(result.data)
+        console.log(`📊 Token status:`, result.data)
+      } else {
+        console.error(`❌ Failed to check token status:`, result.error)
+      }
+    } catch (error) {
+      console.error('Error checking token status:', error)
+    }
+  }
+
+  // Check token status when component mounts or user changes
+  useEffect(() => {
+    if (farcasterUser?.fid) {
+      checkTokenStatus()
+    }
+  }, [farcasterUser?.fid])
 
   if (!isConnected) {
     return (
@@ -302,33 +407,15 @@ export default function WalletPage() {
               <div className="flex items-center justify-between">
                 <label className="text-sm font-medium text-gray-700">Balances</label>
                 <div className="flex gap-2">
+                  {/* Sync Balance Only - Always visible */}
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={handleRetryFailed}
-                    disabled={isRetryingFailed}
+                    onClick={handleSyncBalanceOnly}
+                    disabled={isSyncingBalance}
                     className="text-xs"
                   >
-                    {isRetryingFailed ? (
-                      <>
-                        <RefreshCw className="w-3 h-3 mr-1 animate-spin" />
-                        Retrying...
-                      </>
-                    ) : (
-                      <>
-                        <RefreshCw className="w-3 h-3 mr-1" />
-                        Retry Failed
-                      </>
-                    )}
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={handleSynchronizeBalance}
-                    disabled={isSynchronizing}
-                    className="text-xs"
-                  >
-                    {isSynchronizing ? (
+                    {isSyncingBalance ? (
                       <>
                         <RefreshCw className="w-3 h-3 mr-1 animate-spin" />
                         Syncing...
@@ -336,10 +423,56 @@ export default function WalletPage() {
                     ) : (
                       <>
                         <RefreshCw className="w-3 h-3 mr-1" />
-                        Sync Balance
+                        Sync Balance Only
                       </>
                     )}
                   </Button>
+                  
+                  {/* Retry Failed - Only show if there are failed tokens */}
+                  {tokenStatus?.hasFailedTokens && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={handleRetryFailed}
+                      disabled={isRetryingFailed}
+                      className="text-xs"
+                    >
+                      {isRetryingFailed ? (
+                        <>
+                          <RefreshCw className="w-3 h-3 mr-1 animate-spin" />
+                          Retrying...
+                        </>
+                      ) : (
+                        <>
+                          <RefreshCw className="w-3 h-3 mr-1" />
+                          Retry Failed ({tokenStatus.failedCount})
+                        </>
+                      )}
+                    </Button>
+                  )}
+                  
+                  {/* Distribute Pending Tokens - Only show if there are pending tokens */}
+                  {tokenStatus?.hasPendingTokens && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={handleSynchronizeBalance}
+                      disabled={isSynchronizing}
+                      className="text-xs"
+                    >
+                      {isSynchronizing ? (
+                        <>
+                          <RefreshCw className="w-3 h-3 mr-1 animate-spin" />
+                          Distributing...
+                        </>
+                      ) : (
+                        <>
+                          <RefreshCw className="w-3 h-3 mr-1" />
+                          Distribute Pending ({tokenStatus.pendingCount})
+                        </>
+                      )}
+                    </Button>
+                  )}
                 </div>
               </div>
               

@@ -181,40 +181,33 @@ export async function POST(request: NextRequest) {
 
     console.log(`🎉 API: Retried ${failedVotes.length} distributions: ${totalDistributed} tokens distributed, ${failedCount} still failed`)
 
-    // 4. Update user's battle_tokens in database to reflect distributed tokens
-    if (totalDistributed > 0) {
-      try {
-        // Get current balance from database
-        const { data: currentUser, error: userError } = await supabase
-          .from('users')
-          .select('battle_tokens')
-          .eq('fid', parseInt(userFid))
-          .single()
+    // 4. Sync user's balance with blockchain and update database
+    try {
+      console.log(`🔄 API: Syncing user balance with blockchain...`)
+      
+      // Get real balance from blockchain
+      const blockchainBalance = await serverTokenService.getRecipientBalance(cleanWalletAddress)
+      const realBalance = Math.floor(Number(blockchainBalance.formatted))
+      
+      console.log(`💰 API: Blockchain balance: ${blockchainBalance.formatted} BATTLE`)
+      console.log(`💰 API: Rounded balance: ${realBalance} BATTLE`)
 
-        if (userError) {
-          console.error('❌ API: Error fetching current user balance:', userError)
-        } else {
-          const currentBalance = currentUser?.battle_tokens || 0
-          const newBalance = currentBalance + totalDistributed
+      // Update user's battle_tokens in database with real blockchain balance
+      const { error: updateError } = await supabase
+        .from('users')
+        .update({ 
+          battle_tokens: realBalance,
+          updated_at: new Date().toISOString()
+        })
+        .eq('fid', parseInt(userFid))
 
-          // Update user's battle_tokens in database
-          const { error: updateError } = await supabase
-            .from('users')
-            .update({ 
-              battle_tokens: newBalance,
-              updated_at: new Date().toISOString()
-            })
-            .eq('fid', parseInt(userFid))
-
-          if (updateError) {
-            console.error('❌ API: Error updating user balance:', updateError)
-          } else {
-            console.log(`✅ API: Updated user balance: ${currentBalance} → ${newBalance} BATTLE tokens`)
-          }
-        }
-      } catch (error) {
-        console.error('❌ API: Error updating user balance:', error)
+      if (updateError) {
+        console.error('❌ API: Error updating user balance:', updateError)
+      } else {
+        console.log(`✅ API: Updated user balance to match blockchain: ${realBalance} BATTLE tokens`)
       }
+    } catch (error) {
+      console.error('❌ API: Error syncing user balance with blockchain:', error)
     }
 
     const message = totalDistributed > 0 
