@@ -21,11 +21,12 @@ import { useFarcasterAuth } from '@/hooks/useFarcasterAuth'
 export default function WalletPage() {
   const router = useRouter()
   const { address, isConnected, balance, chainId, isBaseSepoliaNetwork } = useWalletConnection()
-  const { balance: battleTokens } = useTokenBalance()
+  const { balance: battleTokens, refreshBalance } = useTokenBalance()
   const { user: farcasterUser } = useFarcasterAuth()
   const [copied, setCopied] = useState(false)
   const [isSavingWallet, setIsSavingWallet] = useState(false)
   const [isSynchronizing, setIsSynchronizing] = useState(false)
+  const [isRetryingFailed, setIsRetryingFailed] = useState(false)
   const [syncResult, setSyncResult] = useState<{
     success: boolean
     tokensDistributed: number
@@ -77,6 +78,8 @@ export default function WalletPage() {
         console.log(`✅ Wallet saved successfully!`)
         if (result.tokensDistributed > 0) {
           console.log(`🎁 Processed ${result.tokensDistributed} pending tokens`)
+          // Refresh balance after processing tokens
+          refreshBalance()
         }
       } else {
         console.error(`❌ Failed to save wallet:`, result.error)
@@ -125,8 +128,8 @@ export default function WalletPage() {
         
         // Refresh token balance after successful sync
         if (result.tokensDistributed > 0) {
-          // Force refresh of token balance
-          window.location.reload()
+          // Refresh balance from database
+          refreshBalance()
         }
       } else {
         setSyncResult({
@@ -146,6 +149,65 @@ export default function WalletPage() {
       console.error('Error synchronizing balance:', error)
     } finally {
       setIsSynchronizing(false)
+    }
+  }
+
+  const handleRetryFailed = async () => {
+    if (!farcasterUser?.fid) {
+      console.warn('No Farcaster user available to retry failed distributions')
+      return
+    }
+
+    setIsRetryingFailed(true)
+    setSyncResult(null)
+    
+    try {
+      console.log(`🔄 Retrying failed distributions for user ${farcasterUser.fid}`)
+      
+      // Call the API endpoint to retry failed distributions
+      const response = await fetch('/api/wallet/retry-failed', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userFid: farcasterUser.fid.toString()
+        }),
+      })
+
+      const result = await response.json()
+
+      if (result.success) {
+        setSyncResult({
+          success: true,
+          tokensDistributed: result.tokensDistributed,
+          message: result.message
+        })
+        
+        console.log(`✅ Retry successful: ${result.message}`)
+        
+        // Refresh balance after successful retry
+        if (result.tokensDistributed > 0) {
+          refreshBalance()
+        }
+      } else {
+        setSyncResult({
+          success: false,
+          tokensDistributed: 0,
+          message: result.error || 'Failed to retry failed distributions'
+        })
+        console.error(`❌ Retry failed:`, result.error)
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
+      setSyncResult({
+        success: false,
+        tokensDistributed: 0,
+        message: errorMessage
+      })
+      console.error('Error retrying failed distributions:', error)
+    } finally {
+      setIsRetryingFailed(false)
     }
   }
 
@@ -239,25 +301,46 @@ export default function WalletPage() {
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <label className="text-sm font-medium text-gray-700">Balances</label>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={handleSynchronizeBalance}
-                  disabled={isSynchronizing}
-                  className="text-xs"
-                >
-                  {isSynchronizing ? (
-                    <>
-                      <RefreshCw className="w-3 h-3 mr-1 animate-spin" />
-                      Syncing...
-                    </>
-                  ) : (
-                    <>
-                      <RefreshCw className="w-3 h-3 mr-1" />
-                      Sync Balance
-                    </>
-                  )}
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleRetryFailed}
+                    disabled={isRetryingFailed}
+                    className="text-xs"
+                  >
+                    {isRetryingFailed ? (
+                      <>
+                        <RefreshCw className="w-3 h-3 mr-1 animate-spin" />
+                        Retrying...
+                      </>
+                    ) : (
+                      <>
+                        <RefreshCw className="w-3 h-3 mr-1" />
+                        Retry Failed
+                      </>
+                    )}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleSynchronizeBalance}
+                    disabled={isSynchronizing}
+                    className="text-xs"
+                  >
+                    {isSynchronizing ? (
+                      <>
+                        <RefreshCw className="w-3 h-3 mr-1 animate-spin" />
+                        Syncing...
+                      </>
+                    ) : (
+                      <>
+                        <RefreshCw className="w-3 h-3 mr-1" />
+                        Sync Balance
+                      </>
+                    )}
+                  </Button>
+                </div>
               </div>
               
               {/* ETH/BASE Balance */}

@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { getServerBattleTokenService } from '@/services/serverBattleToken'
-import { parseEther } from 'viem'
 
 // Use service role key for server-side operations
 const supabase = createClient(
@@ -12,78 +11,87 @@ const supabase = createClient(
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { userFid, walletAddress } = body
+    const { userFid } = body
 
     // Validate required fields
-    if (!userFid || !walletAddress) {
+    if (!userFid) {
       return NextResponse.json(
-        { success: false, error: 'Missing required fields: userFid, walletAddress' },
+        { success: false, error: 'Missing required field: userFid' },
         { status: 400 }
       )
     }
 
-    console.log(`🔄 API: Synchronizing wallet for user ${userFid} with address ${walletAddress}`)
+    console.log(`🔄 API: Retrying failed distributions for user ${userFid}`)
 
-    // Ensure walletAddress is a string, not an array
-    const cleanWalletAddress = Array.isArray(walletAddress) ? walletAddress[0] : walletAddress
-    console.log(`🔧 API: Cleaned wallet address: ${cleanWalletAddress}`)
-
-    // 1. Update user's wallet address in database
-    const { error: updateError } = await supabase
+    // 1. Get user's wallet address
+    const { data: user, error: userError } = await supabase
       .from('users')
-      .update({ wallet_address: [cleanWalletAddress] })
+      .select('wallet_address')
       .eq('fid', parseInt(userFid))
+      .single()
 
-    if (updateError) {
-      console.error('❌ API: Error updating user wallet:', updateError)
+    if (userError || !user) {
+      console.error('❌ API: Error fetching user:', userError)
       return NextResponse.json(
-        { success: false, error: 'Failed to update wallet address' },
-        { status: 500 }
+        { success: false, error: 'User not found' },
+        { status: 404 }
       )
     }
 
-    console.log(`✅ API: Wallet address updated for user ${userFid}`)
+    const walletAddresses = user.wallet_address || []
+    const cleanWalletAddress = Array.isArray(walletAddresses) && walletAddresses.length > 0 
+      ? walletAddresses[0] 
+      : null
 
-    // 2. Get all pending distributions for this user
-    const { data: pendingVotes, error: votesError } = await supabase
+    if (!cleanWalletAddress) {
+      return NextResponse.json(
+        { success: false, error: 'No wallet address found for user' },
+        { status: 400 }
+      )
+    }
+
+    console.log(`🔧 API: Using wallet address: ${cleanWalletAddress}`)
+
+    // 2. Get all failed distributions for this user
+    const { data: failedVotes, error: votesError } = await supabase
       .from('votes')
       .select('*')
       .eq('voter_fid', parseInt(userFid))
-      .eq('distribution_status', 'pending')
+      .eq('distribution_status', 'failed')
       .order('created_at', { ascending: true })
 
     if (votesError) {
-      console.error('❌ API: Error fetching pending votes:', votesError)
+      console.error('❌ API: Error fetching failed votes:', votesError)
       return NextResponse.json(
-        { success: false, error: 'Failed to fetch pending distributions' },
+        { success: false, error: 'Failed to fetch failed distributions' },
         { status: 500 }
       )
     }
 
-    if (!pendingVotes || pendingVotes.length === 0) {
-      console.log(`ℹ️ API: No pending distributions found for user ${userFid}`)
+    if (!failedVotes || failedVotes.length === 0) {
+      console.log(`ℹ️ API: No failed distributions found for user ${userFid}`)
       return NextResponse.json({
         success: true,
         tokensDistributed: 0,
-        message: 'Wallet synchronized successfully. No pending tokens to distribute.'
+        message: 'No failed distributions to retry.'
       })
     }
 
-    console.log(`📦 API: Found ${pendingVotes.length} pending distributions`)
+    console.log(`📦 API: Found ${failedVotes.length} failed distributions to retry`)
 
     let totalDistributed = 0
     let failedCount = 0
     const serverTokenService = getServerBattleTokenService()
 
-    // 3. Process each pending distribution with retry logic
-    for (const vote of pendingVotes) {
+    // 3. Retry each failed distribution
+    for (const vote of failedVotes) {
       let retryCount = 0
       const maxRetries = 2
       let success = false
 
       while (retryCount <= maxRetries && !success) {
         try {
-          console.log(`🎁 API: Processing distribution for vote ${vote.id}: ${vote.token_reward} tokens (attempt ${retryCount + 1})`)
+          console.log(`🔄 API: Retrying distribution for vote ${vote.id}: ${vote.token_reward} tokens (attempt ${retryCount + 1})`)
 
           // Update vote record to mark as pending distribution
           await supabase
@@ -116,7 +124,8 @@ export async function POST(request: NextRequest) {
             .update({
               distribution_status: 'distributed',
               distributed_at: new Date().toISOString(),
-              transaction_hash: transactionHash
+              transaction_hash: transactionHash,
+              distribution_error: null // Clear the error
             })
             .eq('id', vote.id)
 
@@ -152,7 +161,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    console.log(`🎉 API: Processed ${pendingVotes.length} distributions: ${totalDistributed} tokens distributed, ${failedCount} failed`)
+    console.log(`🎉 API: Retried ${failedVotes.length} distributions: ${totalDistributed} tokens distributed, ${failedCount} still failed`)
 
     // 4. Update user's battle_tokens in database to reflect distributed tokens
     if (totalDistributed > 0) {
@@ -191,8 +200,8 @@ export async function POST(request: NextRequest) {
     }
 
     const message = totalDistributed > 0 
-      ? `Successfully distributed ${totalDistributed} BATTLE tokens to your wallet!`
-      : 'Wallet synchronized successfully. No pending tokens to distribute.'
+      ? `Successfully retried and distributed ${totalDistributed} BATTLE tokens!`
+      : 'No failed distributions could be retried successfully.'
 
     return NextResponse.json({
       success: true,
@@ -201,7 +210,7 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('❌ API: Error in wallet sync:', error)
+    console.error('❌ API: Error in retry failed distributions:', error)
     return NextResponse.json(
       { 
         success: false, 
