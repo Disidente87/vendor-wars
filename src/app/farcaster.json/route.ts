@@ -3,10 +3,19 @@ import { NextResponse } from "next/server";
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
-  const baseUrl = `${url.protocol}//${url.host}`;
 
-  // Detecta entornos automáticamente según el dominio
+  // 🔹 Detectamos si estamos en producción por el dominio
   const isProduction = url.host === "vendor-wars.vercel.app";
+
+  // 🔹 Forzamos la URL base según el entorno
+  const baseUrl = isProduction
+    ? "https://vendor-wars.vercel.app"
+    : "https://vendor-wars-git-dev-disidentes-projects.vercel.app";
+
+  // 🔹 LOG para verificar qué baseUrl se está usando
+  console.log("🌎 Entorno detectado:", isProduction ? "PRODUCCIÓN" : "DEV");
+  console.log("🔗 URL detectada:", url.href);
+  console.log("🏠 Base URL establecida:", baseUrl);
 
   // Config base común para todos los entornos
   const config: Record<string, any> = {
