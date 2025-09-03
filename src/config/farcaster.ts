@@ -164,7 +164,8 @@ export const FARCASTER_CONFIG = {
       { id: 'juices', name: 'Jugos', icon: '🧃' },
       { id: 'licuados', name: 'Licuados', icon: '🥤' },
       { id: 'atole', name: 'Atole', icon: '🥤' },
-      { id: 'champurrado', name: 'Champurrado', icon: '🥤' }
+      { id: 'champurrado', name: 'Champurrado', icon: '🥤' },
+      { id: 'micheladas', name: 'Micheladas', icon: '🍺' }
     ],
     'postres': [
       { id: 'helado', name: 'Helado', icon: '🍦' },
@@ -217,6 +218,7 @@ export const FARCASTER_CONFIG = {
     { id: 'agua-fresca', name: 'Agua Fresca', icon: '🧊', description: 'Fresh fruit waters' },
     { id: 'cafe', name: 'Café', icon: '☕', description: 'Coffee and espresso' },
     { id: 'te', name: 'Té', icon: '🍵', description: 'Tea and herbal drinks' },
+    { id: 'micheladas', name: 'Micheladas', icon: '🍺', description: 'Mexican beer cocktails' },
     { id: 'smoothies', name: 'Smoothies', icon: '🥤', description: 'Fruit smoothies' },
     { id: 'juices', name: 'Jugos', icon: '🧃', description: 'Fresh fruit juices' },
     { id: 'helado', name: 'Helado', icon: '🍦', description: 'Ice cream and gelato' },
