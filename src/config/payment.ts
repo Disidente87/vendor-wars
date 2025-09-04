@@ -7,7 +7,8 @@ export const PAYMENT_CONFIG = {
     SYMBOL: 'BATTLE',
     NAME: 'Battle Token',
     DECIMALS: 18,
-    REQUIRED_AMOUNT: 50, // 50 $BATTLE tokens
+    REQUIRED_AMOUNT: 50, // 50 $BATTLE tokens for vendor registration
+    REVIEW_COST: 15, // 15 $BATTLE tokens for reviews
   },
 
   // Contrato VendorRegistration

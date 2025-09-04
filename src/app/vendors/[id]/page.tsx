@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, Trophy, Users, Target, Shield, AlertCircle } from 'lucide-react'
 import { VoteResultModal } from '@/components/VoteResultModal'
+import { ReviewSystem } from '@/components/ReviewSystem'
 import { useFarcasterAuth } from '@/hooks/useFarcasterAuth'
 import { useTokenBalance } from '@/hooks/useTokenBalance'
 import { getSubcategories } from '@/config/farcaster'
@@ -553,9 +554,10 @@ export default function VendorProfilePage({ params }: { params: Promise<{ id: st
         {/* Reviews Tab Content */}
         {activeTab === 'reviews' && (
           <div className="px-4 py-6">
-            <p className="text-[#181511] text-base font-normal leading-normal">
-              Reviews coming soon...
-            </p>
+            <ReviewSystem 
+              vendorId={vendor.id} 
+              vendorName={vendor.name}
+            />
           </div>
         )}
 
