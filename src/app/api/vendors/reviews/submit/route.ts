@@ -12,10 +12,10 @@ const PAYMENT_CONFIG = {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { vendorId, content, userAddress, paymentAmount, reviewData } = body
+    const { vendorId, content, userAddress, paymentAmount, reviewData, ownerFid } = body
 
     // Validate required fields
-    if (!vendorId || !content || !userAddress || !paymentAmount) {
+    if (!vendorId || !content || !userAddress || !paymentAmount || !ownerFid) {
       return NextResponse.json(
         { success: false, error: 'Missing required fields' },
         { status: 400 }
@@ -46,24 +46,18 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Get user from Farcaster auth
-    const supabase = createClient()
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    
-    console.log('Auth check:', { user: !!user, authError, userMetadata: user?.user_metadata })
-
-    if (authError || !user) {
+    // Get user profile from database using the provided ownerFid
+    if (!supabaseAdmin) {
       return NextResponse.json(
-        { success: false, error: 'Authentication required' },
-        { status: 401 }
+        { success: false, error: 'Database connection not available' },
+        { status: 500 }
       )
     }
-
-    // Get user profile from database
-    const { data: userProfile, error: userError } = await supabase
+    
+    const { data: userProfile, error: userError } = await supabaseAdmin
       .from('users')
       .select('fid, username, display_name, avatar_url')
-      .eq('fid', user.user_metadata?.fid)
+      .eq('fid', ownerFid)
       .single()
 
     if (userError || !userProfile) {
@@ -73,13 +67,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Type assertion to help TypeScript understand the structure
-    const userProfileData = userProfile as {
-      fid: number
-      username: string
-      display_name: string
-      avatar_url: string
-    }
+    // User profile found, proceed with review creation
 
     // Verify payment on blockchain
     const paymentVerification = await verifyPaymentOnBlockchain(userAddress, vendorId)
@@ -102,7 +90,7 @@ export async function POST(request: NextRequest) {
       .from('vendor_reviews')
       .select('id')
       .eq('vendor_id', vendorId)
-      .eq('user_fid', userProfileData.fid)
+      .eq('user_fid', ownerFid)
       .single()
 
     if (existingReview && !existingReviewError) {
@@ -117,7 +105,7 @@ export async function POST(request: NextRequest) {
       .from('vendor_reviews')
       .insert({
         vendor_id: vendorId,
-        user_fid: userProfileData.fid,
+        user_fid: ownerFid,
         content: content.trim(),
         tokens_paid: parseInt(paymentAmount),
         payment_transaction_hash: paymentVerification.transactionHash,
