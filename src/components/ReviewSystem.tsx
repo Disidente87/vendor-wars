@@ -241,7 +241,7 @@ export function ReviewSystem({ vendorId, vendorName }: ReviewSystemProps) {
   const balance = balanceData ? Number(formatEther(balanceData.value)) : 0
   const hasSufficientBalance = balance >= 15
 
-  if (!isAuthenticated) {
+  if (!isAuthenticated || !farcasterUser) {
     return (
       <div className="bg-white/80 backdrop-blur-sm rounded-xl p-6 shadow-lg border border-[#ff6b35]/20 text-center">
         <MessageSquare className="w-12 h-12 text-[#ff6b35] mx-auto mb-4" />
@@ -252,6 +252,11 @@ export function ReviewSystem({ vendorId, vendorName }: ReviewSystemProps) {
         <p className="text-xs text-[#6b5d52]">
           Cost: 15 BATTLE tokens per review
         </p>
+        <div className="mt-4">
+          <p className="text-xs text-red-600">
+            Authentication required. Please connect your Farcaster account.
+          </p>
+        </div>
       </div>
     )
   }

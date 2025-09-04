@@ -34,7 +34,7 @@ export async function GET(
         users!inner(
           username,
           display_name,
-          pfp_url
+          avatar_url
         )
       `)
       .eq('vendor_id', vendorId)
@@ -54,7 +54,7 @@ export async function GET(
       userId: review.user_fid,
       username: review.users?.username || 'Unknown',
       displayName: review.users?.display_name || review.users?.username || 'Unknown',
-      avatar: review.users?.pfp_url || 'https://api.dicebear.com/7.x/avataaars/svg?seed=unknown',
+      avatar: review.users?.avatar_url || 'https://api.dicebear.com/7.x/avataaars/svg?seed=unknown',
       content: review.content,
       tokensPaid: review.tokens_paid,
       createdAt: review.created_at

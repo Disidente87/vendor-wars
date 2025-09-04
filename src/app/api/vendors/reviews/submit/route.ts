@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
     // Get user profile from database
     const { data: userProfile, error: userError } = await supabase
       .from('users')
-      .select('fid, username, display_name, pfp_url')
+      .select('fid, username, display_name, avatar_url')
       .eq('fid', user.user_metadata?.fid)
       .single()
 
@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
       fid: number
       username: string
       display_name: string
-      pfp_url: string
+      avatar_url: string
     }
 
     // Verify payment on blockchain
