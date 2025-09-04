@@ -254,7 +254,7 @@ export function useFarcasterAuth(): UseFarcasterAuthReturn {
       let realPfpUrl = farcasterUser.pfpUrl
       if (!realPfpUrl && farcasterUser.fid) {
         try {
-          const response = await fetch(`/api/farcaster/user/${farcasterUser.fid}`)
+          const response = await fetch(`/api/auth/farcaster?fid=${farcasterUser.fid}`)
           if (response.ok) {
             const userData = await response.json()
             realPfpUrl = userData.pfpUrl

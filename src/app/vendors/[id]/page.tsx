@@ -210,7 +210,7 @@ export default function VendorProfilePage({ params }: { params: Promise<{ id: st
             let realAvatar = user?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${fid}`
             if (!isAuthenticatedUser) {
               try {
-                const response = await fetch(`/api/farcaster/user/${fid}`)
+                const response = await fetch(`/api/auth/farcaster?fid=${fid}`)
                 if (response.ok) {
                   const userData = await response.json()
                   if (userData.pfpUrl) {

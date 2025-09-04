@@ -49,6 +49,8 @@ export async function POST(request: NextRequest) {
     // Get user from Farcaster auth
     const supabase = createClient()
     const { data: { user }, error: authError } = await supabase.auth.getUser()
+    
+    console.log('Auth check:', { user: !!user, authError, userMetadata: user?.user_metadata })
 
     if (authError || !user) {
       return NextResponse.json(

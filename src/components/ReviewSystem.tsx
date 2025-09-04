@@ -122,7 +122,9 @@ export function ReviewSystem({ vendorId, vendorName }: ReviewSystemProps) {
     
     setIsLoadingReviews(true)
     try {
-      const response = await fetch(`/api/vendors/${vendorId}/reviews`)
+      const response = await fetch(`/api/vendors/${vendorId}/reviews`, {
+        credentials: 'include' // Incluir cookies de autenticación
+      })
       const result = await response.json()
       
       if (result.success) {
@@ -209,6 +211,7 @@ export function ReviewSystem({ vendorId, vendorName }: ReviewSystemProps) {
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include', // Incluir cookies de autenticación
         body: JSON.stringify({
           vendorId,
           content: newReview.trim(),
