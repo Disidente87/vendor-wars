@@ -178,13 +178,17 @@ export async function POST(request: NextRequest) {
       timestamp: Date.now()
     })
 
+    // Generar ID único para el review (combinando vendorId, userFid y timestamp)
+    const uniqueReviewId = `review_${vendorId}_${ownerFid}_${Date.now()}`
+
     // Preparar la transacción
     console.log('🔍 Preparando transacción para review...')
+    console.log('🔍 Unique review ID:', uniqueReviewId)
     
     const transactionData = encodeFunctionData({
       abi: VENDOR_REGISTRATION_ABI,
       functionName: 'registerVendor',
-      args: [userAddress as `0x${string}`, amountInWei, reviewDataForBlockchain, `review_${vendorId}`]
+      args: [userAddress as `0x${string}`, amountInWei, reviewDataForBlockchain, uniqueReviewId]
     })
     
     console.log('🔍 Transaction data length:', transactionData.length)
