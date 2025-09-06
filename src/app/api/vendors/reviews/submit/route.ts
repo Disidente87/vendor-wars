@@ -181,6 +181,42 @@ export async function POST(request: NextRequest) {
     // Generar ID único para el review (combinando vendorId, userFid y timestamp)
     const uniqueReviewId = `review_${vendorId}_${ownerFid}_${Date.now()}`
 
+    // Simular la transacción para capturar posibles errores
+    console.log('🔍 Simulando transacción...')
+    try {
+      await simulateContract(publicClient, {
+        address: PAYMENT_CONFIG.VENDOR_REGISTRATION.ADDRESS as `0x${string}`,
+        abi: VENDOR_REGISTRATION_ABI,
+        functionName: 'registerVendor',
+        args: [userAddress as `0x${string}`, amountInWei, reviewDataForBlockchain, uniqueReviewId],
+        account: walletAddress as `0x${string}`
+      })
+      console.log('✅ Simulación exitosa')
+    } catch (simulationError: any) {
+      console.error('❌ Error en simulación:', simulationError)
+      console.error('❌ Detalles del error:', {
+        message: simulationError.message,
+        cause: simulationError.cause,
+        shortMessage: simulationError.shortMessage
+      })
+      
+      // Si es un error de límites, retornar error específico
+      if (simulationError.message?.includes('Daily limit exceeded') || 
+          simulationError.message?.includes('Weekly limit exceeded') ||
+          simulationError.message?.includes('Cooldown period not met')) {
+        return NextResponse.json(
+          { 
+            success: false, 
+            error: 'Rate limit exceeded. Please try again later.',
+            details: simulationError.message
+          },
+          { status: 400 }
+        )
+      }
+      
+      console.log('⚠️ Continuando con el proceso a pesar del error de simulación...')
+    }
+
     // Preparar la transacción
     console.log('🔍 Preparando transacción para review...')
     console.log('🔍 Unique review ID:', uniqueReviewId)
