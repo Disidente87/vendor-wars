@@ -1,5 +1,6 @@
 import { createPublicClient, http, parseEther, formatEther } from 'viem'
 import { baseSepolia } from 'viem/chains'
+import { PAYMENT_CONFIG } from '@/config/payment'
 import type { 
   VendorRegistrationData,
   VendorRegistrationResult,
@@ -19,20 +20,6 @@ const VENDOR_REGISTRATION_ABI = [
     ],
     outputs: [{ type: 'bool', name: 'success' }],
     stateMutability: 'nonpayable'
-  },
-  {
-    type: 'function',
-    name: 'getVendorRegistrationCost',
-    inputs: [],
-    outputs: [{ type: 'uint256', name: '' }],
-    stateMutability: 'view'
-  },
-  {
-    type: 'function',
-    name: 'hasSufficientBalance',
-    inputs: [{ type: 'address', name: 'user' }],
-    outputs: [{ type: 'bool', name: '' }],
-    stateMutability: 'view'
   },
   {
     type: 'function',
@@ -88,13 +75,8 @@ export class VendorRegistrationService {
    */
   async getRegistrationCost(): Promise<string> {
     try {
-      const result = await this.client.readContract({
-        address: this.contractAddress,
-        abi: VENDOR_REGISTRATION_ABI,
-        functionName: 'getVendorRegistrationCost'
-      })
-      
-      return formatEther(result as bigint)
+      // Usar costo desde la configuración del backend (no desde el contrato)
+      return PAYMENT_CONFIG.COSTS.VENDOR_REGISTRATION.toString()
     } catch (error) {
       console.error('Error getting registration cost:', error)
       throw new Error('Failed to get registration cost')

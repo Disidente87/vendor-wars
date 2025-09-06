@@ -8,18 +8,37 @@ export const PAYMENT_CONFIG = {
     NAME: 'Battle Token',
     DECIMALS: 18,
     REQUIRED_AMOUNT: 50, // 50 $BATTLE tokens for vendor registration
-    REVIEW_COST: 50, // 50 $BATTLE tokens for reviews (using vendor registration contract)
+    REVIEW_COST: 15, // 15 $BATTLE tokens for reviews
+    VENDOR_UPDATE_COST: 5, // 5 $BATTLE tokens for vendor updates
+    VENDOR_VERIFICATION_COST: 20, // 20 $BATTLE tokens for vendor verification
+    VENDOR_BOOST_COST: 50, // 50 $BATTLE tokens for vendor boosts
+    PROFILE_CUSTOMIZATION_COST: 100, // 100 $BATTLE tokens for profile customization
+    TERRITORY_CLAIM_COST: 200, // 200 $BATTLE tokens for territory claims
+    ACHIEVEMENT_NFT_COST: 1000, // 1000 $BATTLE tokens for achievement NFTs
   },
 
   // Contrato VendorRegistration
   VENDOR_REGISTRATION: {
-    ADDRESS: process.env.NEXT_PUBLIC_VENDOR_REGISTRATION_CONTRACT_ADDRESS || '0x00aBc357C1285D3107624FF0CDBa872f50a8f36a',
+    ADDRESS: process.env.NEXT_PUBLIC_VENDOR_REGISTRATION_CONTRACT_ADDRESS || '0xA8e6a44353D47f5349CB2FD72671989e55Af2201',
+    COST: 50, // 50 $BATTLE tokens for vendor registration
     NETWORK: {
       CHAIN_ID: 84532, // Base Sepolia
       NAME: 'Base Sepolia',
       RPC_URL: 'https://sepolia.base.org',
       EXPLORER: 'https://sepolia.basescan.org',
     },
+  },
+
+  // Costos específicos por funcionalidad
+  COSTS: {
+    VENDOR_REGISTRATION: 50, // 50 $BATTLE tokens for vendor registration
+    REVIEW: 15, // 15 $BATTLE tokens for reviews
+    VENDOR_UPDATE: 5, // 5 $BATTLE tokens for vendor updates
+    VENDOR_VERIFICATION: 20, // 20 $BATTLE tokens for vendor verification
+    VENDOR_BOOST: 50, // 50 $BATTLE tokens for vendor boosts
+    PROFILE_CUSTOMIZATION: 100, // 100 $BATTLE tokens for profile customization
+    TERRITORY_CLAIM: 200, // 200 $BATTLE tokens for territory claims
+    ACHIEVEMENT_NFT: 1000, // 1000 $BATTLE tokens for achievement NFTs
   },
 
   // Configuración de transacciones

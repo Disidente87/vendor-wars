@@ -59,7 +59,8 @@ interface IVendorRegistration {
         address user,
         uint256 amount,
         string calldata vendorData,
-        string calldata vendorId
+        string calldata vendorId,
+        string calldata zoneId
     ) external returns (bool success);
     
     /**
@@ -86,18 +87,6 @@ interface IVendorRegistration {
         string calldata reason
     ) external returns (bool success);
     
-    /**
-     * @dev Obtiene el costo de registro de vendor
-     * @return Costo en tokens $BATTLE
-     */
-    function getVendorRegistrationCost() external view returns (uint256);
-    
-    /**
-     * @dev Verifica si un usuario tiene saldo suficiente para registrar un vendor
-     * @param user Dirección del usuario
-     * @return True si tiene saldo suficiente
-     */
-    function hasSufficientBalance(address user) external view returns (bool);
     
     /**
      * @dev Obtiene el total de tokens quemados por registros de vendor

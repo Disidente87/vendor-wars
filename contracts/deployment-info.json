@@ -1,0 +1,26 @@
+{
+  "contractName": "VendorRegistration",
+  "contractAddress": "0xA8e6a44353D47f5349CB2FD72671989e55Af2201",
+  "battleTokenAddress": "0xDa6884d4F2E68b9700678139B617607560f70Cc3",
+  "owner": "0x80bEC485a67549ea32e303d3a1B8bafa4B3B5e99",
+  "network": "baseSepolia",
+  "chainId": 84532,
+  "explorerUrl": "https://sepolia.basescan.org/address/0xA8e6a44353D47f5349CB2FD72671989e55Af2201",
+  "deploymentTimestamp": "2025-09-06T08:03:23.727Z",
+  "contractConstants": {
+    "minCost": "1000000000000000000",
+    "maxCost": "500000000000000000000",
+    "maxOperationsPerDay": 20,
+    "maxOperationsPerWeek": 100,
+    "maxVendorsPerDay": 3,
+    "maxVendorsPerWeek": 10,
+    "cooldownPeriod": 3600
+  },
+  "initialStats": {
+    "totalTokensBurned": "0",
+    "totalVendors": "0"
+  },
+  "abiPath": "contracts/abi/VendorRegistration.json",
+  "sourceCode": "contracts/VendorWarsContract.sol",
+  "interface": "contracts/interfaces/IVendorRegistration.sol"
+}

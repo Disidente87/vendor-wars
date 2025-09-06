@@ -15,6 +15,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { StorageService } from '@/services/storage'
 import { FARCASTER_CONFIG, getSubcategories } from '@/config/farcaster'
 import { DelegationService, ZoneWithDelegations } from '@/services/delegations'
+import { PAYMENT_CONFIG } from '@/config/payment'
 import { PaymentStep } from '@/components/vendor-registration/PaymentStep'
 import { TransactionStatus } from '@/components/vendor-registration/TransactionStatus'
 import { TokenBalanceChecker } from '@/components/vendor-registration/TokenBalanceChecker'
@@ -32,6 +33,7 @@ interface VendorFormData {
   userAddress: string
   paymentAmount: string
   vendorId: string
+  zoneId: string
 }
 
 
@@ -56,8 +58,9 @@ export default function VendorRegistrationPage() {
     category: '',
     subcategories: [],
     userAddress: '',
-    paymentAmount: '50',
-    vendorId: ''
+    paymentAmount: PAYMENT_CONFIG.COSTS.VENDOR_REGISTRATION.toString(),
+    vendorId: '',
+    zoneId: ''
   })
 
   const totalSteps = 6 // Agregamos el paso de pago
@@ -238,13 +241,20 @@ export default function VendorRegistrationPage() {
       console.log('🔍 Frontend: imageUrl que se envía:', imageUrl)
       console.log('🔍 Frontend: imageUrl es blob?', imageUrl.startsWith('blob:'))
       
+      // Mapear delegación a zoneId
+      const selectedZone = zonesWithDelegations.find(zone => 
+        zone.delegations.some(delegation => delegation.delegation_name === formData.delegation)
+      )
+      const zoneId = selectedZone?.id || 'default-zone'
+
       const requestData = {
         userAddress: formData.userAddress,
         vendorData: JSON.stringify(vendorData),
         vendorId: freshVendorId, // Usar el vendorId fresco
         paymentAmount: formData.paymentAmount,
         signature: '0x' + '0'.repeat(130), // Placeholder signature for now
-        ownerFid: authenticatedUser?.fid || null // Asegurar que no sea undefined
+        ownerFid: authenticatedUser?.fid || null, // Asegurar que no sea undefined
+        zoneId: zoneId
       }
       
       console.log('🚀 Sending vendor registration data with payment:', requestData)

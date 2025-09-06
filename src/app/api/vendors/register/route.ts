@@ -16,6 +16,7 @@ interface VendorRegistrationData {
   userAddress: string
   paymentAmount: string
   vendorId: string
+  zoneId: string
 }
 
 export async function POST(request: NextRequest) {
@@ -25,7 +26,7 @@ export async function POST(request: NextRequest) {
     console.log('📝 Request body:', body)
     
     // Validate required fields
-    const { name, description, delegation, category, imageUrl, ownerFid, userAddress, paymentAmount, vendorId } = body
+    const { name, description, delegation, category, imageUrl, ownerFid, userAddress, paymentAmount, vendorId, zoneId } = body
     
     // Check each required field individually for better error messages
     const missingFields = []
@@ -37,6 +38,7 @@ export async function POST(request: NextRequest) {
     if (!userAddress) missingFields.push('userAddress')
     if (!paymentAmount) missingFields.push('paymentAmount')
     if (!vendorId) missingFields.push('vendorId')
+    if (!zoneId) missingFields.push('zoneId')
     
     if (missingFields.length > 0) {
       console.log('❌ Missing fields:', missingFields)
@@ -100,8 +102,6 @@ export async function POST(request: NextRequest) {
 
     console.log('✅ Zone found for delegation:', { delegation, zoneId: zoneResult })
 
-    const zoneId = zoneResult
-
     // Obtener el fid del usuario autenticado desde el header o cookie
     const ownerFidHeader = request.headers.get('x-farcaster-fid')
     const ownerFidValue = ownerFidHeader ? parseInt(ownerFidHeader) : ownerFid
@@ -144,8 +144,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Validate payment amount (should be 50 $BATTLE tokens)
-    const expectedAmount = PAYMENT_CONFIG.BATTLE_TOKEN.REQUIRED_AMOUNT.toString()
+    // Validate payment amount using configuration
+    const expectedAmount = PAYMENT_CONFIG.COSTS.VENDOR_REGISTRATION.toString()
     if (paymentAmount !== expectedAmount) {
       return NextResponse.json(
         { success: false, error: `Invalid payment amount. Expected ${expectedAmount} $BATTLE tokens, got ${paymentAmount}` },

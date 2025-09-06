@@ -1,4 +1,5 @@
 import { VendorRegistrationData, PaymentConfirmation, VendorRegistrationResponse } from '@/types/vendorPayment'
+import { PAYMENT_CONFIG } from '@/config/payment'
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '/api'
 
@@ -230,8 +231,8 @@ export class VendorPaymentService {
       errors.push('Dirección de wallet inválida')
     }
 
-    if (vendorData.paymentAmount !== '50') {
-      errors.push('El monto de pago debe ser exactamente 50 $BATTLE')
+    if (vendorData.paymentAmount !== PAYMENT_CONFIG.COSTS.VENDOR_REGISTRATION.toString()) {
+      errors.push(`El monto de pago debe ser exactamente ${PAYMENT_CONFIG.COSTS.VENDOR_REGISTRATION} $BATTLE`)
     }
 
     if (!vendorData.vendorId) {

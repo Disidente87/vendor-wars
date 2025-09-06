@@ -10,7 +10,7 @@ import { getTransactionCount } from 'viem/actions'
 import { PAYMENT_CONFIG } from '@/config/payment'
 import { simulateContract } from 'viem/actions'
 
-// ABI para el contrato VendorRegistration (reutilizamos el mismo contrato)
+// ABI para el contrato VendorRegistration
 const VENDOR_REGISTRATION_ABI = [
   {
     inputs: [
@@ -20,6 +20,18 @@ const VENDOR_REGISTRATION_ABI = [
       { name: 'vendorId', type: 'string' }
     ],
     name: 'registerVendor',
+    outputs: [{ name: 'success', type: 'bool' }],
+    stateMutability: 'nonpayable',
+    type: 'function'
+  },
+  {
+    inputs: [
+      { name: 'user', type: 'address' },
+      { name: 'amount', type: 'uint256' },
+      { name: 'reviewData', type: 'string' },
+      { name: 'reviewId', type: 'string' }
+    ],
+    name: 'submitReview',
     outputs: [{ name: 'success', type: 'bool' }],
     stateMutability: 'nonpayable',
     type: 'function'
@@ -61,8 +73,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Validate payment amount (should be 15 $BATTLE tokens)
-    const expectedAmount = PAYMENT_CONFIG.BATTLE_TOKEN.REVIEW_COST.toString()
+    // Validate payment amount using configuration
+    const expectedAmount = PAYMENT_CONFIG.COSTS.REVIEW.toString()
     if (paymentAmount !== expectedAmount) {
       return NextResponse.json(
         { success: false, error: `Invalid payment amount. Expected ${expectedAmount} $BATTLE tokens, got ${paymentAmount}` },
@@ -230,7 +242,7 @@ export async function POST(request: NextRequest) {
       await simulateContract(publicClient, {
         address: PAYMENT_CONFIG.VENDOR_REGISTRATION.ADDRESS as `0x${string}`,
         abi: VENDOR_REGISTRATION_ABI,
-        functionName: 'registerVendor',
+        functionName: 'submitReview',
         args: [userAddress as `0x${string}`, amountInWei, reviewDataForBlockchain, uniqueReviewId],
         account: walletAddress as `0x${string}`
       })
@@ -266,7 +278,7 @@ export async function POST(request: NextRequest) {
     
     const transactionData = encodeFunctionData({
       abi: VENDOR_REGISTRATION_ABI,
-      functionName: 'registerVendor',
+      functionName: 'submitReview',
       args: [userAddress as `0x${string}`, amountInWei, reviewDataForBlockchain, uniqueReviewId]
     })
     

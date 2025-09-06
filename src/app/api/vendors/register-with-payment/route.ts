@@ -17,7 +17,8 @@ const VENDOR_REGISTRATION_ABI = [
       { name: 'user', type: 'address' },
       { name: 'amount', type: 'uint256' },
       { name: 'vendorData', type: 'string' },
-      { name: 'vendorId', type: 'string' }
+      { name: 'vendorId', type: 'string' },
+      { name: 'zoneId', type: 'string' }
     ],
     name: 'registerVendor',
     outputs: [{ name: 'success', type: 'bool' }],
@@ -44,6 +45,7 @@ interface VendorRegistrationRequest {
   paymentAmount: string
   signature: string // Firma del usuario para verificar que autoriza el pago
   ownerFid?: number // FID del usuario autenticado
+  zoneId: string // ID de la zona
 }
 
 export async function POST(request: NextRequest) {
@@ -51,7 +53,7 @@ export async function POST(request: NextRequest) {
     console.log('🚀 API: Iniciando registro de vendor con pago...')
     
     const body: VendorRegistrationRequest = await request.json()
-    const { userAddress, vendorData, vendorId, paymentAmount, signature, ownerFid } = body
+    const { userAddress, vendorData, vendorId, paymentAmount, signature, ownerFid, zoneId } = body
     
     // Leer FID del header como alternativa
     const headerFid = request.headers.get('x-farcaster-fid')
@@ -78,13 +80,14 @@ export async function POST(request: NextRequest) {
     console.log('🔍 API: signature válido?', signature && signature.length > 0)
     
     // Validar campos requeridos
-    if (!userAddress || !vendorData || !vendorId || !paymentAmount || !signature) {
+    if (!userAddress || !vendorData || !vendorId || !paymentAmount || !signature || !zoneId) {
       const missingFields = []
       if (!userAddress) missingFields.push('userAddress')
       if (!vendorData) missingFields.push('vendorData')
       if (!vendorId) missingFields.push('vendorId')
       if (!paymentAmount) missingFields.push('paymentAmount')
       if (!signature) missingFields.push('signature')
+      if (!zoneId) missingFields.push('zoneId')
       
       console.error('❌ API: Campos faltantes:', missingFields)
       return NextResponse.json(
@@ -193,7 +196,7 @@ export async function POST(request: NextRequest) {
         address: PAYMENT_CONFIG.VENDOR_REGISTRATION.ADDRESS as `0x${string}`,
         abi: VENDOR_REGISTRATION_ABI,
         functionName: 'registerVendor',
-        args: [userAddress as `0x${string}`, amountInWei, vendorData, simulationVendorId],
+        args: [userAddress as `0x${string}`, amountInWei, vendorData, simulationVendorId, zoneId],
         account: walletAddress as `0x${string}`
       })
       console.log('✅ API: Simulación exitosa')
@@ -218,7 +221,7 @@ export async function POST(request: NextRequest) {
     const transactionData = encodeFunctionData({
       abi: VENDOR_REGISTRATION_ABI,
       functionName: 'registerVendor',
-      args: [userAddress as `0x${string}`, amountInWei, vendorData, vendorId]
+      args: [userAddress as `0x${string}`, amountInWei, vendorData, vendorId, zoneId]
     })
     
     console.log('🔍 API: Transaction data length:', transactionData.length)

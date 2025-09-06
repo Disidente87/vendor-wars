@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useAccount, useBalance, useContractRead, useContractWrite } from 'wagmi'
 import { parseEther, formatEther } from 'viem'
+import { PAYMENT_CONFIG } from '@/config/payment'
 
 // ABI simplificado para el token BATTLE
 const BATTLE_TOKEN_ABI = [
@@ -32,20 +33,14 @@ const VENDOR_REGISTRATION_ABI = [
       { name: 'user', type: 'address' },
       { name: 'amount', type: 'uint256' },
       { name: 'vendorData', type: 'string' },
-      { name: 'vendorId', type: 'string' }
+      { name: 'vendorId', type: 'string' },
+      { name: 'zoneId', type: 'string' }
     ],
     name: 'registerVendor',
     outputs: [{ name: 'success', type: 'bool' }],
     stateMutability: 'nonpayable',
     type: 'function'
   },
-  {
-    inputs: [],
-    name: 'getVendorRegistrationCost',
-    outputs: [{ name: '', type: 'uint256' }],
-    stateMutability: 'view',
-    type: 'function'
-  }
 ] as const
 
 const BATTLE_TOKEN_ADDRESS = process.env.NEXT_PUBLIC_BATTLE_TOKEN_ADDRESS || '0xDa6884d4F2E68b9700678139B617607560f70Cc3'
@@ -94,11 +89,8 @@ export function useVendorRegistrationPayment() {
 
 
   // Leer costo de registro
-  const { data: registrationCost } = useContractRead({
-    address: VENDOR_REGISTRATION_ADDRESS as `0x${string}`,
-    abi: VENDOR_REGISTRATION_ABI,
-    functionName: 'getVendorRegistrationCost',
-  })
+  // Usar costo desde la configuración del backend (no desde el contrato)
+  const registrationCost = BigInt(PAYMENT_CONFIG.COSTS.VENDOR_REGISTRATION * 10**18)
 
   // Leer allowance del token
   const { data: allowanceData, refetch: refetchAllowance } = useContractRead({
