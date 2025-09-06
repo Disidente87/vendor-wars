@@ -104,15 +104,46 @@ export function ReviewSystem({ vendorId, vendorName }: ReviewSystemProps) {
     args: address ? [address, VENDOR_REGISTRATION_ADDRESS as `0x${string}`] : undefined
   })
 
+  // Debug logging
+  console.log('🔍 Hook data:', {
+    address,
+    balanceData: balanceData ? Number(formatEther(balanceData.value)) : 'loading',
+    allowanceData: allowanceData ? Number(formatEther(allowanceData)) : 'loading',
+    needsApproval
+  })
+
   // Contrato para aprobar tokens
   const { writeContractAsync: approveTokens, isPending: isApprovingTokens } = useWriteContract()
 
   // Verificar si necesita aprobación
   useEffect(() => {
+    console.log('🔍 useEffect triggered:', {
+      address: !!address,
+      allowanceData: !!allowanceData,
+      balanceData: !!balanceData,
+      allowanceDataValue: allowanceData,
+      balanceDataValue: balanceData
+    })
+    
     if (address && allowanceData && balanceData) {
       const allowance = Number(formatEther(allowanceData))
       const hasSufficientBalance = Number(formatEther(balanceData.value)) >= 50
-      setNeedsApproval(allowance < 50 && hasSufficientBalance)
+      const shouldNeedApproval = allowance < 50 && hasSufficientBalance
+      
+      console.log('🔍 Approval check:', {
+        allowance,
+        hasSufficientBalance,
+        shouldNeedApproval,
+        currentNeedsApproval: needsApproval
+      })
+      
+      setNeedsApproval(shouldNeedApproval)
+    } else {
+      console.log('🔍 Missing data for approval check:', {
+        address: !!address,
+        allowanceData: !!allowanceData,
+        balanceData: !!balanceData
+      })
     }
   }, [address, allowanceData, balanceData])
 
@@ -327,7 +358,8 @@ export function ReviewSystem({ vendorId, vendorName }: ReviewSystemProps) {
 
         {/* Action Buttons */}
         <div className="flex space-x-3">
-          {needsApproval ? (
+          {console.log('🔍 Button render check:', { needsApproval, hasSufficientBalance, newReviewLength: newReview.trim().length, allowanceData: !!allowanceData, balanceData: !!balanceData })}
+          {needsApproval || (!allowanceData || !balanceData) ? (
             <Button
               onClick={handleApproveTokens}
               disabled={isApproving || isApprovingTokens || !hasSufficientBalance}
