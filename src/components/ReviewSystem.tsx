@@ -358,7 +358,6 @@ export function ReviewSystem({ vendorId, vendorName }: ReviewSystemProps) {
 
         {/* Action Buttons */}
         <div className="flex space-x-3">
-          {console.log('🔍 Button render check:', { needsApproval, hasSufficientBalance, newReviewLength: newReview.trim().length, allowanceData: !!allowanceData, balanceData: !!balanceData })}
           {needsApproval || (!allowanceData || !balanceData) ? (
             <Button
               onClick={handleApproveTokens}
