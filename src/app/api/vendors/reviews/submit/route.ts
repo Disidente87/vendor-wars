@@ -34,6 +34,16 @@ const BATTLE_TOKEN_ABI = [
     outputs: [{ name: '', type: 'uint256' }],
     stateMutability: 'view',
     type: 'function'
+  },
+  {
+    inputs: [
+      { name: 'owner', type: 'address' },
+      { name: 'spender', type: 'address' }
+    ],
+    name: 'allowance',
+    outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function'
   }
 ] as const
 
@@ -166,6 +176,39 @@ export async function POST(request: NextRequest) {
       console.error('❌ Error verificando saldo:', balanceError)
       return NextResponse.json(
         { success: false, error: 'Error checking BATTLE balance' },
+        { status: 500 }
+      )
+    }
+
+    // Verificar que el usuario ha aprobado tokens al contrato
+    console.log('🔍 Verificando allowance del usuario...')
+    try {
+      const allowanceData = await readContractAction(publicClient, {
+        address: PAYMENT_CONFIG.BATTLE_TOKEN.ADDRESS as `0x${string}`,
+        abi: BATTLE_TOKEN_ABI,
+        functionName: 'allowance',
+        args: [userAddress as `0x${string}`, PAYMENT_CONFIG.VENDOR_REGISTRATION.ADDRESS as `0x${string}`]
+      })
+      
+      console.log('🔍 Allowance del usuario:', allowanceData.toString())
+      console.log('🔍 Cantidad requerida:', amountInWei.toString())
+      
+      if (allowanceData < amountInWei) {
+        return NextResponse.json(
+          { 
+            success: false, 
+            error: 'Insufficient token allowance. Please approve 50 BATTLE tokens first.',
+            details: `Current allowance: ${allowanceData.toString()}, Required: ${amountInWei.toString()}`
+          },
+          { status: 400 }
+        )
+      }
+      
+      console.log('✅ Allowance suficiente')
+    } catch (allowanceError) {
+      console.error('❌ Error verificando allowance:', allowanceError)
+      return NextResponse.json(
+        { success: false, error: 'Error checking token allowance' },
         { status: 500 }
       )
     }

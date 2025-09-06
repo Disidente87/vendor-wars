@@ -111,8 +111,8 @@ export function ReviewSystem({ vendorId, vendorName }: ReviewSystemProps) {
   useEffect(() => {
     if (address && allowanceData && balanceData) {
       const allowance = Number(formatEther(allowanceData))
-      const hasSufficientBalance = Number(formatEther(balanceData.value)) >= 15
-      setNeedsApproval(allowance < 15 && hasSufficientBalance)
+      const hasSufficientBalance = Number(formatEther(balanceData.value)) >= 50
+      setNeedsApproval(allowance < 50 && hasSufficientBalance)
     }
   }, [address, allowanceData, balanceData])
 
