@@ -199,6 +199,21 @@ export async function POST(request: NextRequest) {
       console.log('✅ API: Simulación exitosa')
     } catch (simulationError: any) {
       console.error('❌ API: Error en simulación:', simulationError)
+      
+      // Verificar si es un error de cooldown específico
+      if (simulationError?.shortMessage?.includes('Cooldown period not met')) {
+        console.log('⏰ API: Error de cooldown detectado')
+        return NextResponse.json(
+          { 
+            success: false, 
+            error: 'Cooldown period not met',
+            message: 'Debes esperar 1 hora entre registros de vendors. Intenta de nuevo más tarde.',
+            cooldownError: true
+          },
+          { status: 429 } // Too Many Requests
+        )
+      }
+      
       console.log('⚠️ API: Continuando con el proceso a pesar del error de simulación...')
       
       // No retornamos error aquí, continuamos con el proceso

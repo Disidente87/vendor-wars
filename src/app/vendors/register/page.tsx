@@ -277,6 +277,15 @@ export default function VendorRegistrationPage() {
           router.push(`/vendors`)
         }, 2000)
       } else {
+        // Verificar si es un error de cooldown específico
+        if (result.cooldownError) {
+          console.log('⏰ Error de cooldown detectado:', result.message)
+          setErrorMessage(result.message || 'Debes esperar 1 hora entre registros de vendors.')
+          setSubmitStatus('error')
+          setIsSubmitting(false)
+          return
+        }
+        
         // Si la API falla pero la transacción ya se ejecutó, redirigir de todos modos
         console.log('⚠️ API falló pero redirigiendo a vendors:', result.error)
         setSubmitStatus('success')
