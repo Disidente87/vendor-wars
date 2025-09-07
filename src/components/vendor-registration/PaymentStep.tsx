@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Loader2, Wallet, Coins, AlertCircle, CheckCircle } from 'lucide-react'
+import { useBalanceContext } from '@/contexts/BalanceContext'
 
 interface PaymentStepProps {
   onPaymentReady: (isReady: boolean) => void
@@ -24,6 +25,7 @@ export function PaymentStep({ onPaymentReady, onNext, onBack }: PaymentStepProps
   const { address, isConnected } = useAccount()
   const { connect, connectors, isPending: isConnecting } = useConnect()
   const { disconnect } = useDisconnect()
+  const { refreshAllBalances } = useBalanceContext()
   
   // Obtener balance de $BATTLE tokens
   const { data: balanceData, isLoading: isBalanceLoading, refetch: refetchBalance } = useBalance({

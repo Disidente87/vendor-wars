@@ -5,6 +5,7 @@ import { Navigation } from "@/components/navigation"
 import { BottomNavigation } from "@/components/BottomNavigation"
 import { MiniAppWrapper } from "@/components/MiniAppWrapper"
 import { AuthDebugger } from "@/components/AuthDebugger"
+import { BalanceProvider } from "@/contexts/BalanceContext"
 
 const plusJakartaSans = Plus_Jakarta_Sans({
   variable: "--font-plus-jakarta-sans",
@@ -86,25 +87,27 @@ export default function RootLayout({
           overscrollBehavior: 'none'
         }}
       >
-        <MiniAppWrapper>
-          {/* Auth Debugger - Only show in development */}
-          {process.env.NODE_ENV === 'development' && <AuthDebugger />}
-          
-          {/* Desktop Navigation - Hidden on mobile */}
-          <div className="hidden md:block">
-            <Navigation />
-          </div>
-          
-          {/* Main Content */}
-          <main className="pb-20 md:pb-0"> {/* Add bottom padding for mobile navigation */}
-            {children}
-          </main>
-          
-          {/* Mobile Bottom Navigation - Hidden on desktop */}
-          <div className="md:hidden">
-            <BottomNavigation />
-          </div>
-        </MiniAppWrapper>
+        <BalanceProvider>
+          <MiniAppWrapper>
+            {/* Auth Debugger - Only show in development */}
+            {process.env.NODE_ENV === 'development' && <AuthDebugger />}
+            
+            {/* Desktop Navigation - Hidden on mobile */}
+            <div className="hidden md:block">
+              <Navigation />
+            </div>
+            
+            {/* Main Content */}
+            <main className="pb-20 md:pb-0"> {/* Add bottom padding for mobile navigation */}
+              {children}
+            </main>
+            
+            {/* Mobile Bottom Navigation - Hidden on desktop */}
+            <div className="md:hidden">
+              <BottomNavigation />
+            </div>
+          </MiniAppWrapper>
+        </BalanceProvider>
       </body>
     </html>
   )

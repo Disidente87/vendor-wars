@@ -17,12 +17,14 @@ import {
 import { useRouter } from 'next/navigation'
 import { useTokenBalance } from '@/hooks/useTokenBalance'
 import { useFarcasterAuth } from '@/hooks/useFarcasterAuth'
+import { useBalanceContext } from '@/contexts/BalanceContext'
 
 export default function WalletPage() {
   const router = useRouter()
   const { address, isConnected, balance, chainId, isBaseSepoliaNetwork } = useWalletConnection()
   const { balance: battleTokens, refreshBalance } = useTokenBalance()
   const { user: farcasterUser } = useFarcasterAuth()
+  const { refreshAllBalances } = useBalanceContext()
   const [copied, setCopied] = useState(false)
   const [isSavingWallet, setIsSavingWallet] = useState(false)
   const [isSynchronizing, setIsSynchronizing] = useState(false)
@@ -241,9 +243,9 @@ export default function WalletPage() {
     setSyncResult(null)
     
     try {
-      console.log(`🔄 Syncing balance only for user ${farcasterUser.fid} with wallet ${address}`)
+      console.log(`🔄 Syncing balance for user ${farcasterUser.fid} with wallet ${address}`)
       
-      // Call the API endpoint to sync balance only
+      // 1. Update balance in database via API
       const response = await fetch('/api/wallet/sync-balance', {
         method: 'POST',
         headers: {
@@ -258,6 +260,9 @@ export default function WalletPage() {
       const result = await response.json()
 
       if (result.success) {
+        // 2. Refresh balance from blockchain and update all sections
+        await refreshAllBalances()
+        
         setSyncResult({
           success: true,
           tokensDistributed: 0,
@@ -265,11 +270,6 @@ export default function WalletPage() {
         })
         
         console.log(`✅ Balance sync successful: ${result.message}`)
-        
-        // Refresh balance after successful sync (with small delay to ensure cache is updated)
-        setTimeout(() => {
-          refreshBalance()
-        }, 500)
         
         // Check token status again to update button visibility
         checkTokenStatus()

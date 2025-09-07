@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useFarcasterAuth } from '@/hooks/useFarcasterAuth'
 import { useAccount } from 'wagmi'
+import { useBalanceContext } from '@/contexts/BalanceContext'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -39,6 +40,7 @@ interface VendorFormData {
 export default function VendorRegistrationPage() {
   const router = useRouter()
   const { user: authenticatedUser, isAuthenticated, isLoading } = useFarcasterAuth()
+  const { refreshAllBalances } = useBalanceContext()
   const fileInputRef = useRef<HTMLInputElement>(null)
   
   const [currentStep, setCurrentStep] = useState(1)
@@ -267,6 +269,8 @@ export default function VendorRegistrationPage() {
 
       if (result.success) {
         setSubmitStatus('success')
+        // Refrescar balance en todas las secciones
+        await refreshAllBalances()
         setTimeout(() => {
           router.push(`/vendors`)
         }, 2000)
@@ -274,6 +278,8 @@ export default function VendorRegistrationPage() {
         // Si la API falla pero la transacción ya se ejecutó, redirigir de todos modos
         console.log('⚠️ API falló pero redirigiendo a vendors:', result.error)
         setSubmitStatus('success')
+        // Refrescar balance en todas las secciones
+        await refreshAllBalances()
         setTimeout(() => {
           router.push('/vendors')
         }, 2000)

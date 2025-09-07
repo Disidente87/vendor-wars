@@ -7,6 +7,7 @@ import { useAccount, useBalance, useContractRead, useWriteContract } from 'wagmi
 import { parseEther, formatEther } from 'viem'
 import { useFarcasterAuth } from '@/hooks/useFarcasterAuth'
 import { useTokenBalance } from '@/hooks/useTokenBalance'
+import { useBalanceContext } from '@/contexts/BalanceContext'
 import { Coins, MessageSquare, Star, AlertCircle, CheckCircle, Loader2 } from 'lucide-react'
 
 // ABI simplificado para el token BATTLE
@@ -82,6 +83,7 @@ interface Review {
 export function ReviewSystem({ vendorId, vendorName }: ReviewSystemProps) {
   const { user: farcasterUser, isAuthenticated } = useFarcasterAuth()
   const { refreshBalance } = useTokenBalance()
+  const { refreshAllBalances } = useBalanceContext()
   const { address, isConnected } = useAccount()
   
   const [reviews, setReviews] = useState<Review[]>([])
@@ -262,7 +264,7 @@ export function ReviewSystem({ vendorId, vendorName }: ReviewSystemProps) {
         setNewReview('')
         
         // Refrescar balance y reviews
-        await refreshBalance()
+        await refreshAllBalances()
         await loadReviews()
       } else {
         setError(result.error || 'Failed to submit review')

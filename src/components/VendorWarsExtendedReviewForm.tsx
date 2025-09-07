@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useAccount } from 'wagmi'
 import { useVendorWarsExtendedReview } from '@/hooks/useVendorWarsExtendedReview'
+import { useBalanceContext } from '@/contexts/BalanceContext'
 import { PAYMENT_CONFIG } from '@/config/payment'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
@@ -24,6 +25,7 @@ export function VendorWarsExtendedReviewForm({
   const [reviewContent, setReviewContent] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const { address } = useAccount()
+  const { refreshAllBalances } = useBalanceContext()
 
   const {
     reviewState,
@@ -80,6 +82,9 @@ export function VendorWarsExtendedReviewForm({
       // Resetear formulario después del éxito
       setReviewContent('')
       resetState()
+      
+      // Refrescar balance en todas las secciones
+      await refreshAllBalances()
       
       if (onReviewSubmitted) {
         onReviewSubmitted(result.data?.id || `review_${vendorId}_${userFid}_${Date.now()}`)
