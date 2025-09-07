@@ -14,8 +14,8 @@ export function useBalanceSync() {
   const handleBalanceUpdate = useCallback(() => {
     const now = Date.now()
     
-    // Debounce: solo actualizar si han pasado al menos 2 segundos desde la última actualización
-    if (now - lastUpdateTime.current < 2000) {
+    // Debounce más agresivo: solo actualizar si han pasado al menos 5 segundos desde la última actualización
+    if (now - lastUpdateTime.current < 5000) {
       console.log('⚠️ Balance update ignorado por debounce (muy reciente)')
       return
     }
@@ -25,12 +25,12 @@ export function useBalanceSync() {
       clearTimeout(debounceTimeout.current)
     }
 
-    // Debounce adicional: esperar 500ms antes de ejecutar
+    // Debounce adicional: esperar 2 segundos antes de ejecutar
     debounceTimeout.current = setTimeout(() => {
       console.log('🔄 Balance update event recibido en useBalanceSync (después de debounce)')
       lastUpdateTime.current = Date.now()
       refreshAllBalances()
-    }, 500)
+    }, 2000)
   }, [refreshAllBalances])
 
   useEffect(() => {
@@ -64,7 +64,8 @@ export function useBalanceSync() {
       console.log('⚠️ BroadcastChannel no disponible en useBalanceSync')
     }
 
-    // 4. Polling como fallback (menos agresivo)
+    // 4. Polling deshabilitado temporalmente para evitar rate limiting del RPC
+    // Solo verificar una vez al cargar la página
     let lastPollingTime = 0
     const checkForUpdates = () => {
       try {
@@ -87,11 +88,11 @@ export function useBalanceSync() {
       }
     }
 
-    // Verificar inmediatamente
+    // Verificar solo una vez al cargar
     checkForUpdates()
     
-    // Polling cada 10 segundos (menos frecuente)
-    const interval = setInterval(checkForUpdates, 10000)
+    // Polling deshabilitado para evitar rate limiting del RPC
+    // const interval = setInterval(checkForUpdates, 30000)
 
     // 5. Cuando la ventana se enfoca (con debounce)
     const handleFocus = () => {
@@ -115,7 +116,7 @@ export function useBalanceSync() {
       window.removeEventListener('storage', handleStorageChange)
       window.removeEventListener('focus', handleFocus)
       document.removeEventListener('visibilitychange', handleVisibilityChange)
-      clearInterval(interval)
+      // clearInterval(interval) // Comentado porque el polling está deshabilitado
       if (debounceTimeout.current) {
         clearTimeout(debounceTimeout.current)
       }

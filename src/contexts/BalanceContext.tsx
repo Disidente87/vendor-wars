@@ -43,6 +43,15 @@ export function BalanceProvider({ children }: { children: React.ReactNode }) {
       return // Evitar múltiples refreshes simultáneos
     }
     
+    // Throttling adicional: solo permitir una actualización cada 10 segundos
+    const now = Date.now()
+    const lastRefresh = (window as any).__lastBalanceRefresh || 0
+    if (now - lastRefresh < 10000) {
+      console.log('⚠️ Balance refresh throttled (menos de 10 segundos)')
+      return
+    }
+    (window as any).__lastBalanceRefresh = now
+    
     setIsRefreshing(true)
     try {
       console.log('🔄 Iniciando refresh de balance...')

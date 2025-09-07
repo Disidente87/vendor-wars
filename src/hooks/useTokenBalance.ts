@@ -177,11 +177,11 @@ export function useTokenBalance() {
       // Verificar inmediatamente
       checkForPendingUpdates()
       
-      // Verificar cada 5 segundos (menos frecuente)
-      const interval = setInterval(checkForPendingUpdates, 5000)
+      // Polling deshabilitado temporalmente para evitar rate limiting del RPC
+      // const interval = setInterval(checkForPendingUpdates, 15000)
       
       return () => {
-        clearInterval(interval)
+        // clearInterval(interval) // Comentado porque el polling está deshabilitado
         if (debounceTimeout) {
           clearTimeout(debounceTimeout)
         }
