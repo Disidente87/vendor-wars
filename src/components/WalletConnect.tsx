@@ -191,11 +191,11 @@ export function WalletConnect({
           </div>
 
           {/* Balance */}
-          {showBalance && balance && (
+          {showBalance && (
             <div className="mt-3 flex items-center space-x-2">
               <Coins className="w-4 h-4 text-green-600" />
               <span className="text-sm text-green-700">
-                {parseFloat(balance.formatted).toFixed(4)} {balance.symbol}
+                Balance deshabilitado para evitar rate limiting
               </span>
             </div>
           )}

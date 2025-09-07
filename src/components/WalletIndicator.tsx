@@ -43,9 +43,9 @@ export function WalletIndicator({ className, showBalance = false }: WalletIndica
       <span className="font-mono text-xs">
         {address?.slice(0, 4)}...{address?.slice(-4)}
       </span>
-      {showBalance && balance && (
+      {showBalance && balance && typeof balance === 'object' && 'formatted' in balance && 'symbol' in balance && (
         <span className="ml-2 text-xs opacity-75">
-          {parseFloat(balance.formatted).toFixed(3)} {balance.symbol}
+          {parseFloat((balance as any).formatted).toFixed(3)} {(balance as any).symbol}
         </span>
       )}
       {!isBaseSepoliaNetwork && (
