@@ -90,6 +90,9 @@ export function useTokenBalance() {
         } catch (error) {
           console.error('Error parsing balance update event:', error)
         }
+      } else if (e.key === 'balanceUpdateTrigger') {
+        console.log('🔄 Balance update trigger recibido desde otra ventana')
+        refreshBalance()
       }
     }
 
@@ -100,12 +103,30 @@ export function useTokenBalance() {
       window.addEventListener('focus', handleFocus)
       window.addEventListener('storage', handleStorageChange)
       
+      // Usar BroadcastChannel para comunicación entre ventanas
+      let broadcastChannel: BroadcastChannel | null = null
+      try {
+        broadcastChannel = new BroadcastChannel('balance-updates')
+        broadcastChannel.onmessage = (event) => {
+          if (event.data.type === 'balanceUpdated') {
+            console.log('🔄 Balance update recibido via BroadcastChannel:', event.data)
+            refreshBalance()
+          }
+        }
+        console.log('🔄 BroadcastChannel listener registrado')
+      } catch (error) {
+        console.log('⚠️ BroadcastChannel no disponible')
+      }
+      
       return () => {
         console.log('🔄 Removiendo listeners...')
         window.removeEventListener('balanceUpdated', handleBalanceUpdate)
         document.removeEventListener('visibilitychange', handleVisibilityChange)
         window.removeEventListener('focus', handleFocus)
         window.removeEventListener('storage', handleStorageChange)
+        if (broadcastChannel) {
+          broadcastChannel.close()
+        }
       }
     }
   }, [refreshBalance])
@@ -124,14 +145,17 @@ export function useTokenBalance() {
   // Verificar si hay actualizaciones pendientes al cargar la página
   useEffect(() => {
     if (typeof window !== 'undefined') {
+      let lastUpdateTime = 0
+      
       const checkForPendingUpdates = () => {
         try {
           const balanceUpdateEvent = localStorage.getItem('balanceUpdateEvent')
           if (balanceUpdateEvent) {
             const event = JSON.parse(balanceUpdateEvent)
-            // Si el evento es reciente (menos de 30 segundos), actualizar balance
-            if (Date.now() - event.timestamp < 30000) {
-              console.log('🔄 Actualización pendiente encontrada, refrescando balance...')
+            // Si el evento es reciente (menos de 30 segundos) y no lo hemos procesado
+            if (Date.now() - event.timestamp < 30000 && event.timestamp > lastUpdateTime) {
+              console.log('🔄 Actualización pendiente encontrada, refrescando balance...', event)
+              lastUpdateTime = event.timestamp
               refreshBalance()
             }
           }
@@ -143,8 +167,8 @@ export function useTokenBalance() {
       // Verificar inmediatamente
       checkForPendingUpdates()
       
-      // Verificar cada 5 segundos
-      const interval = setInterval(checkForPendingUpdates, 5000)
+      // Verificar cada 2 segundos (más frecuente)
+      const interval = setInterval(checkForPendingUpdates, 2000)
       
       return () => clearInterval(interval)
     }

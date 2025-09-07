@@ -269,7 +269,16 @@ export function ReviewSystem({ vendorId, vendorName }: ReviewSystemProps) {
           await loadReviews()
         }, 2000)
       } else {
-        setError(result.error || 'Failed to submit review')
+        // Manejar errores específicos de límites
+        if (result.limitType === 'daily') {
+          setError(result.message || 'Has alcanzado el límite diario de reviews (20 por día). Intenta mañana.')
+        } else if (result.limitType === 'weekly') {
+          setError(result.message || 'Has alcanzado el límite semanal de reviews (100 por semana). Intenta la próxima semana.')
+        } else if (result.limitType === 'cooldown') {
+          setError(result.message || 'Debes esperar antes de enviar otro review.')
+        } else {
+          setError(result.error || 'Failed to submit review')
+        }
       }
     } catch (error) {
       console.error('Error submitting review:', error)

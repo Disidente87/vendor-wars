@@ -238,16 +238,41 @@ export async function POST(request: NextRequest) {
       })
       
       // Si es un error de límites, retornar error específico
-      if (simulationError.message?.includes('Daily limit exceeded') || 
-          simulationError.message?.includes('Weekly limit exceeded') ||
-          simulationError.message?.includes('Cooldown period not met')) {
+      if (simulationError.message?.includes('Daily limit exceeded')) {
         return NextResponse.json(
           { 
             success: false, 
-            error: 'Rate limit exceeded. Please try again later.',
-            details: simulationError.message
+            error: 'Daily limit exceeded',
+            message: 'Has alcanzado el límite diario de reviews (20 por día). Intenta mañana.',
+            limitType: 'daily',
+            limitCount: 20
           },
-          { status: 400 }
+          { status: 429 }
+        )
+      }
+      
+      if (simulationError.message?.includes('Weekly limit exceeded')) {
+        return NextResponse.json(
+          { 
+            success: false, 
+            error: 'Weekly limit exceeded',
+            message: 'Has alcanzado el límite semanal de reviews (100 por semana). Intenta la próxima semana.',
+            limitType: 'weekly',
+            limitCount: 100
+          },
+          { status: 429 }
+        )
+      }
+      
+      if (simulationError.message?.includes('Cooldown period not met')) {
+        return NextResponse.json(
+          { 
+            success: false, 
+            error: 'Cooldown period not met',
+            message: 'Debes esperar antes de enviar otro review.',
+            limitType: 'cooldown'
+          },
+          { status: 429 }
         )
       }
       

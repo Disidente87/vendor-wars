@@ -57,10 +57,30 @@ export function BalanceProvider({ children }: { children: React.ReactNode }) {
         const balanceUpdateEvent = {
           timestamp: Date.now(),
           type: 'balanceUpdated',
-          address: address
+          address: address,
+          id: Math.random().toString(36).substr(2, 9) // ID único para forzar el cambio
         }
         localStorage.setItem('balanceUpdateEvent', JSON.stringify(balanceUpdateEvent))
-        console.log('🔄 Balance update guardado en localStorage para otras ventanas')
+        console.log('🔄 Balance update guardado en localStorage para otras ventanas:', balanceUpdateEvent)
+        
+        // Forzar un cambio en localStorage para disparar el evento storage
+        setTimeout(() => {
+          localStorage.setItem('balanceUpdateTrigger', Date.now().toString())
+        }, 100)
+        
+        // Usar BroadcastChannel para comunicación entre ventanas (más confiable)
+        try {
+          const channel = new BroadcastChannel('balance-updates')
+          channel.postMessage({
+            type: 'balanceUpdated',
+            timestamp: Date.now(),
+            address: address
+          })
+          channel.close()
+          console.log('🔄 Balance update enviado via BroadcastChannel')
+        } catch (error) {
+          console.log('⚠️ BroadcastChannel no disponible, usando localStorage')
+        }
       }
       
       console.log('🔄 Balance actualizado en todas las secciones')

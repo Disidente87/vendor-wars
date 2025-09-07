@@ -18,6 +18,7 @@ import { useRouter } from 'next/navigation'
 import { useTokenBalance } from '@/hooks/useTokenBalance'
 import { useFarcasterAuth } from '@/hooks/useFarcasterAuth'
 import { useBalanceContext } from '@/contexts/BalanceContext'
+import { useBalanceSync } from '@/hooks/useBalanceSync'
 
 export default function WalletPage() {
   const router = useRouter()
@@ -25,6 +26,10 @@ export default function WalletPage() {
   const { balance: battleTokens, refreshBalance } = useTokenBalance()
   const { user: farcasterUser } = useFarcasterAuth()
   const { refreshAllBalances } = useBalanceContext()
+  
+  // Sincronizar balance entre ventanas
+  useBalanceSync()
+  
   const [copied, setCopied] = useState(false)
   const [isSavingWallet, setIsSavingWallet] = useState(false)
   const [isSynchronizing, setIsSynchronizing] = useState(false)

@@ -76,7 +76,16 @@ export function VendorWarsExtendedReviewForm({
       const result = await response.json()
 
       if (!result.success) {
-        throw new Error(result.error || 'Error submitiendo review')
+        // Manejar errores específicos de límites
+        if (result.limitType === 'daily') {
+          throw new Error(result.message || 'Has alcanzado el límite diario de reviews (20 por día). Intenta mañana.')
+        } else if (result.limitType === 'weekly') {
+          throw new Error(result.message || 'Has alcanzado el límite semanal de reviews (100 por semana). Intenta la próxima semana.')
+        } else if (result.limitType === 'cooldown') {
+          throw new Error(result.message || 'Debes esperar antes de enviar otro review.')
+        } else {
+          throw new Error(result.error || 'Error submitiendo review')
+        }
       }
       
       // Resetear formulario después del éxito
