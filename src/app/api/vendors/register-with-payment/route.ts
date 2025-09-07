@@ -23,6 +23,20 @@ const VENDOR_REGISTRATION_ABI = [
     outputs: [{ name: 'success', type: 'bool' }],
     stateMutability: 'nonpayable',
     type: 'function'
+  },
+  {
+    inputs: [{ name: 'user', type: 'address' }],
+    name: 'getLastRegistrationTime',
+    outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function'
+  },
+  {
+    inputs: [],
+    name: 'COOLDOWN_PERIOD',
+    outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function'
   }
 ] as const
 
@@ -203,15 +217,61 @@ export async function POST(request: NextRequest) {
       // Verificar si es un error de cooldown específico
       if (simulationError?.shortMessage?.includes('Cooldown period not met')) {
         console.log('⏰ API: Error de cooldown detectado')
-        return NextResponse.json(
-          { 
-            success: false, 
-            error: 'Cooldown period not met',
-            message: 'Debes esperar 1 hora entre registros de vendors. Intenta de nuevo más tarde.',
-            cooldownError: true
-          },
-          { status: 429 } // Too Many Requests
-        )
+        
+        try {
+          // Obtener el tiempo real del contrato
+          const [lastRegistrationTime, cooldownPeriod] = await Promise.all([
+            readContractAction(publicClient, {
+              address: PAYMENT_CONFIG.VENDOR_REGISTRATION.ADDRESS as `0x${string}`,
+              abi: VENDOR_REGISTRATION_ABI,
+              functionName: 'getLastRegistrationTime',
+              args: [userAddress as `0x${string}`]
+            }),
+            readContractAction(publicClient, {
+              address: PAYMENT_CONFIG.VENDOR_REGISTRATION.ADDRESS as `0x${string}`,
+              abi: VENDOR_REGISTRATION_ABI,
+              functionName: 'COOLDOWN_PERIOD'
+            })
+          ])
+          
+          console.log('🔍 API: Last registration time:', lastRegistrationTime)
+          console.log('🔍 API: Cooldown period:', cooldownPeriod)
+          
+          // Calcular tiempo restante
+          const currentTime = Math.floor(Date.now() / 1000) // Convertir a segundos
+          const timeElapsed = currentTime - Number(lastRegistrationTime)
+          const timeRemaining = Math.max(0, Number(cooldownPeriod) - timeElapsed)
+          const minutesRemaining = Math.ceil(timeRemaining / 60)
+          
+          console.log('🔍 API: Time elapsed:', timeElapsed, 'seconds')
+          console.log('🔍 API: Time remaining:', timeRemaining, 'seconds')
+          console.log('🔍 API: Minutes remaining:', minutesRemaining)
+          
+          return NextResponse.json(
+            { 
+              success: false, 
+              error: 'Cooldown period not met',
+              message: `Debes esperar ${minutesRemaining} minutos para registrar otro vendor.`,
+              cooldownError: true,
+              minutesRemaining: minutesRemaining,
+              timeRemaining: timeRemaining
+            },
+            { status: 429 } // Too Many Requests
+          )
+        } catch (contractError) {
+          console.error('❌ API: Error consultando contrato para cooldown:', contractError)
+          // Fallback con tiempo estimado
+          return NextResponse.json(
+            { 
+              success: false, 
+              error: 'Cooldown period not met',
+              message: 'Debes esperar aproximadamente 1 hora para registrar otro vendor.',
+              cooldownError: true,
+              minutesRemaining: 60
+            },
+            { status: 429 }
+          )
+        }
       }
       
       console.log('⚠️ API: Continuando con el proceso a pesar del error de simulación...')

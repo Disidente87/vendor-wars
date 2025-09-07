@@ -48,6 +48,7 @@ export default function VendorRegistrationPage() {
   const [isUploadingImage, setIsUploadingImage] = useState(false)
   const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle')
   const [errorMessage, setErrorMessage] = useState('')
+  const [cooldownMinutes, setCooldownMinutes] = useState<number | null>(null)
   const [zonesWithDelegations, setZonesWithDelegations] = useState<ZoneWithDelegations[]>([])
   const [formData, setFormData] = useState<VendorFormData>({
     name: '',
@@ -104,6 +105,13 @@ export default function VendorRegistrationPage() {
       router.push('/')
     }
   }, [isAuthenticated, isLoading, router])
+
+  // Limpiar el intervalo cuando el componente se desmonte
+  useEffect(() => {
+    return () => {
+      // El intervalo se limpia automáticamente en startCooldownTimer
+    }
+  }, [])
   
 
 
@@ -166,6 +174,25 @@ export default function VendorRegistrationPage() {
     if (fileInputRef.current) {
       fileInputRef.current.value = ''
     }
+  }
+
+  // Función para iniciar el contador de cooldown
+  const startCooldownTimer = (minutes: number) => {
+    setCooldownMinutes(minutes)
+    
+    const interval = setInterval(() => {
+      setCooldownMinutes(prev => {
+        if (prev === null || prev <= 1) {
+          clearInterval(interval)
+          setErrorMessage('')
+          return null
+        }
+        return prev - 1
+      })
+    }, 60000) // Actualizar cada minuto
+    
+    // Limpiar el intervalo cuando el componente se desmonte
+    return () => clearInterval(interval)
   }
 
   const handleNext = async () => {
@@ -280,9 +307,21 @@ export default function VendorRegistrationPage() {
         // Verificar si es un error de cooldown específico
         if (result.cooldownError) {
           console.log('⏰ Error de cooldown detectado:', result.message)
-          setErrorMessage(result.message || 'Debes esperar 1 hora entre registros de vendors.')
+          console.log('⏰ Minutos restantes:', result.minutesRemaining)
+          
+          // Mostrar mensaje con tiempo exacto
+          const message = result.minutesRemaining 
+            ? `Debes esperar ${result.minutesRemaining} minutos para registrar otro vendor.`
+            : result.message || 'Debes esperar 1 hora para registrar otro vendor.'
+          
+          setErrorMessage(message)
           setSubmitStatus('error')
           setIsSubmitting(false)
+          
+          // Si hay tiempo restante, iniciar contador
+          if (result.minutesRemaining && result.minutesRemaining > 0) {
+            startCooldownTimer(result.minutesRemaining)
+          }
           return
         }
         
@@ -671,7 +710,26 @@ export default function VendorRegistrationPage() {
               <Alert className="mb-6 border-red-200 bg-red-50">
                 <AlertCircle className="w-4 h-4 text-red-600" />
                 <AlertDescription className="text-red-700">
-                  {errorMessage}
+                  {cooldownMinutes !== null ? (
+                    <div className="space-y-2">
+                      <p>Debes esperar {cooldownMinutes} minutos para registrar otro vendor.</p>
+                      <div className="flex items-center space-x-2">
+                        <div className="w-full bg-red-200 rounded-full h-2">
+                          <div 
+                            className="bg-red-600 h-2 rounded-full transition-all duration-1000"
+                            style={{ 
+                              width: `${Math.max(0, (cooldownMinutes / 60) * 100)}%` 
+                            }}
+                          ></div>
+                        </div>
+                        <span className="text-sm font-medium">
+                          {cooldownMinutes} min
+                        </span>
+                      </div>
+                    </div>
+                  ) : (
+                    errorMessage
+                  )}
                 </AlertDescription>
               </Alert>
             )}
