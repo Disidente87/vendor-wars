@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { useSyncBalanceOnMount } from '@/hooks/useSyncBalanceOnMount'
 import { Button } from '@/components/ui/button'
 import { 
   Map, 
@@ -43,6 +44,10 @@ interface Vendor {
 
 export default function VendorsPage() {
   const router = useRouter()
+  
+  // Sincronizar balance automáticamente al montar (solo una vez por sesión)
+  useSyncBalanceOnMount()
+  
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list')
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedFilter, setSelectedFilter] = useState('all')

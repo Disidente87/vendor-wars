@@ -18,7 +18,7 @@ import { useRouter } from 'next/navigation'
 import { useTokenBalance } from '@/hooks/useTokenBalance'
 import { useFarcasterAuth } from '@/hooks/useFarcasterAuth'
 import { useBalanceContext } from '@/contexts/BalanceContext'
-import { useBalanceSync } from '@/hooks/useBalanceSync'
+import { useSyncBalanceOnMount } from '@/hooks/useSyncBalanceOnMount'
 
 export default function WalletPage() {
   const router = useRouter()
@@ -27,8 +27,8 @@ export default function WalletPage() {
   const { user: farcasterUser } = useFarcasterAuth()
   const { refreshAllBalances } = useBalanceContext()
   
-  // Sincronizar balance entre ventanas
-  useBalanceSync()
+  // Sincronizar balance automáticamente al montar (solo una vez por sesión)
+  const { forceSync } = useSyncBalanceOnMount()
   
   const [copied, setCopied] = useState(false)
   const [isSavingWallet, setIsSavingWallet] = useState(false)
@@ -239,53 +239,20 @@ export default function WalletPage() {
   }
 
   const handleSyncBalanceOnly = async () => {
-    if (!farcasterUser?.fid || !address) {
-      console.warn('No Farcaster user or wallet address available')
-      return
-    }
-
     setIsSyncingBalance(true)
     setSyncResult(null)
     
     try {
-      console.log(`🔄 Syncing balance for user ${farcasterUser.fid} with wallet ${address}`)
-      
-      // 1. Update balance in database via API
-      const response = await fetch('/api/wallet/sync-balance', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          userFid: farcasterUser.fid.toString(),
-          walletAddress: address
-        }),
+      await forceSync()
+      setSyncResult({
+        success: true,
+        tokensDistributed: 0,
+        message: 'Balance synchronized successfully!'
       })
-
-      const result = await response.json()
-
-      if (result.success) {
-        // 2. Refresh balance from blockchain and update all sections
-        await refreshAllBalances()
-        
-        setSyncResult({
-          success: true,
-          tokensDistributed: 0,
-          message: result.message
-        })
-        
-        console.log(`✅ Balance sync successful: ${result.message}`)
-        
-        // Check token status again to update button visibility
-        checkTokenStatus()
-      } else {
-        setSyncResult({
-          success: false,
-          tokensDistributed: 0,
-          message: result.error || 'Failed to sync balance'
-        })
-        console.error(`❌ Balance sync failed:`, result.error)
-      }
+      console.log('✅ Balance synchronized successfully')
+      
+      // Check token status again to update button visibility
+      checkTokenStatus()
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
       setSyncResult({

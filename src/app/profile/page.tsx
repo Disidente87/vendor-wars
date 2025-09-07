@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { useBalanceSync } from '@/hooks/useBalanceSync'
+import { useSyncBalanceOnMount } from '@/hooks/useSyncBalanceOnMount'
 import { Button } from '@/components/ui/button'
 import { 
   Map, 
@@ -75,8 +75,8 @@ export default function ProfilePage() {
   const { user: farcasterUser, isAuthenticated, isLoading } = useFarcasterAuth()
   const { balance, refreshBalance } = useTokenBalance()
   
-  // Sincronizar balance entre ventanas
-  useBalanceSync()
+  // Sincronizar balance automáticamente al montar (solo una vez por sesión)
+  useSyncBalanceOnMount()
   
   const [activeTab, setActiveTab] = useState<'overview' | 'achievements' | 'activity'>('overview')
   const [userStats, setUserStats] = useState<UserStats | null>(null)
