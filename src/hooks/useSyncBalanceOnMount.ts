@@ -1,6 +1,5 @@
 import { useEffect, useRef } from 'react'
 import { useFarcasterAuth } from '@/hooks/useFarcasterAuth'
-import { useAccount } from 'wagmi'
 import { useBalanceContext } from '@/contexts/BalanceContext'
 
 /**
@@ -9,7 +8,6 @@ import { useBalanceContext } from '@/contexts/BalanceContext'
  */
 export function useSyncBalanceOnMount() {
   const { user: farcasterUser } = useFarcasterAuth()
-  const { address } = useAccount()
   const { refreshAllBalances } = useBalanceContext()
   const hasSynced = useRef(false)
 
@@ -21,14 +19,14 @@ export function useSyncBalanceOnMount() {
     }
 
     // Solo ejecutar si tenemos los datos necesarios
-    if (!farcasterUser?.fid || !address) {
-      console.log('⚠️ Faltan datos para sync balance (fid o address)')
+    if (!farcasterUser?.fid) {
+      console.log('⚠️ Faltan datos para sync balance (fid)')
       return
     }
 
     const syncBalance = async () => {
       try {
-        console.log(`🔄 Auto-syncing balance para usuario ${farcasterUser.fid} con wallet ${address}`)
+        console.log(`🔄 Auto-syncing balance para usuario ${farcasterUser.fid}`)
         
         // 1. Actualizar balance en la base de datos via API
         const response = await fetch('/api/wallet/sync-balance', {
@@ -36,10 +34,10 @@ export function useSyncBalanceOnMount() {
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({
-            userFid: farcasterUser.fid.toString(),
-            walletAddress: address
-          }),
+        body: JSON.stringify({
+          userFid: farcasterUser.fid.toString(),
+          walletAddress: '' // Se obtendrá del usuario autenticado en el backend
+        }),
         })
 
         const result = await response.json()
@@ -78,17 +76,17 @@ export function useSyncBalanceOnMount() {
     return () => {
       clearTimeout(timeoutId)
     }
-  }, [farcasterUser?.fid, address, refreshAllBalances])
+  }, [farcasterUser?.fid, refreshAllBalances])
 
   // Función para forzar sync manual (útil para botones)
   const forceSync = async () => {
-    if (!farcasterUser?.fid || !address) {
-      console.warn('No Farcaster user or wallet address available')
+    if (!farcasterUser?.fid) {
+      console.warn('No Farcaster user available')
       return
     }
 
     try {
-      console.log(`🔄 Force-syncing balance para usuario ${farcasterUser.fid} con wallet ${address}`)
+      console.log(`🔄 Force-syncing balance para usuario ${farcasterUser.fid}`)
       
       const response = await fetch('/api/wallet/sync-balance', {
         method: 'POST',
@@ -97,7 +95,7 @@ export function useSyncBalanceOnMount() {
         },
         body: JSON.stringify({
           userFid: farcasterUser.fid.toString(),
-          walletAddress: address
+          walletAddress: '' // Se obtendrá del usuario autenticado en el backend
         }),
       })
 

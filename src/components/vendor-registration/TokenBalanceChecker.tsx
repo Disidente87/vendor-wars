@@ -1,6 +1,6 @@
 'use client'
 
-import { useAccount, useBalance } from 'wagmi'
+import { useAccount } from 'wagmi'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Loader2, RefreshCw } from 'lucide-react'
@@ -16,12 +16,11 @@ const REQUIRED_AMOUNT = 50
 export function TokenBalanceChecker({ showRequired = true, className = '' }: TokenBalanceCheckerProps) {
   const { address, isConnected } = useAccount()
   
-  const { data: balanceData, isLoading, refetch } = useBalance({
-    address,
-    token: BATTLE_TOKEN_ADDRESS as `0x${string}`,
-  })
-
-  const balance = balanceData ? Number(balanceData.formatted) : 0
+  // Balance deshabilitado para evitar rate limiting
+  const balanceData = null
+  const isLoading = false
+  const refetch = () => {}
+  const balance = 0
   const hasSufficientBalance = balance >= REQUIRED_AMOUNT
 
   if (!isConnected) {

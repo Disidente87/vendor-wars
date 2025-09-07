@@ -63,10 +63,8 @@ export function WalletConnect({
   const { switchChain } = useSwitchChain()
   const chainId = useChainId()
 
-  const { data: balance } = useBalance({
-    address,
-    chainId: baseSepolia.id,
-  })
+  // Balance deshabilitado para evitar rate limiting
+  const balance = null
 
   // Reset connection state when disconnected
   useEffect(() => {
@@ -389,7 +387,8 @@ export function useWalletConnection() {
   const { address, isConnected, isConnecting } = useAccount()
   const { connect, connectors } = useConnect()
   const { disconnect } = useDisconnect()
-  const { data: balance } = useBalance({ address, chainId: baseSepolia.id })
+  // Balance deshabilitado para evitar rate limiting
+  const balance = null
   const chainId = useChainId()
 
   return {

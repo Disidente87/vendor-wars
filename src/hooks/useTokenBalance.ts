@@ -1,20 +1,11 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useFarcasterAuth } from './useFarcasterAuth'
-import { useAccount } from 'wagmi'
-import { useBalance } from 'wagmi'
 
 export function useTokenBalance() {
   const { user: authenticatedUser } = useFarcasterAuth()
-  const { address } = useAccount()
   const [balance, setBalance] = useState<number | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-
-  // Hook para obtener el balance de BATTLE tokens directamente de la blockchain
-  const { data: battleBalance, refetch: refetchBattleBalance } = useBalance({
-    address,
-    token: process.env.NEXT_PUBLIC_BATTLE_TOKEN_ADDRESS as `0x${string}`,
-  })
 
   const fetchBalance = useCallback(async () => {
     if (!authenticatedUser) {
@@ -51,10 +42,9 @@ export function useTokenBalance() {
   }, [authenticatedUser])
 
   const refreshBalance = useCallback(() => {
-    // Refrescar tanto el balance de la API como el de la blockchain
+    // Refrescar el balance de la API
     fetchBalance()
-    refetchBattleBalance()
-  }, [fetchBalance, refetchBattleBalance])
+  }, [fetchBalance])
 
   // Escuchar eventos de actualización de balance
   useEffect(() => {
@@ -131,12 +121,7 @@ export function useTokenBalance() {
     }
   }, [refreshBalance])
 
-  // Actualizar balance cuando cambie el balance de la blockchain
-  useEffect(() => {
-    if (battleBalance) {
-      setBalance(Number(battleBalance.formatted))
-    }
-  }, [battleBalance])
+  // Balance se actualiza solo via API calls
 
   useEffect(() => {
     fetchBalance()
@@ -193,7 +178,6 @@ export function useTokenBalance() {
     balance,
     loading,
     error,
-    refreshBalance,
-    battleBalance: battleBalance ? Number(battleBalance.formatted) : null
+    refreshBalance
   }
 } 

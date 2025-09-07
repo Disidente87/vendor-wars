@@ -1,8 +1,6 @@
 'use client'
 
-import React, { createContext, useContext, useCallback, useState, useEffect } from 'react'
-import { useAccount } from 'wagmi'
-import { useBalance } from 'wagmi'
+import React, { createContext, useContext, useCallback, useState } from 'react'
 
 interface BalanceContextType {
   refreshAllBalances: () => void
@@ -13,29 +11,6 @@ const BalanceContext = createContext<BalanceContextType | undefined>(undefined)
 
 export function BalanceProvider({ children }: { children: React.ReactNode }) {
   const [isRefreshing, setIsRefreshing] = useState(false)
-  
-  // Safely get address and balance hooks
-  let address: string | undefined
-  let refetchBattleBalance: (() => Promise<any>) | undefined
-  
-  try {
-    const account = useAccount()
-    address = account.address
-  } catch (error) {
-    // Wagmi not available during SSR
-    address = undefined
-  }
-  
-  try {
-    const balance = useBalance({
-      address: address as `0x${string}`,
-      token: process.env.NEXT_PUBLIC_BATTLE_TOKEN_ADDRESS as `0x${string}`,
-    })
-    refetchBattleBalance = balance.refetch
-  } catch (error) {
-    // Wagmi not available during SSR
-    refetchBattleBalance = undefined
-  }
 
   const refreshAllBalances = useCallback(async () => {
     if (isRefreshing) {
@@ -50,16 +25,11 @@ export function BalanceProvider({ children }: { children: React.ReactNode }) {
       console.log('⚠️ Balance refresh throttled (menos de 10 segundos)')
       return
     }
-    (window as any).__lastBalanceRefresh = now
+    ;(window as any).__lastBalanceRefresh = now
     
     setIsRefreshing(true)
     try {
       console.log('🔄 Iniciando refresh de balance...')
-      
-      // Refrescar balance de BATTLE tokens si está disponible
-      if (refetchBattleBalance) {
-        await refetchBattleBalance()
-      }
       
       // Disparar evento personalizado para que otros componentes se actualicen
       if (typeof window !== 'undefined') {
@@ -71,7 +41,7 @@ export function BalanceProvider({ children }: { children: React.ReactNode }) {
         const balanceUpdateEvent = {
           timestamp: Date.now(),
           type: 'balanceUpdated',
-          address: address,
+          address: undefined,
           id: Math.random().toString(36).substr(2, 9) // ID único para forzar el cambio
         }
         localStorage.setItem('balanceUpdateEvent', JSON.stringify(balanceUpdateEvent))
@@ -88,7 +58,7 @@ export function BalanceProvider({ children }: { children: React.ReactNode }) {
           channel.postMessage({
             type: 'balanceUpdated',
             timestamp: Date.now(),
-            address: address
+            address: undefined
           })
           channel.close()
           console.log('🔄 Balance update enviado via BroadcastChannel')
@@ -103,7 +73,7 @@ export function BalanceProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setIsRefreshing(false)
     }
-  }, [refetchBattleBalance, isRefreshing])
+  }, [isRefreshing])
 
   return (
     <BalanceContext.Provider value={{ refreshAllBalances, isRefreshing }}>
