@@ -52,6 +52,15 @@ export function BalanceProvider({ children }: { children: React.ReactNode }) {
         console.log('🔄 Disparando evento balanceUpdated...')
         window.dispatchEvent(new CustomEvent('balanceUpdated'))
         console.log('✅ Evento balanceUpdated disparado')
+        
+        // También usar localStorage para comunicar entre ventanas/pestañas
+        const balanceUpdateEvent = {
+          timestamp: Date.now(),
+          type: 'balanceUpdated',
+          address: address
+        }
+        localStorage.setItem('balanceUpdateEvent', JSON.stringify(balanceUpdateEvent))
+        console.log('🔄 Balance update guardado en localStorage para otras ventanas')
       }
       
       console.log('🔄 Balance actualizado en todas las secciones')

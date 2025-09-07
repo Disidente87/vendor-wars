@@ -80,17 +80,32 @@ export function useTokenBalance() {
       }, 500)
     }
 
+    // Escuchar cambios en localStorage para comunicación entre ventanas
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'balanceUpdateEvent' && e.newValue) {
+        try {
+          const balanceUpdateEvent = JSON.parse(e.newValue)
+          console.log('🔄 Balance update recibido desde otra ventana:', balanceUpdateEvent)
+          refreshBalance()
+        } catch (error) {
+          console.error('Error parsing balance update event:', error)
+        }
+      }
+    }
+
     if (typeof window !== 'undefined') {
       console.log('🔄 Registrando listeners...')
       window.addEventListener('balanceUpdated', handleBalanceUpdate)
       document.addEventListener('visibilitychange', handleVisibilityChange)
       window.addEventListener('focus', handleFocus)
+      window.addEventListener('storage', handleStorageChange)
       
       return () => {
         console.log('🔄 Removiendo listeners...')
         window.removeEventListener('balanceUpdated', handleBalanceUpdate)
         document.removeEventListener('visibilitychange', handleVisibilityChange)
         window.removeEventListener('focus', handleFocus)
+        window.removeEventListener('storage', handleStorageChange)
       }
     }
   }, [refreshBalance])
@@ -105,6 +120,35 @@ export function useTokenBalance() {
   useEffect(() => {
     fetchBalance()
   }, [authenticatedUser?.fid, fetchBalance])
+
+  // Verificar si hay actualizaciones pendientes al cargar la página
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const checkForPendingUpdates = () => {
+        try {
+          const balanceUpdateEvent = localStorage.getItem('balanceUpdateEvent')
+          if (balanceUpdateEvent) {
+            const event = JSON.parse(balanceUpdateEvent)
+            // Si el evento es reciente (menos de 30 segundos), actualizar balance
+            if (Date.now() - event.timestamp < 30000) {
+              console.log('🔄 Actualización pendiente encontrada, refrescando balance...')
+              refreshBalance()
+            }
+          }
+        } catch (error) {
+          console.error('Error checking for pending updates:', error)
+        }
+      }
+
+      // Verificar inmediatamente
+      checkForPendingUpdates()
+      
+      // Verificar cada 5 segundos
+      const interval = setInterval(checkForPendingUpdates, 5000)
+      
+      return () => clearInterval(interval)
+    }
+  }, [refreshBalance])
 
   return {
     balance,
