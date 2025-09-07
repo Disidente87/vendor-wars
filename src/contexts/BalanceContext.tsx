@@ -38,10 +38,15 @@ export function BalanceProvider({ children }: { children: React.ReactNode }) {
   }
 
   const refreshAllBalances = useCallback(async () => {
-    if (isRefreshing) return // Evitar múltiples refreshes simultáneos
+    if (isRefreshing) {
+      console.log('⚠️ Balance refresh ya en progreso, saltando...')
+      return // Evitar múltiples refreshes simultáneos
+    }
     
     setIsRefreshing(true)
     try {
+      console.log('🔄 Iniciando refresh de balance...')
+      
       // Refrescar balance de BATTLE tokens si está disponible
       if (refetchBattleBalance) {
         await refetchBattleBalance()

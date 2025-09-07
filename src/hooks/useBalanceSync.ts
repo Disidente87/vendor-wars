@@ -1,16 +1,36 @@
-import { useEffect, useCallback } from 'react'
+import { useEffect, useCallback, useRef } from 'react'
 import { useBalanceContext } from '@/contexts/BalanceContext'
 
 /**
  * Hook para sincronizar el balance entre ventanas/pestañas
  * Escucha múltiples eventos para asegurar que el balance se actualice
+ * Incluye debouncing para evitar llamadas excesivas
  */
 export function useBalanceSync() {
   const { refreshAllBalances } = useBalanceContext()
+  const lastUpdateTime = useRef<number>(0)
+  const debounceTimeout = useRef<NodeJS.Timeout | null>(null)
 
   const handleBalanceUpdate = useCallback(() => {
-    console.log('🔄 Balance update event recibido en useBalanceSync')
-    refreshAllBalances()
+    const now = Date.now()
+    
+    // Debounce: solo actualizar si han pasado al menos 2 segundos desde la última actualización
+    if (now - lastUpdateTime.current < 2000) {
+      console.log('⚠️ Balance update ignorado por debounce (muy reciente)')
+      return
+    }
+
+    // Limpiar timeout anterior si existe
+    if (debounceTimeout.current) {
+      clearTimeout(debounceTimeout.current)
+    }
+
+    // Debounce adicional: esperar 500ms antes de ejecutar
+    debounceTimeout.current = setTimeout(() => {
+      console.log('🔄 Balance update event recibido en useBalanceSync (después de debounce)')
+      lastUpdateTime.current = Date.now()
+      refreshAllBalances()
+    }, 500)
   }, [refreshAllBalances])
 
   useEffect(() => {
@@ -44,17 +64,22 @@ export function useBalanceSync() {
       console.log('⚠️ BroadcastChannel no disponible en useBalanceSync')
     }
 
-    // 4. Polling como fallback
-    let lastUpdateTime = 0
+    // 4. Polling como fallback (menos agresivo)
+    let lastPollingTime = 0
     const checkForUpdates = () => {
       try {
         const balanceUpdateEvent = localStorage.getItem('balanceUpdateEvent')
         if (balanceUpdateEvent) {
           const event = JSON.parse(balanceUpdateEvent)
-          if (Date.now() - event.timestamp < 30000 && event.timestamp > lastUpdateTime) {
+          const now = Date.now()
+          
+          // Solo procesar si es reciente (30 segundos) y no lo hemos procesado
+          if (now - event.timestamp < 30000 && event.timestamp > lastPollingTime) {
             console.log('🔄 Balance update encontrado via polling:', event)
-            lastUpdateTime = event.timestamp
-            refreshAllBalances()
+            lastPollingTime = event.timestamp
+            
+            // Usar el mismo debounce que el resto
+            handleBalanceUpdate()
           }
         }
       } catch (error) {
@@ -65,25 +90,21 @@ export function useBalanceSync() {
     // Verificar inmediatamente
     checkForUpdates()
     
-    // Polling cada 3 segundos
-    const interval = setInterval(checkForUpdates, 3000)
+    // Polling cada 10 segundos (menos frecuente)
+    const interval = setInterval(checkForUpdates, 10000)
 
-    // 5. Cuando la ventana se enfoca
+    // 5. Cuando la ventana se enfoca (con debounce)
     const handleFocus = () => {
       console.log('🔄 Ventana enfocada, verificando balance...')
-      setTimeout(() => {
-        refreshAllBalances()
-      }, 500)
+      handleBalanceUpdate() // Usar el debounce
     }
     window.addEventListener('focus', handleFocus)
 
-    // 6. Cuando la visibilidad cambia
+    // 6. Cuando la visibilidad cambia (con debounce)
     const handleVisibilityChange = () => {
       if (!document.hidden) {
         console.log('🔄 Ventana visible, verificando balance...')
-        setTimeout(() => {
-          refreshAllBalances()
-        }, 500)
+        handleBalanceUpdate() // Usar el debounce
       }
     }
     document.addEventListener('visibilitychange', handleVisibilityChange)
@@ -95,6 +116,9 @@ export function useBalanceSync() {
       window.removeEventListener('focus', handleFocus)
       document.removeEventListener('visibilitychange', handleVisibilityChange)
       clearInterval(interval)
+      if (debounceTimeout.current) {
+        clearTimeout(debounceTimeout.current)
+      }
       if (broadcastChannel) {
         broadcastChannel.close()
       }

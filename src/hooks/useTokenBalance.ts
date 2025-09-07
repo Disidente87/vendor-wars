@@ -142,21 +142,31 @@ export function useTokenBalance() {
     fetchBalance()
   }, [authenticatedUser?.fid, fetchBalance])
 
-  // Verificar si hay actualizaciones pendientes al cargar la página
+  // Verificar si hay actualizaciones pendientes al cargar la página (con debouncing)
   useEffect(() => {
     if (typeof window !== 'undefined') {
       let lastUpdateTime = 0
+      let debounceTimeout: NodeJS.Timeout | null = null
       
       const checkForPendingUpdates = () => {
         try {
           const balanceUpdateEvent = localStorage.getItem('balanceUpdateEvent')
           if (balanceUpdateEvent) {
             const event = JSON.parse(balanceUpdateEvent)
+            const now = Date.now()
+            
             // Si el evento es reciente (menos de 30 segundos) y no lo hemos procesado
-            if (Date.now() - event.timestamp < 30000 && event.timestamp > lastUpdateTime) {
+            if (now - event.timestamp < 30000 && event.timestamp > lastUpdateTime) {
               console.log('🔄 Actualización pendiente encontrada, refrescando balance...', event)
               lastUpdateTime = event.timestamp
-              refreshBalance()
+              
+              // Debounce: esperar 1 segundo antes de ejecutar
+              if (debounceTimeout) {
+                clearTimeout(debounceTimeout)
+              }
+              debounceTimeout = setTimeout(() => {
+                refreshBalance()
+              }, 1000)
             }
           }
         } catch (error) {
@@ -167,10 +177,15 @@ export function useTokenBalance() {
       // Verificar inmediatamente
       checkForPendingUpdates()
       
-      // Verificar cada 2 segundos (más frecuente)
-      const interval = setInterval(checkForPendingUpdates, 2000)
+      // Verificar cada 5 segundos (menos frecuente)
+      const interval = setInterval(checkForPendingUpdates, 5000)
       
-      return () => clearInterval(interval)
+      return () => {
+        clearInterval(interval)
+        if (debounceTimeout) {
+          clearTimeout(debounceTimeout)
+        }
+      }
     }
   }, [refreshBalance])
 
