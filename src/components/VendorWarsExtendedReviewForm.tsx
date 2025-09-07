@@ -1,7 +1,9 @@
 'use client'
 
 import { useState } from 'react'
+import { useAccount } from 'wagmi'
 import { useVendorWarsExtendedReview } from '@/hooks/useVendorWarsExtendedReview'
+import { PAYMENT_CONFIG } from '@/config/payment'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -21,6 +23,7 @@ export function VendorWarsExtendedReviewForm({
 }: VendorWarsExtendedReviewFormProps) {
   const [reviewContent, setReviewContent] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const { address } = useAccount()
 
   const {
     reviewState,
@@ -46,14 +49,40 @@ export function VendorWarsExtendedReviewForm({
 
     try {
       setIsSubmitting(true)
-      await submitReviewTransaction(vendorId, reviewContent.trim(), userFid)
+      
+      // Enviar petición a la API
+      const response = await fetch('/api/vendors/reviews/submit', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          vendorId,
+          content: reviewContent.trim(),
+          userAddress: address || '',
+          paymentAmount: reviewState.requiredAmount,
+          reviewData: {
+            vendorId,
+            content: reviewContent.trim(),
+            userFid,
+            timestamp: Date.now()
+          },
+          ownerFid: userFid
+        })
+      })
+
+      const result = await response.json()
+
+      if (!result.success) {
+        throw new Error(result.error || 'Error submitiendo review')
+      }
       
       // Resetear formulario después del éxito
       setReviewContent('')
       resetState()
       
       if (onReviewSubmitted) {
-        onReviewSubmitted(`review_${vendorId}_${userFid}_${Date.now()}`)
+        onReviewSubmitted(result.data?.id || `review_${vendorId}_${userFid}_${Date.now()}`)
       }
     } catch (error) {
       console.error('Error submitiendo review:', error)

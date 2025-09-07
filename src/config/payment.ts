@@ -76,7 +76,7 @@ export const PAYMENT_CONFIG = {
 
   // Mensajes de error
   ERROR_MESSAGES: {
-    INSUFFICIENT_BALANCE: 'Saldo insuficiente. Necesitas al menos 50 $BATTLE tokens.',
+    INSUFFICIENT_BALANCE: 'Saldo insuficiente. Necesitas al menos 15 $BATTLE tokens.',
     WALLET_NOT_CONNECTED: 'Debes conectar tu wallet para continuar.',
     APPROVAL_FAILED: 'Error al aprobar el gasto de tokens.',
     REGISTRATION_FAILED: 'Error al registrar el vendor en blockchain.',

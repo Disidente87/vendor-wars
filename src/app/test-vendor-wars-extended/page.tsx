@@ -10,8 +10,8 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { CheckCircle, ExternalLink, Coins } from 'lucide-react'
 
 export default function TestVendorWarsExtendedPage() {
-  const [vendorId, setVendorId] = useState('test-vendor-123')
-  const [userFid, setUserFid] = useState(12345)
+  const [vendorId, setVendorId] = useState('da84f637-28be-4d52-902b-a5df6bd949db')
+  const [userFid, setUserFid] = useState(465823)
   const [submittedReviews, setSubmittedReviews] = useState<string[]>([])
 
   const handleReviewSubmitted = (reviewId: string) => {

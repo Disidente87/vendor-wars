@@ -66,6 +66,7 @@ export function useVendorWarsExtendedReview() {
     allowance: '0'
   })
 
+
   const { address, isConnected } = useAccount()
 
   // Leer balance del token BATTLE
@@ -141,8 +142,8 @@ export function useVendorWarsExtendedReview() {
 
     const balanceWei = balance?.value || 0n
     const allowanceWei = allowance || 0n
-    const hasBalance = balanceWei >= REQUIRED_AMOUNT
-    const hasAllowance = allowanceWei >= REQUIRED_AMOUNT
+    const hasBalance = balanceWei >= parseEther(PAYMENT_CONFIG.BATTLE_TOKEN.REVIEW_COST.toString())
+    const hasAllowance = allowanceWei >= parseEther(PAYMENT_CONFIG.BATTLE_TOKEN.REVIEW_COST.toString())
 
     setReviewState(prev => ({
       ...prev,
@@ -166,7 +167,7 @@ export function useVendorWarsExtendedReview() {
         address: BATTLE_TOKEN_ADDRESS,
         abi: BATTLE_TOKEN_ABI,
         functionName: 'approve',
-        args: [VENDOR_WARS_EXTENDED_ADDRESS, REQUIRED_AMOUNT]
+        args: [VENDOR_WARS_EXTENDED_ADDRESS, parseEther(PAYMENT_CONFIG.BATTLE_TOKEN.REVIEW_COST.toString())]
       })
     } catch (error: any) {
       console.error('Error aprobando tokens:', error)
@@ -204,7 +205,7 @@ export function useVendorWarsExtendedReview() {
         address: VENDOR_WARS_EXTENDED_ADDRESS,
         abi: VENDOR_WARS_EXTENDED_ABI,
         functionName: 'submitReview',
-        args: [address, REQUIRED_AMOUNT, reviewData, reviewId]
+        args: [address, parseEther(PAYMENT_CONFIG.BATTLE_TOKEN.REVIEW_COST.toString()), reviewData, reviewId]
       })
     } catch (error: any) {
       console.error('Error submitiendo review:', error)
