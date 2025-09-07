@@ -387,15 +387,27 @@ export function useWalletConnection() {
   const { address, isConnected, isConnecting } = useAccount()
   const { connect, connectors } = useConnect()
   const { disconnect } = useDisconnect()
-  // Balance deshabilitado para evitar rate limiting
-  const balance = null
   const chainId = useChainId()
+  
+  // Habilitar balance de ETH con manejo de rate limiting
+  const { data: balance, isLoading: isLoadingBalance, error: balanceError } = useBalance({
+    address: address,
+    chainId: chainId,
+    query: {
+      enabled: !!address && !!chainId,
+      refetchInterval: 30000, // Refetch cada 30 segundos
+      retry: 1, // Solo 1 reintento para evitar rate limiting
+      retryDelay: 5000, // 5 segundos entre reintentos
+    }
+  })
 
   return {
     address,
     isConnected,
     isConnecting,
     balance,
+    isLoadingBalance,
+    balanceError,
     chainId,
     isBaseSepoliaNetwork: chainId === baseSepolia.id,
     connect,

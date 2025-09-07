@@ -122,6 +122,16 @@ export async function GET(request: NextRequest) {
           console.log('⚠️ No avatar_url in database, using default')
         }
 
+        // Handle wallet address - could be array or string
+        let walletAddress = ''
+        if (dbUser.wallet_address) {
+          if (Array.isArray(dbUser.wallet_address) && dbUser.wallet_address.length > 0) {
+            walletAddress = dbUser.wallet_address[0]
+          } else if (typeof dbUser.wallet_address === 'string') {
+            walletAddress = dbUser.wallet_address
+          }
+        }
+
         // Map database user to our User type
         user = {
           fid: dbUser.fid,
@@ -139,6 +149,7 @@ export async function GET(request: NextRequest) {
           voteStreak: dbUser.vote_streak || 0,
           weeklyVoteCount: 0, // Default value
           weeklyTerritoryBonus: 0, // Default value
+          walletAddress: walletAddress, // Add wallet address
         }
       }
     } else if (username) {
@@ -171,6 +182,16 @@ export async function GET(request: NextRequest) {
           }
         }
 
+        // Handle wallet address - could be array or string
+        let walletAddress = ''
+        if (dbUser.wallet_address) {
+          if (Array.isArray(dbUser.wallet_address) && dbUser.wallet_address.length > 0) {
+            walletAddress = dbUser.wallet_address[0]
+          } else if (typeof dbUser.wallet_address === 'string') {
+            walletAddress = dbUser.wallet_address
+          }
+        }
+
         // Map database user to our User type
         user = {
           fid: dbUser.fid,
@@ -188,6 +209,7 @@ export async function GET(request: NextRequest) {
           voteStreak: dbUser.vote_streak || 0,
           weeklyVoteCount: 0,
           weeklyTerritoryBonus: 0,
+          walletAddress: walletAddress, // Add wallet address
         }
     }
 

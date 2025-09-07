@@ -28,7 +28,34 @@ export function useSyncBalanceOnMount() {
       try {
         console.log(`🔄 Auto-syncing balance para usuario ${farcasterUser.fid}`)
         
-        // 1. Actualizar balance en la base de datos via API
+        // 1. First, get user's wallet address from database
+        const userResponse = await fetch(`/api/auth/farcaster?fid=${farcasterUser.fid}`)
+        const userResult = await userResponse.json()
+        
+        if (!userResult.success) {
+          console.warn('⚠️ No se pudo obtener datos del usuario para sync balance')
+          return
+        }
+        
+        // Get wallet address from user data (it might be in wallet_address field)
+        const userData = userResult.data
+        let walletAddress = ''
+        
+        // Check if user has wallet address in database
+        if (userData.walletAddress) {
+          walletAddress = userData.walletAddress
+        } else if (userData.verifiedAddresses && userData.verifiedAddresses.length > 0) {
+          walletAddress = userData.verifiedAddresses[0]
+        }
+        
+        if (!walletAddress) {
+          console.log('⚠️ Usuario no tiene wallet conectada, saltando sync balance')
+          return
+        }
+        
+        console.log(`🔗 Usando wallet address: ${walletAddress}`)
+        
+        // 2. Actualizar balance en la base de datos via API
         const response = await fetch('/api/wallet/sync-balance', {
           method: 'POST',
           headers: {
@@ -36,7 +63,7 @@ export function useSyncBalanceOnMount() {
           },
         body: JSON.stringify({
           userFid: farcasterUser.fid.toString(),
-          walletAddress: '' // Se obtendrá del usuario autenticado en el backend
+          walletAddress: walletAddress
         }),
         })
 
@@ -88,6 +115,32 @@ export function useSyncBalanceOnMount() {
     try {
       console.log(`🔄 Force-syncing balance para usuario ${farcasterUser.fid}`)
       
+      // First, get user's wallet address from database
+      const userResponse = await fetch(`/api/auth/farcaster?fid=${farcasterUser.fid}`)
+      const userResult = await userResponse.json()
+      
+      if (!userResult.success) {
+        console.warn('⚠️ No se pudo obtener datos del usuario para force sync')
+        return
+      }
+      
+      // Get wallet address from user data
+      const userData = userResult.data
+      let walletAddress = ''
+      
+      if (userData.walletAddress) {
+        walletAddress = userData.walletAddress
+      } else if (userData.verifiedAddresses && userData.verifiedAddresses.length > 0) {
+        walletAddress = userData.verifiedAddresses[0]
+      }
+      
+      if (!walletAddress) {
+        console.log('⚠️ Usuario no tiene wallet conectada, saltando force sync')
+        return
+      }
+      
+      console.log(`🔗 Usando wallet address para force sync: ${walletAddress}`)
+      
       const response = await fetch('/api/wallet/sync-balance', {
         method: 'POST',
         headers: {
@@ -95,7 +148,7 @@ export function useSyncBalanceOnMount() {
         },
         body: JSON.stringify({
           userFid: farcasterUser.fid.toString(),
-          walletAddress: '' // Se obtendrá del usuario autenticado en el backend
+          walletAddress: walletAddress
         }),
       })
 

@@ -22,7 +22,7 @@ import { useSyncBalanceOnMount } from '@/hooks/useSyncBalanceOnMount'
 
 export default function WalletPage() {
   const router = useRouter()
-  const { address, isConnected, balance, chainId, isBaseSepoliaNetwork } = useWalletConnection()
+  const { address, isConnected, balance, isLoadingBalance, balanceError, chainId, isBaseSepoliaNetwork } = useWalletConnection()
   const { balance: battleTokens, refreshBalance } = useTokenBalance()
   const { user: farcasterUser } = useFarcasterAuth()
   const { refreshAllBalances } = useBalanceContext()
@@ -462,9 +462,26 @@ export default function WalletPage() {
                     <Coins className="w-4 h-4 text-blue-600" />
                     <span className="text-sm font-medium">ETH</span>
                   </div>
-                  <span className="text-sm font-mono">
-                    Balance deshabilitado para evitar rate limiting
-                  </span>
+                  <div className="text-right">
+                    {isLoadingBalance ? (
+                      <div className="flex items-center space-x-2">
+                        <RefreshCw className="w-3 h-3 animate-spin" />
+                        <span className="text-sm text-gray-500">Cargando...</span>
+                      </div>
+                    ) : balanceError ? (
+                      <span className="text-sm text-red-600">
+                        Error al cargar balance
+                      </span>
+                    ) : balance ? (
+                      <span className="text-sm font-mono">
+                        {parseFloat(balance.formatted).toFixed(4)} {balance.symbol}
+                      </span>
+                    ) : (
+                      <span className="text-sm text-gray-500">
+                        No disponible
+                      </span>
+                    )}
+                  </div>
                 </div>
               )}
 

@@ -14,6 +14,7 @@ export interface User {
   voteStreak: number
   weeklyVoteCount: number
   weeklyTerritoryBonus: number
+  walletAddress?: string
 }
 
 export interface Vendor {
