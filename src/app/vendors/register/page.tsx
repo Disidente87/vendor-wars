@@ -269,8 +269,10 @@ export default function VendorRegistrationPage() {
 
       if (result.success) {
         setSubmitStatus('success')
-        // Refrescar balance en todas las secciones
-        await refreshAllBalances()
+        // Refrescar balance en todas las secciones (con delay para que la transacción se confirme)
+        setTimeout(async () => {
+          await refreshAllBalances()
+        }, 2000)
         setTimeout(() => {
           router.push(`/vendors`)
         }, 2000)
@@ -278,8 +280,10 @@ export default function VendorRegistrationPage() {
         // Si la API falla pero la transacción ya se ejecutó, redirigir de todos modos
         console.log('⚠️ API falló pero redirigiendo a vendors:', result.error)
         setSubmitStatus('success')
-        // Refrescar balance en todas las secciones
-        await refreshAllBalances()
+        // Refrescar balance en todas las secciones (con delay para que la transacción se confirme)
+        setTimeout(async () => {
+          await refreshAllBalances()
+        }, 2000)
         setTimeout(() => {
           router.push('/vendors')
         }, 2000)

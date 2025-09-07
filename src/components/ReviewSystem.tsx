@@ -263,9 +263,11 @@ export function ReviewSystem({ vendorId, vendorName }: ReviewSystemProps) {
         setSuccess(`Review submitted successfully! ${REVIEW_COST_TOKENS} BATTLE tokens have been burned.${txHash ? ` Transaction: ${txHash}` : ''}`)
         setNewReview('')
         
-        // Refrescar balance y reviews
-        await refreshAllBalances()
-        await loadReviews()
+        // Refrescar balance y reviews (con delay para que la transacción se confirme)
+        setTimeout(async () => {
+          await refreshAllBalances()
+          await loadReviews()
+        }, 2000)
       } else {
         setError(result.error || 'Failed to submit review')
       }

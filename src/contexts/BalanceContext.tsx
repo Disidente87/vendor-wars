@@ -49,7 +49,9 @@ export function BalanceProvider({ children }: { children: React.ReactNode }) {
       
       // Disparar evento personalizado para que otros componentes se actualicen
       if (typeof window !== 'undefined') {
+        console.log('🔄 Disparando evento balanceUpdated...')
         window.dispatchEvent(new CustomEvent('balanceUpdated'))
+        console.log('✅ Evento balanceUpdated disparado')
       }
       
       console.log('🔄 Balance actualizado en todas las secciones')

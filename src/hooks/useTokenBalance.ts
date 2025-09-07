@@ -63,8 +63,36 @@ export function useTokenBalance() {
       refreshBalance()
     }
 
-    window.addEventListener('balanceUpdated', handleBalanceUpdate)
-    return () => window.removeEventListener('balanceUpdated', handleBalanceUpdate)
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        console.log('🔄 Usuario regresó a la ventana, actualizando balance...')
+        // Actualizar balance cuando el usuario regresa a la ventana
+        setTimeout(() => {
+          refreshBalance()
+        }, 500) // Pequeño delay para asegurar que la ventana esté completamente activa
+      }
+    }
+
+    const handleFocus = () => {
+      console.log('🔄 Ventana enfocada, actualizando balance...')
+      setTimeout(() => {
+        refreshBalance()
+      }, 500)
+    }
+
+    if (typeof window !== 'undefined') {
+      console.log('🔄 Registrando listeners...')
+      window.addEventListener('balanceUpdated', handleBalanceUpdate)
+      document.addEventListener('visibilitychange', handleVisibilityChange)
+      window.addEventListener('focus', handleFocus)
+      
+      return () => {
+        console.log('🔄 Removiendo listeners...')
+        window.removeEventListener('balanceUpdated', handleBalanceUpdate)
+        document.removeEventListener('visibilitychange', handleVisibilityChange)
+        window.removeEventListener('focus', handleFocus)
+      }
+    }
   }, [refreshBalance])
 
   // Actualizar balance cuando cambie el balance de la blockchain

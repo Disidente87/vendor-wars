@@ -83,8 +83,10 @@ export function VendorWarsExtendedReviewForm({
       setReviewContent('')
       resetState()
       
-      // Refrescar balance en todas las secciones
-      await refreshAllBalances()
+      // Refrescar balance en todas las secciones (con delay para que la transacción se confirme)
+      setTimeout(async () => {
+        await refreshAllBalances()
+      }, 2000)
       
       if (onReviewSubmitted) {
         onReviewSubmitted(result.data?.id || `review_${vendorId}_${userFid}_${Date.now()}`)
