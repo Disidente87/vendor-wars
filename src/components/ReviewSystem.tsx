@@ -58,7 +58,10 @@ const REVIEW_CONTRACT_ABI = [
 
 const BATTLE_TOKEN_ADDRESS = process.env.NEXT_PUBLIC_BATTLE_TOKEN_ADDRESS || '0xDa6884d4F2E68b9700678139B617607560f70Cc3'
 const VENDOR_REGISTRATION_ADDRESS = process.env.NEXT_PUBLIC_VENDOR_REGISTRATION_CONTRACT_ADDRESS || '0x00aBc357C1285D3107624FF0CDBa872f50a8f36a'
-const REVIEW_COST = parseEther('50') // 50 tokens con 18 decimales (using vendor registration contract)
+
+// ⚙️ CONFIGURACIÓN DE TOKENS POR REVIEW - Edita este valor para cambiar la cantidad
+const REVIEW_COST_TOKENS = 15 // Cantidad de BATTLE tokens requeridos por review
+const REVIEW_COST = parseEther(REVIEW_COST_TOKENS.toString()) // Convertir a wei
 
 interface ReviewSystemProps {
   vendorId: string // UUID as string
@@ -127,8 +130,8 @@ export function ReviewSystem({ vendorId, vendorName }: ReviewSystemProps) {
     
     if (address && allowanceData && balanceData) {
       const allowance = Number(formatEther(allowanceData))
-      const hasSufficientBalance = Number(formatEther(balanceData.value)) >= 50
-      const shouldNeedApproval = allowance < 50 && hasSufficientBalance
+      const hasSufficientBalance = Number(formatEther(balanceData.value)) >= REVIEW_COST_TOKENS
+      const shouldNeedApproval = allowance < REVIEW_COST_TOKENS && hasSufficientBalance
       
       console.log('🔍 Approval check:', {
         allowance,
@@ -244,7 +247,7 @@ export function ReviewSystem({ vendorId, vendorName }: ReviewSystemProps) {
           vendorId,
           content: newReview.trim(),
           userAddress: address,
-          paymentAmount: '50',
+          paymentAmount: REVIEW_COST_TOKENS.toString(),
           reviewData,
           ownerFid: farcasterUser.fid
         }),
@@ -255,7 +258,7 @@ export function ReviewSystem({ vendorId, vendorName }: ReviewSystemProps) {
       if (result.success) {
         const txHash = result.data?.transactionHash
         const blockNumber = result.data?.blockNumber
-        setSuccess(`Review submitted successfully! 50 BATTLE tokens have been burned.${txHash ? ` Transaction: ${txHash}` : ''}`)
+        setSuccess(`Review submitted successfully! ${REVIEW_COST_TOKENS} BATTLE tokens have been burned.${txHash ? ` Transaction: ${txHash}` : ''}`)
         setNewReview('')
         
         // Refrescar balance y reviews
@@ -273,7 +276,7 @@ export function ReviewSystem({ vendorId, vendorName }: ReviewSystemProps) {
   }
 
   const balance = balanceData ? Number(formatEther(balanceData.value)) : 0
-  const hasSufficientBalance = balance >= 50
+  const hasSufficientBalance = balance >= REVIEW_COST_TOKENS
 
   if (!isAuthenticated || !farcasterUser) {
     return (
@@ -284,7 +287,7 @@ export function ReviewSystem({ vendorId, vendorName }: ReviewSystemProps) {
           Connect your Farcaster account and wallet to leave a review for {vendorName}
         </p>
         <p className="text-xs text-[#6b5d52]">
-          Cost: 50 BATTLE tokens per review
+          Cost: {REVIEW_COST_TOKENS} BATTLE tokens per review
         </p>
         <div className="mt-4">
           <p className="text-xs text-red-600">
@@ -314,7 +317,7 @@ export function ReviewSystem({ vendorId, vendorName }: ReviewSystemProps) {
             </div>
             <div className="flex items-center space-x-2">
               <span className="text-sm text-[#6b5d52]">Review Cost:</span>
-              <span className="font-semibold text-[#ff6b35]">50 BATTLE</span>
+              <span className="font-semibold text-[#ff6b35]">{REVIEW_COST_TOKENS} BATTLE</span>
             </div>
           </div>
         </div>
@@ -372,7 +375,7 @@ export function ReviewSystem({ vendorId, vendorName }: ReviewSystemProps) {
               ) : (
                 <>
                   <Coins className="w-4 h-4 mr-2" />
-                  Approve 50 BATTLE
+                  Approve {REVIEW_COST_TOKENS} BATTLE
                 </>
               )}
             </Button>
@@ -390,7 +393,7 @@ export function ReviewSystem({ vendorId, vendorName }: ReviewSystemProps) {
               ) : (
                 <>
                   <MessageSquare className="w-4 h-4 mr-2" />
-                  Add Comment (50 BATTLE)
+                  Add Comment ({REVIEW_COST_TOKENS} BATTLE)
                 </>
               )}
             </Button>
@@ -399,7 +402,7 @@ export function ReviewSystem({ vendorId, vendorName }: ReviewSystemProps) {
 
         {!hasSufficientBalance && (
           <p className="text-sm text-red-600 mt-2 text-center">
-            Insufficient BATTLE tokens. You need at least 50 BATTLE to leave a review.
+            Insufficient BATTLE tokens. You need at least {REVIEW_COST_TOKENS} BATTLE to leave a review.
           </p>
         )}
       </div>
