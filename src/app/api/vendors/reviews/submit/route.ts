@@ -9,22 +9,8 @@ import { sendRawTransaction, waitForTransactionReceipt } from 'viem/actions'
 import { getTransactionCount } from 'viem/actions'
 import { PAYMENT_CONFIG } from '@/config/payment'
 import { simulateContract } from 'viem/actions'
-
-// ABI para el contrato VendorRegistration (reutilizamos el mismo contrato)
-const VENDOR_REGISTRATION_ABI = [
-  {
-    inputs: [
-      { name: 'user', type: 'address' },
-      { name: 'amount', type: 'uint256' },
-      { name: 'vendorData', type: 'string' },
-      { name: 'vendorId', type: 'string' }
-    ],
-    name: 'registerVendor',
-    outputs: [{ name: 'success', type: 'bool' }],
-    stateMutability: 'nonpayable',
-    type: 'function'
-  }
-] as const
+import { VENDOR_WARS_EXTENDED_ABI } from '@/contracts/VendorWarsExtendedABI'
+import { vendorWarsExtendedService } from '@/services/vendorWarsExtended'
 
 // ABI para el token BATTLE
 const BATTLE_TOKEN_ABI = [
@@ -67,6 +53,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { success: false, error: `Invalid payment amount. Expected ${expectedAmount} $BATTLE tokens, got ${paymentAmount}` },
         { status: 400 }
+      )
+    }
+
+    // Check if VendorWarsExtended contract is deployed
+    if (PAYMENT_CONFIG.VENDOR_WARS_EXTENDED.ADDRESS === '0x0000000000000000000000000000000000000000') {
+      return NextResponse.json(
+        { success: false, error: 'VendorWarsExtended contract not deployed yet. Please try again later.' },
+        { status: 503 }
       )
     }
 
@@ -146,7 +140,7 @@ export async function POST(request: NextRequest) {
     // Crear cliente Viem
     const publicClient = createPublicClient({
       chain: baseSepolia,
-      transport: http(PAYMENT_CONFIG.VENDOR_REGISTRATION.NETWORK.RPC_URL)
+      transport: http(PAYMENT_CONFIG.VENDOR_WARS_EXTENDED.NETWORK.RPC_URL)
     })
     
     // Preparar datos de la transacción
@@ -187,7 +181,7 @@ export async function POST(request: NextRequest) {
         address: PAYMENT_CONFIG.BATTLE_TOKEN.ADDRESS as `0x${string}`,
         abi: BATTLE_TOKEN_ABI,
         functionName: 'allowance',
-        args: [userAddress as `0x${string}`, PAYMENT_CONFIG.VENDOR_REGISTRATION.ADDRESS as `0x${string}`]
+        args: [userAddress as `0x${string}`, PAYMENT_CONFIG.VENDOR_WARS_EXTENDED.ADDRESS as `0x${string}`]
       })
       
       console.log('🔍 Allowance del usuario:', allowanceData.toString())
@@ -197,7 +191,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json(
           { 
             success: false, 
-            error: 'Insufficient token allowance. Please approve 50 BATTLE tokens first.',
+            error: `Insufficient token allowance. Please approve ${PAYMENT_CONFIG.BATTLE_TOKEN.REVIEW_COST} BATTLE tokens first.`,
             details: `Current allowance: ${allowanceData.toString()}, Required: ${amountInWei.toString()}`
           },
           { status: 400 }
@@ -228,9 +222,9 @@ export async function POST(request: NextRequest) {
     console.log('🔍 Simulando transacción...')
     try {
       await simulateContract(publicClient, {
-        address: PAYMENT_CONFIG.VENDOR_REGISTRATION.ADDRESS as `0x${string}`,
-        abi: VENDOR_REGISTRATION_ABI,
-        functionName: 'registerVendor',
+        address: PAYMENT_CONFIG.VENDOR_WARS_EXTENDED.ADDRESS as `0x${string}`,
+        abi: VENDOR_WARS_EXTENDED_ABI,
+        functionName: 'submitReview',
         args: [userAddress as `0x${string}`, amountInWei, reviewDataForBlockchain, uniqueReviewId],
         account: walletAddress as `0x${string}`
       })
@@ -265,15 +259,15 @@ export async function POST(request: NextRequest) {
     console.log('🔍 Unique review ID:', uniqueReviewId)
     
     const transactionData = encodeFunctionData({
-      abi: VENDOR_REGISTRATION_ABI,
-      functionName: 'registerVendor',
+      abi: VENDOR_WARS_EXTENDED_ABI,
+      functionName: 'submitReview',
       args: [userAddress as `0x${string}`, amountInWei, reviewDataForBlockchain, uniqueReviewId]
     })
     
     console.log('🔍 Transaction data length:', transactionData.length)
     
     const transaction = {
-      to: PAYMENT_CONFIG.VENDOR_REGISTRATION.ADDRESS as `0x${string}`,
+      to: PAYMENT_CONFIG.VENDOR_WARS_EXTENDED.ADDRESS as `0x${string}`,
       data: transactionData,
       gas: 1000000n,
       maxFeePerGas: 500000000n, // 0.5 Gwei

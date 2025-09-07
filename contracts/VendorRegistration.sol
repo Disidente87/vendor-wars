@@ -57,6 +57,12 @@ contract VendorRegistration is IVendorRegistration, Ownable, ReentrancyGuard, Pa
     /// @dev Mapping de vendorId a si ya existe
     mapping(string => bool) private _vendorExists;
     
+    /// @dev Mapping de usuario a contador diario de operaciones (rate limiting genérico)
+    mapping(address => mapping(uint256 => uint256)) private _dailyOperationCount;
+    
+    /// @dev Mapping de usuario a contador semanal de operaciones (rate limiting genérico)
+    mapping(address => mapping(uint256 => uint256)) private _weeklyOperationCount;
+    
     // ============ STRUCTS ============
     
     /**
@@ -67,6 +73,12 @@ contract VendorRegistration is IVendorRegistration, Ownable, ReentrancyGuard, Pa
         uint256 amount;         // Cantidad de tokens quemados
         uint256 timestamp;      // Timestamp del registro
         string vendorData;      // Datos del vendor (nombre, descripción, etc.)
+        string zoneId;          // ID de la zona donde opera
+        bool isVerified;        // Si el vendor está verificado
+        address verifier;       // Quien verificó el vendor
+        uint256 verificationTime; // Timestamp de verificación
+        uint256 totalVotes;     // Total de votos recibidos
+        uint256 territoryScore; // Puntuación en territorio
         bool exists;            // Si el vendor existe
     }
     
@@ -394,6 +406,12 @@ contract VendorRegistration is IVendorRegistration, Ownable, ReentrancyGuard, Pa
             amount: amount,
             timestamp: block.timestamp,
             vendorData: vendorData,
+            zoneId: "",
+            isVerified: false,
+            verifier: address(0),
+            verificationTime: 0,
+            totalVotes: 0,
+            territoryScore: 0,
             exists: true
         });
         
@@ -428,6 +446,18 @@ contract VendorRegistration is IVendorRegistration, Ownable, ReentrancyGuard, Pa
      */
     function _getCurrentWeek() internal view returns (uint256) {
         return block.timestamp - (block.timestamp % 7 days);
+    }
+    
+    /**
+     * @dev Función interna para actualizar contadores de operaciones genéricas
+     * @param user Dirección del usuario
+     */
+    function _updateGenericOperationCounters(address user) internal {
+        uint256 currentDay = _getCurrentDay();
+        uint256 currentWeek = _getCurrentWeek();
+        
+        _dailyOperationCount[user][currentDay]++;
+        _weeklyOperationCount[user][currentWeek]++;
     }
     
     // ============ ADMIN FUNCTIONS ============

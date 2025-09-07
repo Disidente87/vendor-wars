@@ -8,12 +8,23 @@ export const PAYMENT_CONFIG = {
     NAME: 'Battle Token',
     DECIMALS: 18,
     REQUIRED_AMOUNT: 50, // 50 $BATTLE tokens for vendor registration
-    REVIEW_COST: 50, // 50 $BATTLE tokens for reviews (using vendor registration contract)
+    REVIEW_COST: 15, // 15 $BATTLE tokens for reviews (using VendorWarsExtended contract)
   },
 
-  // Contrato VendorRegistration
+  // Contrato VendorRegistration (legacy)
   VENDOR_REGISTRATION: {
     ADDRESS: process.env.NEXT_PUBLIC_VENDOR_REGISTRATION_CONTRACT_ADDRESS || '0x00aBc357C1285D3107624FF0CDBa872f50a8f36a',
+    NETWORK: {
+      CHAIN_ID: 84532, // Base Sepolia
+      NAME: 'Base Sepolia',
+      RPC_URL: 'https://sepolia.base.org',
+      EXPLORER: 'https://sepolia.basescan.org',
+    },
+  },
+
+  // Contrato VendorWarsExtended (nuevo)
+  VENDOR_WARS_EXTENDED: {
+    ADDRESS: process.env.NEXT_PUBLIC_VENDOR_WARS_EXTENDED_CONTRACT_ADDRESS || '0x71a602d04f1aFe473C7557e72e6d6C26cBa2fA75',
     NETWORK: {
       CHAIN_ID: 84532, // Base Sepolia
       NAME: 'Base Sepolia',
@@ -87,6 +98,7 @@ export const PAYMENT_CONFIG = {
     PAYMENT_VERIFICATION: '/api/vendors/verify-payment',
     PAYMENT_HISTORY: '/api/vendors/payment-history',
     PAYMENT_STATS: '/api/vendors/payment-stats',
+    REVIEW_SUBMIT: '/api/vendors/reviews/submit',
   },
 } as const
 
